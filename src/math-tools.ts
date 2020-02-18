@@ -40,7 +40,7 @@ function isTextString(node: Node): node is TextString {
 
 function collapseGroup(group: Group, context: any): TextString {
     if (isTextString(group)) return group;
-    if (!isGroup(group)) throw new Error("illegal arg passed to collapser");
+    if (!isGroup(group)) throw new Error("illegal arg passed to collapser: " + (group as any).kind);
     return {
         kind: "text.string",
         content: condenseSiblings(group.content, context).filter(sib => sib.kind === 'text.string').map(sib => (sib as TextString).content).join(''),
@@ -160,6 +160,10 @@ function functionsFromContext(context: any): {[key: string]: string} {
     return Object.values(context).filter(g => typeof g === 'function').reduce((acc: any, c: any) => {acc[c.syntax] = c.original.substring(c.syntax.length + 1); return acc;},{}) as any;
 }
 
+function flattenContentForEvaluation(content: Node[], context: string) {
+    return replaceFunctionReferencesWithLiterals(astToExpressionTree(content, context), context);
+}
+
 /**
  * Determines if a fraction is a derivative directive, returning the variable to derive using if so
  * @param numerator frac numerator
@@ -196,11 +200,9 @@ class Commands {
         let [,,subscript,,superscript,...content] = siblings.slice(index);
         subscript = collapseGroup(subscript as Group, context);
         superscript = collapseGroup(superscript as Group, context);
-        let strContent = astToExpressionTree(content, context);
+        let strContent = flattenContentForEvaluation(content, context);
         const definite = subscript.content.length > 0 && superscript.content.length > 0;
 
-        strContent = replaceFunctionReferencesWithLiterals(strContent, context);
-        
         let result = Algebrite.integral(strContent).toString();
         const subst = (value: string) => Algebrite.subst(`(${value})`, 'x', result);
 
@@ -210,7 +212,6 @@ class Commands {
         }
         
         siblings.splice(index, siblings.length - 1);
-        siblings[index] = text(result);
 
         return result;
     }
@@ -238,6 +239,33 @@ class Commands {
     @command()
     static pi(args: Content[]) {
         return `pi`;
+    }
+
+    @command()
+    static sum(_: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+        const [,,start,,stop,...content] = siblings.slice(index) as Group[];
+        const {content: startStr} = collapseGroup(start, context);
+        const {content: stopIdx} = collapseGroup(stop, context);
+        const contentStr = flattenContentForEvaluation(content, context);
+        const [variable, startIdx] = startStr.split('=');
+
+        const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
+
+        console.debug(`glenoxi, we sum`, {
+            start,
+            stop,
+            content,
+            startStr,
+            stopIdx,
+            contentStr,
+            variable,
+            startIdx,
+            result
+        });
+
+        siblings.splice(index, siblings.length - 1);
+
+        return result;
     }
 
     @command()

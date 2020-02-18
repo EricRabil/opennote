@@ -10,6 +10,7 @@ declare module "algebrite" {
         export function integral(arg: Arg): Result;
         export function subst(a: string, b: string, c: Arg): Result;
         export function derivative(func: string, x: string | string[]): Result;
+        export function sum(func: string, i: string, start: string, stop: string): Result;
     }
     export = Algebrite;
 }
