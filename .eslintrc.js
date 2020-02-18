@@ -17,7 +17,8 @@ module.exports = {
     'no-inner-declarations': 'off',
     'no-case-declarations': 'off',
     'no-dupe-class-members': 'off',
-    'no-fallthrough': 'off'
+    'no-fallthrough': 'off',
+    'no-useless-escape': 'off'
   },
   parserOptions: {
     parser: '@typescript-eslint/parser'
