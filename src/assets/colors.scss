@@ -1,0 +1,140 @@
+$lightMap: (
+    "bg": white,
+    "bgAlt": darken(white, 2),
+    "bgAlt0": darken(white, 4),
+    "bg0": rgba(0,0,0,0.05),
+    "bg1": rgba(0,0,0,0.1),
+    "bg2": rgba(0,0,0,0.15),
+    "bg3": rgba(0,0,0,0.2),
+    "bg4": rgba(0,0,0,0.5),
+    "fg1": #333,
+    "text": black,
+    "border": 1px solid darken(white, 10),
+    "borderAlt": 1px solid black,
+    "border1": 1px solid darken(white, 20),
+    "shadow-bottom": 0px -3px 15px 5px rgba(0, 0, 0, 0.25),
+    "ce-block--focused": linear-gradient(17deg,rgba(243,248,255,.03) 63.45%,rgba(207,214,229,.27) 98%)
+);
+
+$darkMap: (
+    "bg": black,
+    "bgAlt": lighten(black, 2),
+    "bgAlt0": lighten(black, 4),
+    "bg0": rgba(255,255,255,0.05),
+    "bg1": rgba(255,255,255,0.1),
+    "bg2": rgba(255,255,255,0.15),
+    "bg3": rgba(255,255,255,0.2),
+    "bg4": rgba(255,255,255,0.5),
+    "fg1": #CCC,
+    "text": white,
+    "border": 1px solid lighten(black, 10),
+    "borderAlt": 1px solid white,
+    "border1": 1px solid lighten(black, 20),
+    "shadow-bottom": 0px -3px 15px 5px rgba(3, 2, 2, 0.95),
+    "ce-block--focused": linear-gradient(17deg,rgba(0, 0, 0, 0.03) 63.45%,rgba(89, 92, 97, 0.068) 98%)
+);
+
+@mixin schemeResponsive($prop, $key, $default: 0) {
+    $light: map-get($lightMap, $key);
+    $dark: map-get($darkMap, $key);
+
+    @if $default == 0 {
+        $default: $light;
+    } @else {
+        $default: $dark;
+    }
+
+    #{$prop}: $default;
+
+    @media (prefers-color-scheme: dark) {
+        #{$prop}: $dark;
+    }
+
+    @media (prefers-color-scheme: light) {
+        #{$prop}: $light;
+    }
+}
+
+@mixin bgSchemeResponsive($key, $default: 0) {
+    @include schemeResponsive("background", $key, $default);
+}
+
+@mixin textSchemeResponsive($key, $default: 0) {
+    @include schemeResponsive("color", $key, $default);
+}
+
+@mixin fillSchemeResponsive($key, $default: 0) {
+    @include schemeResponsive("fill", $key, $default);
+}
+
+%bg {
+    @include bgSchemeResponsive("bg");
+}
+
+%bgAlt {
+    @include bgSchemeResponsive("bgAlt");
+}
+
+%bgAlt0 {
+    @include bgSchemeResponsive("bgAlt0");
+}
+
+%bg0 {
+    @include bgSchemeResponsive("bg0");
+}
+
+%bg1 {
+    @include bgSchemeResponsive("bg1");
+}
+
+%bg2 {
+    @include bgSchemeResponsive("bg2");
+}
+
+%bg3 {
+    @include bgSchemeResponsive("bg3");
+}
+
+%bg4 {
+    @include bgSchemeResponsive("bg4");
+}
+
+%fg1 {
+    @include bgSchemeResponsive("fg1");
+}
+
+%text {
+    @include textSchemeResponsive("text");
+}
+
+%textAlt {
+    @include textSchemeResponsive("fg1");
+}
+
+%fill {
+    @include fillSchemeResponsive("fg1");
+}
+
+%border {
+    @include schemeResponsive("border", "border");
+}
+
+%border1 {
+    @include schemeResponsive("border", "border1");
+}
+
+%borderRight {
+    @include schemeResponsive("border-right", "border");
+}
+
+%borderBottom {
+    @include schemeResponsive("border-bottom", "border");
+}
+
+%borderLeft {
+    @include schemeResponsive("border-left", "border");
+}
+
+%borderLeftAlt {
+    @include schemeResponsive("border-left", "borderAlt");
+}

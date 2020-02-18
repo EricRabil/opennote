@@ -1,0 +1,503 @@
+<template>
+    <div :class="{'codex-mq-root': true, 'codex-mq-focused': isFocused}">
+        <div :class="{'mq-editable-field': true, 'mq-math-mode': true, 'border-top': borderBottom !== 'mq', border: borderBottom === 'mq'}" ref="mqMount" @focusin='focused' @focusout='unfocused'></div>
+        <div :class="{'mq-result-bar': true, 'text-right': true, 'border-bottom': borderBottom === 'error'}" v-show="error !== null">
+            {{error}}
+        </div>
+        <template v-show="error === null">
+            <div :class="{'mq-result-bar': true, 'border-bottom': borderBottom === 'result'}" v-show="result !== null">
+                <FractionSVG @click='toggleRenderFormat()' v-if="renderFormat === 'dec'" />
+                <DecimalSVG @click='toggleRenderFormat()' v-else />
+                <span class="mq-result-view" ref="mqResult">
+                </span>
+            </div>
+            <div :class="{'mq-result-bar': true, 'border-bottom': borderBottom === 'fnBar'}" v-if="resultFn !== null">
+                <GraphSVG @click='toggleGraph()' />
+            </div>
+            <div :class="{'border-bottom': borderBottom === 'graph'}" ref="graph" v-show="showGraph">
+
+            </div>
+        </template>
+        <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latex">
+        </mq-paste-data>
+    </div>
+</template>
+
+<script lang="ts">
+import { Component, Vue, Prop } from "vue-property-decorator";
+import * as mathjs from "mathjs";
+import { astToExpressionTree } from '@/math-tools';
+import * as utensils from "latex-utensils";
+
+import FractionSVG from "@/assets/frac.svg?inline";
+import DecimalSVG from "@/assets/decimal.svg?inline";
+import GraphSVG from "@/assets/graph.svg?inline";
+
+import plot from "function-plot/lib/index.js";
+import { SanitizerConfig } from '@editorjs/editorjs';
+
+type TypeWithGeneric<T> = Partial<T>;
+type extractGeneric<Type> = Type extends TypeWithGeneric<infer X> ? X : never
+
+const math: mathjs.MathJsStatic = mathjs.create(mathjs.all, {}) as any;
+math.import(require("mathjs-simple-integral"), {});
+(window as any).math = math;
+
+declare const d3: any;
+
+function attachProto(obj: any, proto: any) {
+    const objKeys = Object.keys(obj);
+    Object.keys(proto).filter(k => !objKeys.includes(k)).forEach(key => {
+        obj[key] = proto[key];
+    });
+}
+
+let passiveSupported = false;
+
+try {
+  const options = {
+    get passive() { // This function will be called when the browser
+                    //   attempts to access the passive property.
+      passiveSupported = true;
+      return false;
+    }
+  };
+
+  window.addEventListener("test" as any, null!, options);
+  window.removeEventListener("test" as any, null!);
+} catch(err) {
+  passiveSupported = false;
+}
+
+const PASTE_DATA_TAG = 'mq-paste-data';
+
+Vue.config.ignoredElements.push(PASTE_DATA_TAG);
+
+@Component({
+    components: {
+        FractionSVG,
+        DecimalSVG,
+        GraphSVG
+    }
+})
+export default class MathQuillComponent extends Vue {
+    renderFormat: 'dec' | 'frac' = 'dec';
+    isFocused: boolean = false;
+    latex: string | null = null;
+    lastScope: any = {};
+    resultFn: Function | null = null;
+    result: string | null = null;
+    showGraph: boolean = false;
+    chart: ReturnType<typeof plot> | null = null;
+    error: string | null = null;
+
+    @Prop()
+    savedData: {
+        latex: string | null;
+        renderFormat: 'dec' | 'frac';
+        showGraph: boolean;
+    }
+
+    $refs: {
+        mqMount: HTMLDivElement;
+        mqResult: HTMLSpanElement;
+        graph: HTMLDivElement;
+    };
+
+    mathField: MathQuill.MathField;
+    resultView: MathQuill.StaticMath;
+
+    mounted() {
+        this.mathField = new MathQuill.MathField(this.$refs.mqMount, {
+            handlers: {
+                edit: (field) => {
+                    this.latex = field.latex();
+                    this.updateQuills();
+                },
+                upOutOf: () => this.$emit('upOutOf'),
+                downOutOf: () => this.$emit('downOutOf'),
+                moveOutOf: (dir, field) => {
+                    if (dir == '1') {
+                        // move right
+                        this.$emit('navigateNext');
+                    } else {
+                        // move left
+                        this.$emit('navigatePrevious');
+                    }
+                },
+                enter: (field) => {
+                    this.$emit('insert');
+                }
+            },
+            autoCommands: "int pi sqrt"
+        });
+
+        this.resultView = new MathQuill.StaticMath(this.$refs.mqResult);
+
+        Object.keys(this.savedData).forEach((key) => {
+            Vue.set(this, key, (this.savedData as any)[key]);
+        });
+
+        this.mathField.write(this.latex || '');
+
+        this.$on('preload', () => {
+            this.$emit('setIgnoreBackspace', () => (this.latex || '').length > 0);
+            this.$emit('setIsEmpty', () => (this.latex || '').length === 0);
+            this.$emit('setIsAtStart', () => this.mqRootBlock.firstElementChild && this.mqRootBlock.firstElementChild.classList.contains('mq-cursor'));
+            this.$emit('setIsAtEnd', () => this.mqRootBlock.lastElementChild && this.mqRootBlock.lastElementChild.classList.contains('mq-cursor'));
+            this.$emit('setSave', () => ({latex: this.latex, renderFormat: this.renderFormat, showGraph: this.showGraph}));
+            this.$emit('setPasteConfig', {tags: [PASTE_DATA_TAG]});
+
+            this.$emit('ready');
+        });
+
+        this.$on('updateQuills', () => this.updateQuills());
+        this.$on('moved', () => this.updateQuills());
+
+        this.$on('parsePaste', (e: CustomEvent) => {
+            const data: HTMLElement = e.detail.data;
+            const renderFormat = data.getAttribute('renderFormat');
+            const latex = data.getAttribute('latex');
+            const showGraph = data.getAttribute('showGraph');
+
+            console.debug('pasted', {
+                renderFormat,
+                latex,
+                showGraph
+            });
+
+            this.mathField.write(latex || '');
+            this.updateQuills().then(() => {
+                this.renderFormat = (renderFormat as any) || this.renderFormat;
+                this.showGraph = Boolean(showGraph);
+            });
+        });
+
+        this.$watch('renderFormat', () => {
+            if (!this.result) return;
+            this.updateResultView(this.result);
+        });
+
+        this.$watch('result', (result) => {
+            this.updateResultView(result);
+        });
+
+        this.$watch('resultFn', (resultFn) => {
+            if (!resultFn) return this.removeGraph();
+            if (!this.showGraph) return;
+            this.updateGraph();
+        });
+
+        this.$watch('showGraph', (showGraph: boolean) => {
+            if (showGraph) {
+                this.updateGraph();
+            } else {
+                this.removeGraph();
+            }
+        });
+    }
+    
+    destroyed() {
+        console.log('bye');
+    }
+
+    get mqRootBlock(): HTMLSpanElement {
+        return this.$refs.mqMount.querySelector('.mq-root-block') as any;
+    }
+
+    /**
+     * Returns true if block has focused class
+     */
+    get isActive() {
+        try {
+            return this.$el.parentElement!.parentElement!.classList.contains('ce-block--focused');
+        } catch {
+            return false;
+        }
+    }
+
+    get borderBottom() {
+        if (this.result !== null) return 'result';
+        else if (this.showGraph && this.chart !== null) return 'graph';
+        else if (this.resultFn !== null) return 'fnBar';
+        else if (this.error !== null) return 'error';
+        else return 'mq';
+    }
+
+    /**
+     * Converts latex to math and returns it
+     */
+    get math() {
+        if (!this.latex) return null;
+        const parsed = utensils.latexParser.parse(this.latex);
+        const expression = astToExpressionTree(parsed.content);
+        console.debug(`math expression from latex`, {
+            latex: this.latex,
+            expression,
+            parsed
+        });
+        return expression.toString();
+    }
+
+    /**
+     * Quill was focused.
+     */
+    focused() {
+        this.isFocused = true;
+        this.$emit('hidePlusButton');
+        this.$emit('showToolbar');
+    }
+
+    /**
+     * Quill was unfocused.
+     */
+    unfocused() {
+        this.isFocused = false;
+        if (this.isActive) return;
+        this.$emit('showToolbar');
+    }
+
+    /**
+     * Updates quills in their DOM order
+     */
+    async updateQuills() {
+        const components = await this.components();
+        const scope = {};
+        components.forEach(c => c.calc(scope));
+    }
+
+    removeGraph() {
+        if (!this.chart) return;
+
+        this.chart.root.remove();
+        this.chart = null;
+    }
+
+    updateGraph() {
+        if (!this.resultFn) return;
+        if (this.chart) this.removeGraph();
+
+        this.chart = plot({
+            target: this.$refs.graph,
+            tip: {
+                xLine: true,
+                yLine: true,
+                renderer: (x, y) => `(${x}, ${y})`
+            },
+            data: [
+                {
+                    fn: 'fn',
+                    scope: {
+                        fn: this.resultFn
+                    },
+                    nSamples: 1000,
+                    sampler: 'mathjs',
+                    graphType: 'polyline'
+                }
+            ],
+            width: this.$refs.mqMount.clientWidth
+        });
+
+        this.fixChart();
+    }
+
+    /**
+     * Fixes inconsistencies in the function-plot chart object
+     */
+    fixChart() {
+        if (!this.chart) return;
+        const options = this.chart.options;
+        const prototype = d3.select(options.target).selectAll('svg')
+            .data([options]).__proto__;
+        attachProto(this.chart!.root, prototype);
+        attachProto(this.chart!.canvas, prototype);
+        Object.defineProperty(this.chart, 'content', {
+            get() {
+                return this._content;
+            },
+            set(content) {
+                attachProto(content, prototype);
+                this._content = content;
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Calculates the result of this quill using the given scope
+     */
+    calc(scope: any) {
+        this.lastScope = Object.assign({}, scope);
+        this.error = null;
+
+        let result, mathStr = this.math;
+
+        if (!mathStr) return this.result = null;
+
+        try {
+            const compiled = math.parse(mathStr).compile();
+            result = compiled.evaluate(scope);
+        } catch (e) {
+            console.debug(`error while creating math`, e);
+        } finally {
+            if (typeof result !== 'function') this.resultFn = null;
+            if (typeof result === 'function' || typeof result === 'undefined') {
+                if (typeof result === 'function') {
+                    try {
+                        result(0);
+                    } catch (e) {
+                        this.error = e.message;
+                        result = null;
+                    }
+                    this.resultFn = result;
+                }
+                result = null;
+            }
+        }
+
+        this.result = result;
+
+        return result;
+    }
+
+    toggleGraph() {
+        this.showGraph = !this.showGraph;
+    }
+
+    updateResultView(result: any) {
+        switch (this.renderFormat) {
+            case 'frac':
+                var frac = this.fraction(result);
+                if (frac) {
+                    this.resultView.latex(frac);
+                    break;
+                }
+            case 'dec':
+            default:
+                result = math.simplify(result);
+                if (typeof result.toLatex === "function") result = result.toLatex();
+                if (typeof result.toTex === "function") result = result.toTex();
+                console.log(result);
+                this.resultView.latex(result);
+                break;
+        }
+    }
+
+    /**
+     * Returns a fraction representation
+     */
+    fraction(result: string) {
+        try {
+            return (math.fraction(result) as any).toLatex();
+        } catch {
+            return null;
+        }
+    }
+
+    toggleRenderFormat() {
+        this.renderFormat = this.renderFormat === 'dec' ? 'frac' : 'dec';
+    }
+
+    /**
+     * Gets all Vue components of this tool from the Editor layer
+     */
+    components(): Promise<MathQuillComponent[]> {
+        return new Promise((resolve) => this.$emit('get:components', resolve));
+    }
+}
+</script>
+
+<style lang="scss">
+.codex-mq-root {
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    transition: border 0.5s linear;
+    padding: 10px 0;
+
+    .border-bottom {
+        border-radius: 0 0 5px 5px !important;
+
+        svg {
+            border-radius: 0 0 5px 5px !important;
+        }
+    }
+
+    .border-top {
+        border-radius: 5px 5px 0 0 !important;
+    }
+
+    .border {
+        border-radius: 5px !important;
+    }
+
+    .mq-editable-field {
+        @extend %bg1;
+        border: none;
+        padding: 10px;
+
+        &.mq-focused {
+            box-shadow: none !important;
+        }
+
+        .mq-root-block .mq-cursor {
+            @extend %borderLeftAlt;
+        }
+    }
+
+    svg.function-plot {
+        @extend %bg3;
+        width: 100%;
+    }
+
+    .mq-result-bar {
+        @extend %bg2;
+        font-family: Symbola,"Times New Roman",serif;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        height: 36px;
+
+        &.text-right {
+            flex-flow: row-reverse;
+            padding-right: 10px;
+        }
+
+        & > svg {
+            max-height: 24px;
+            width: 24px;
+            transition: fill 0.125s linear;
+            cursor: pointer;
+            margin: 10px;
+
+            &:hover {
+                @extend %fill;
+            }
+        }
+
+        & > .mq-result-view {
+            text-align: right;
+            flex-grow: 1;
+            display: flex;
+            flex-flow: row-reverse;
+            align-items: center;
+            margin-right: 10px;
+
+            & > .mq-root-block {
+                width: min-content !important;
+                font-size: 60% !important;
+            }
+
+            &:not(.mq-math-mode) {
+                &::after {
+                    margin-right: 5px;
+                }
+            }
+
+            &::after {
+                content: '= ';
+            }
+        }
+    }
+}
+</style>
