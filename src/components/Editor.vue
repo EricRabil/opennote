@@ -264,6 +264,9 @@ export default class Editor extends Vue {
 
 <style lang="scss">
 .editor-container {
+  @extend %border1;
+  border-top: 0;
+  border-bottom: 0;
   width: 850px;
   margin: 0 auto;
   padding: 10px 0;
@@ -273,6 +276,10 @@ export default class Editor extends Vue {
 
   .codex-editor {
     z-index: -5;
+
+    .codex-editor__redactor {
+      height: 100vh;
+    }
   }
 }
 
