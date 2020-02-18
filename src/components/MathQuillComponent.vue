@@ -26,7 +26,6 @@
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
 import * as mathjs from "mathjs";
-import { astToExpressionTree } from '@/math-tools';
 import * as utensils from "latex-utensils";
 
 import FractionSVG from "@/assets/frac.svg?inline";
@@ -72,6 +71,54 @@ try {
 const PASTE_DATA_TAG = 'mq-paste-data';
 
 Vue.config.ignoredElements.push(PASTE_DATA_TAG);
+
+function functionsFromContext(context: any): {[key: string]: string} {
+    return Object.values(context).filter(g => typeof g === 'function').reduce((acc: any, c: any) => {acc[c.syntax] = c.original.substring(c.syntax.length + 1); return acc;},{}) as any;
+}
+
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+const pending: {
+    [nonce: string]: Function;
+} = {};
+
+function onmessage(event: MessageEvent) {
+    const { nonce, result } = event.data;
+    const { [nonce]: resolve } = pending;
+    if (!resolve) {
+        console.debug(`unknown nonce from worker response`, {
+            event,
+            data: event.data,
+            nonce,
+            result,
+            pending
+        });
+        return;
+    }
+    resolve(result);
+}
+
+function runAlgebraOnWorker(content: any, context: any): Promise<string> {
+    const worker = (window as any).AlgebraWorker;
+    if (worker.onmessage === null) {
+        worker.onmessage = onmessage;
+    }
+    return new Promise((resolve, reject) => {
+        const functions = functionsFromContext(context);
+        const nonce = uuidv4();
+        pending[nonce] = resolve;
+        worker.postMessage({
+            evaluate: content,
+            functions,
+            nonce
+        });
+    });
+}
 
 @Component({
     components: {
@@ -227,10 +274,11 @@ export default class MathQuillComponent extends Vue {
     /**
      * Converts latex to math and returns it
      */
-    get math() {
+    async math() {
         if (!this.latex) return null;
+        console.log(this);
         const parsed = utensils.latexParser.parse(this.latex);
-        const expression = astToExpressionTree(parsed.content, this.lastScope);
+        const expression = await runAlgebraOnWorker(parsed.content, this.lastScope);
         console.debug(`math expression from latex`, {
             latex: this.latex,
             expression,
@@ -263,7 +311,9 @@ export default class MathQuillComponent extends Vue {
     async updateQuills() {
         const components = await this.components();
         const scope = {};
-        components.forEach(c => c.calc(scope));
+        for (let c of components) {
+            await c.calc(scope);
+        }
     }
 
     removeGraph() {
@@ -326,11 +376,11 @@ export default class MathQuillComponent extends Vue {
     /**
      * Calculates the result of this quill using the given scope
      */
-    calc(scope: any) {
+    async calc(scope: any) {
         this.lastScope = Object.assign({}, scope);
         this.error = null;
 
-        let result, mathStr = this.math;
+        let result, mathStr = await this.math();
 
         if (!mathStr) return this.result = null;
 
@@ -338,8 +388,12 @@ export default class MathQuillComponent extends Vue {
             const compiled = math.parse(mathStr).compile();
             result = compiled.evaluate(scope);
         } catch (e) {
-            console.debug(`error while creating math`, e);
             result = mathStr;
+            console.debug(`couldn't evaluate math, treating it as an expression`, {
+                scope,
+                result,
+                error: e
+            });
         } finally {
             if (typeof result !== 'function') this.resultFn = null;
             if (typeof result === 'function' || typeof result === 'undefined') {

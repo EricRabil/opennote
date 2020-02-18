@@ -1,7 +1,10 @@
 import Algebrite from "algebrite";
+import nerdamer from "nerdamer";
+require('nerdamer/Calculus.js');
 import utensils from "latex-utensils";
 import { TextString, Group, Node } from 'latex-utensils/out/src/latex/latex_parser';
-import * as math from 'mathjs';
+
+(globalThis).nerdamer = nerdamer;
 
 const fakePos = {
     column: NaN,
@@ -38,17 +41,17 @@ function isTextString(node: Node): node is TextString {
     return node.kind === "text.string";
 }
 
-function collapseGroup(group: Group, context: any): TextString {
+async function collapseGroup(group: Group, context: any): Promise<TextString> {
     if (isTextString(group)) return group;
     if (!isGroup(group)) throw new Error("illegal arg passed to collapser: " + (group as any).kind);
     return {
         kind: "text.string",
-        content: condenseSiblings(group.content, context).filter(sib => sib.kind === 'text.string').map(sib => (sib as TextString).content).join(''),
+        content: (await condenseSiblings(group.content, context)).filter(sib => sib.kind === 'text.string').map(sib => (sib as TextString).content).join(''),
         location: fakeLocation
     }
 }
 
-function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): utensils.latexParser.Node[] {
+async function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): Promise<utensils.latexParser.Node[]> {
     // console.debug(`condensing siblings`, siblings);
     for (let i = 0; i < siblings.length; i++) {
         let item = siblings[i];
@@ -76,7 +79,7 @@ function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): 
                  */
                 siblings[i] = {
                     kind: "text.string",
-                    content: command(item.args, siblings, i, context),
+                    content: await command(item.args, siblings, i, context),
                     ['wasCommand' as any]: true,
                     location: fakeLocation
                 };
@@ -94,15 +97,11 @@ function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): 
                     /**
                      * Adds implicit parenthesis for single-argument function calls
                      */
-                    const { content: flat } = collapseGroup(group(siblings.slice(i, i + 3)), context);
-                    const functions = functionsFromContext(context);
-                    const isFunc = !!functions[flat];
+                    const { content: flat } = await collapseGroup(group(siblings.slice(i, i + 3)), context);
+                    const isFunc = !!context[flat];
                     if (isFunc) {
                         // if this is a contextual function call, just replace the contents with the value of the function :3
                         siblings.splice(i, 3, text(`(${flat})`));
-                    } else {
-                        siblings.splice(i, 0, text('('));
-                        siblings.splice(i + 2, 0, text(')'));
                     }
                 }
                 break;
@@ -112,19 +111,19 @@ function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): 
     }
 
     // collapse groups into text strings after parsing
-    siblings = siblings.map(sib => {
+    siblings = await Promise.all(siblings.map(sib => {
         if (sib.kind === 'arg.group') {
             return collapseGroup(sib, context);
         }
         return sib;
-    });
+    }) as any);
     
     return siblings;
 }
 
-export function astToExpressionTree(siblings: utensils.latexParser.Node[], context: any): string {
+export async function astToExpressionTree(siblings: utensils.latexParser.Node[], context: any): Promise<string> {
     siblings = siblings.filter(sib => sib.kind === 'command' ? (sib.name !== 'left' && sib.name !== 'right') : true);
-    siblings = condenseSiblings(siblings, context);
+    siblings = await condenseSiblings(siblings, context);
     return siblings.filter(sib => sib.kind === 'text.string').map(sib => (sib as TextString).content).join('');
 }
 
@@ -141,8 +140,7 @@ function command(...aliases: string[]): any {
  * @param str math expression
  * @param context math context
  */
-function replaceFunctionReferencesWithLiterals(str: string, context: any) {
-    const functions = functionsFromContext(context);
+function replaceFunctionReferencesWithLiterals(str: string, functions: any) {
     Object.keys(functions).forEach(fn => {
         while(str.includes(fn)) {
             console.log(fn);
@@ -152,16 +150,8 @@ function replaceFunctionReferencesWithLiterals(str: string, context: any) {
     return str;
 }
 
-/**
- * Returns a map of function signatures to their expression
- * @param context math context
- */
-function functionsFromContext(context: any): {[key: string]: string} {
-    return Object.values(context).filter(g => typeof g === 'function').reduce((acc: any, c: any) => {acc[c.syntax] = c.original.substring(c.syntax.length + 1); return acc;},{}) as any;
-}
-
-function flattenContentForEvaluation(content: Node[], context: string) {
-    return replaceFunctionReferencesWithLiterals(astToExpressionTree(content, context), context);
+async function flattenContentForEvaluation(content: Node[], context: string) {
+    return replaceFunctionReferencesWithLiterals(await astToExpressionTree(content, context), context);
 }
 
 /**
@@ -169,25 +159,34 @@ function flattenContentForEvaluation(content: Node[], context: string) {
  * @param numerator frac numerator
  * @param denominator frac denominator
  */
-function shouldDerive(numerator: string, denominator: string): { respectTo: string } | false {
-    if (numerator === 'd' && denominator.startsWith('d') && denominator.length > 1) return { respectTo: denominator.substring(1) }
+function shouldDerive(numerator: string, denominator: string): { respectTo: string, count: number } | false {
+    if (numerator.startsWith('d') && denominator.startsWith('d') && denominator.length > 1) {
+        let count: number = 1;
+        let countDirective = numerator.substring(1);
+        if (!(count = parseInt(countDirective))) {
+            const isShorthand = countDirective.split('').every(d => d === '\'');
+            if (isShorthand) count = countDirective.length;
+        }
+        return { respectTo: denominator.substring(1), count }
+    }
     return false;
 }
 
 class Commands {
     @command('divide')
-    static frac([numerator, denominator]: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
-        const {content: num} = collapseGroup(numerator as any, context);
-        const {content: denom} = collapseGroup(denominator as any, context);
+    static async frac([numerator, denominator]: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+        const {content: num} = await collapseGroup(numerator as any, context);
+        const {content: denom} = await collapseGroup(denominator as any, context);
         const derive = shouldDerive(num, denom);
         if (derive) {
-            const expression = replaceFunctionReferencesWithLiterals(collapseGroup(group(siblings.slice(index + 1)), context).content, context);
-            const derived = Algebrite.derivative(expression, derive.respectTo).toString();
+            const expression = replaceFunctionReferencesWithLiterals((await collapseGroup(group(siblings.slice(index + 1)), context)).content, context);
+            // const derived = Algebrite.derivative(expression, derive.respectTo).toString();
+            const derived = nerdamer.diff(expression, derive.respectTo, derive.count).text();
             siblings.splice(index, siblings.length - 1);
             siblings[index] = text(derived);
             return derived;
         }
-        return `((${collapseGroup(numerator as any, context).content})/(${collapseGroup(denominator as any, context).content}))`;
+        return `((${(await collapseGroup(numerator as any, context)).content})/(${(await collapseGroup(denominator as any, context)).content}))`;
     }
 
     @command()
@@ -196,19 +195,25 @@ class Commands {
     }
 
     @command()
-    static int(args: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+    static async int(args: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
         let [,,subscript,,superscript,...content] = siblings.slice(index);
-        subscript = collapseGroup(subscript as Group, context);
-        superscript = collapseGroup(superscript as Group, context);
-        let strContent = flattenContentForEvaluation(content, context);
+        subscript = await collapseGroup(subscript as Group, context);
+        superscript = await collapseGroup(superscript as Group, context);
+        let strContent = await flattenContentForEvaluation(content, context);
         const definite = subscript.content.length > 0 && superscript.content.length > 0;
 
-        let result = Algebrite.integral(strContent).toString();
-        const subst = (value: string) => Algebrite.subst(`(${value})`, 'x', result);
+        console.debug('processing integral', {
+            subscript,
+            superscript,
+            strContent,
+            definite
+        });
 
+        let result;
         if (definite) {
-            // calculate it! fuck
-            result = `((${subst(superscript.content)}) - (${subst(subscript.content)}))`;
+            result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
+        } else {
+            result = (nerdamer as any).integrate(strContent).text();
         }
         
         siblings.splice(index, siblings.length - 1);
@@ -217,8 +222,8 @@ class Commands {
     }
 
     @command()
-    static sqrt(args: Content[]) {
-        return `sqrt(${args.join()})`
+    static async sqrt(args: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+        return `sqrt(${await astToExpressionTree(args as any, context)})`;
     }
 
     @command()
@@ -242,14 +247,15 @@ class Commands {
     }
 
     @command()
-    static sum(_: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+    static async sum(_: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
         const [,,start,,stop,...content] = siblings.slice(index) as Group[];
-        const {content: startStr} = collapseGroup(start, context);
-        const {content: stopIdx} = collapseGroup(stop, context);
-        const contentStr = flattenContentForEvaluation(content, context);
+        const {content: startStr} = await collapseGroup(start, context);
+        const {content: stopIdx} = await collapseGroup(stop, context);
+        const contentStr = await flattenContentForEvaluation(content, context);
         const [variable, startIdx] = startStr.split('=');
 
-        const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
+        // const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
+        const result = nerdamer.sum(contentStr, variable, startIdx, stopIdx);
 
         console.debug(`glenoxi, we sum`, {
             start,
@@ -272,4 +278,12 @@ class Commands {
     static log(args: Content[]) {
         return `log`;
     }
+}
+
+onmessage = async function(event: MessageEvent) {
+    const { evaluate, functions, nonce } = event.data;
+    postMessage({
+        nonce,
+        result: await astToExpressionTree(evaluate, functions)
+    }, undefined as any);
 }
