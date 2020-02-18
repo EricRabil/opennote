@@ -307,17 +307,6 @@ function loadBlockEventPatches(editor: EditorJS) {
     });
 
     /**
-     * Allows tool to override enter
-     */
-    hook(BlockEvents, 'enter', old => function(event: KeyboardEvent) {
-        const currentBlock = BlockManager.currentBlock;
-
-        if (currentBlock.call('ignoreEnter', event) === true) return;
-
-        old.call(this, event);
-    });
-
-    /**
      * Allows tool to override arrow keys
      */
     hook(BlockEvents, 'arrowLeftAndUp', old => function (event: KeyboardEvent) {
@@ -457,6 +446,69 @@ function loadBlockManagerPatches(editor: EditorJS) {
     });
 }
 
+function loadUsabilityPatches(editor: EditorJS) {
+    const core = (editor as any).core;
+    const { BlockSelection, BlockManager, Caret, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI } = core.moduleInstances;
+
+
+
+    hook(BlockSelection, 'handleCommandA', old => function(event: KeyboardEvent): void {
+        /** allow default selection on native inputs */
+        if ($.isNativeInput(event.target) && !this.readyToBlockSelection) {
+            return old.call(this, event);
+        }
+
+        const workingBlock = this.Editor.BlockManager.getBlock(event.target as HTMLElement);
+        if (workingBlock.holder.innerText.trim().length === 0) {
+            this.needToSelectAll = true;
+        }
+
+        return old.call(this, event);
+    });
+
+    hook(RectangleSelection, 'genInfoForMouseSelection', old => function() {
+        if (!this.Editor.BlockManager.lastBlock) {
+            // insert new block to prevent errors and unexpected functionality
+            const block = BlockManager.insert();
+            Caret.setToBlock(block);
+        }
+        return old.call(this);
+    });
+
+    hook(Toolbar, 'move', old => function(forceClose: boolean = true) {
+        if (forceClose) {
+            /** Close Toolbox when we move toolbar */
+            this.Editor.Toolbox.close();
+            this.Editor.BlockSettings.close();
+        }
+
+        const currentBlock = this.Editor.BlockManager.currentBlock;
+        
+        if (!currentBlock) {
+            return;
+        }
+
+        return old.call(this, forceClose);
+    });
+
+    hook(UI, 'redactorClicked', old => function(event: MouseEvent) {
+        const selection = window.getSelection();
+
+        const collapsed = selection ? selection.isCollapsed : null;
+        if (!collapsed) {
+            return;
+        }
+    
+        if (!this.Editor.BlockManager.currentBlock) {
+            const block = this.Editor.BlockManager.insert();
+            Caret.setToBlock(block);
+            Toolbar.move(true);
+        }
+
+        return old.call(this, event);
+    })
+}
+
 /**
  * Loads various patches to EditorJS to better integrate
  * @param editor editor
@@ -470,4 +522,5 @@ export default function patchEditorJS(editor: EditorJS) {
     loadBlockEventPatches(editor);
     loadCaretPatches(editor);
     loadBlockManagerPatches(editor);
+    loadUsabilityPatches(editor);
 }
