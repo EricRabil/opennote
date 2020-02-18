@@ -12,6 +12,7 @@ $lightMap: (
     "border": 1px solid darken(white, 10),
     "borderAlt": 1px solid black,
     "border1": 1px solid darken(white, 20),
+    "borderAlt1": 1px solid lighten(black, 40),
     "shadow-bottom": 0px -3px 15px 5px rgba(0, 0, 0, 0.25),
     "ce-block--focused": linear-gradient(17deg,rgba(243,248,255,.03) 63.45%,rgba(207,214,229,.27) 98%)
 );
@@ -30,6 +31,7 @@ $darkMap: (
     "border": 1px solid lighten(black, 10),
     "borderAlt": 1px solid white,
     "border1": 1px solid lighten(black, 20),
+    "borderAlt1": 1px solid darken(white, 40),
     "shadow-bottom": 0px -3px 15px 5px rgba(3, 2, 2, 0.95),
     "ce-block--focused": linear-gradient(17deg,rgba(0, 0, 0, 0.03) 63.45%,rgba(89, 92, 97, 0.068) 98%)
 );
@@ -117,6 +119,14 @@ $darkMap: (
 
 %border {
     @include schemeResponsive("border", "border");
+}
+
+%borderAlt {
+    @include schemeResponsive("border", "borderAlt");
+}
+
+%borderAlt1 {
+    @include schemeResponsive("border", "borderAlt1");
 }
 
 %border1 {

@@ -129,7 +129,7 @@ export default class MathQuillComponent extends Vue {
                     this.$emit('insert');
                 }
             },
-            autoCommands: "int pi sqrt"
+            autoCommands: "int pi sqrt sum"
         });
 
         this.resultView = new MathQuill.StaticMath(this.$refs.mqResult);
@@ -230,7 +230,7 @@ export default class MathQuillComponent extends Vue {
     get math() {
         if (!this.latex) return null;
         const parsed = utensils.latexParser.parse(this.latex);
-        const expression = astToExpressionTree(parsed.content);
+        const expression = astToExpressionTree(parsed.content, this.lastScope);
         console.debug(`math expression from latex`, {
             latex: this.latex,
             expression,
@@ -339,6 +339,7 @@ export default class MathQuillComponent extends Vue {
             result = compiled.evaluate(scope);
         } catch (e) {
             console.debug(`error while creating math`, e);
+            result = mathStr;
         } finally {
             if (typeof result !== 'function') this.resultFn = null;
             if (typeof result === 'function' || typeof result === 'undefined') {
@@ -348,6 +349,9 @@ export default class MathQuillComponent extends Vue {
                     } catch (e) {
                         this.error = e.message;
                         result = null;
+                    }
+                    if (result) {
+                        result['original'] = mathStr;
                     }
                     this.resultFn = result;
                 }
@@ -374,10 +378,16 @@ export default class MathQuillComponent extends Vue {
                 }
             case 'dec':
             default:
-                result = math.simplify(result);
-                if (typeof result.toLatex === "function") result = result.toLatex();
-                if (typeof result.toTex === "function") result = result.toTex();
-                console.log(result);
+                try {
+                    result = math.simplify(result);
+                    if (typeof result.toLatex === "function") result = result.toLatex();
+                    if (typeof result.toTex === "function") result = result.toTex();
+                } catch(e) {
+                    console.debug('failed to render result', {
+                        result
+                    });
+                    result = 'error';
+                }
                 this.resultView.latex(result);
                 break;
         }
@@ -435,6 +445,16 @@ export default class MathQuillComponent extends Vue {
         @extend %bg1;
         border: none;
         padding: 10px;
+
+        .mq-sup, .mq-sub, .mq-sup-inner {
+            &.mq-empty {
+                @extend %borderAlt1;
+                background: none;
+                &::after {
+                    font-size: 10px;
+                }
+            }
+        }
 
         &.mq-focused {
             box-shadow: none !important;

@@ -4,6 +4,11 @@ interface MathQuillAPI {
             prototype: {
                 latex: Function;
             }
+        },
+        superscript: {
+            prototype: {
+                latex: Function;
+            }
         }
     }
 }
@@ -19,4 +24,12 @@ LatexCmds.integral.prototype.latex = function(this: any) {
     }
     return this.ctrlSeq + '_' + simplify(this.ends[L].latex()) +
       '^' + simplify(this.ends[R].latex());
+}
+
+LatexCmds.superscript.prototype.latex = function(this: any) {
+    function latex(prefix: string, block: {latex(): string}) {
+        var l = block && block.latex();
+        return block ? prefix + '{' + (l || ' ') + '}' : '';
+    }
+    return latex('_', this.sub) + latex('^', this.sup);
 }
