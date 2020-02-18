@@ -1,6 +1,5 @@
 import "./polyfills";
 import "mathquill/build/mathquill.js";
-import "requestidlecallback";
 import "./mathquill-patches";
 import Vue from 'vue';
 
