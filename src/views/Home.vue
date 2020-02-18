@@ -11,7 +11,7 @@
             @mouseleave="mouseleave"
             @click="importNote"
           >
-            <img src="@/assets/upload.svg" width="12px">
+            <UploadSVG width="12px" />
           </span>
           <span
             :class="{'control': true, 'control-danger': true, disabled: !canDelete()}"
@@ -70,6 +70,7 @@ import _ from "@/util";
 const { VueContext } = require("vue-context");
 import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
+import UploadSVG from "@/assets/upload.svg?inline";
 
 function createRange(
   node: Node,
@@ -125,7 +126,8 @@ function setCurrentCursorPosition(index: number, node: Node) {
  */
 @Component({
   components: {
-    VueContext
+    VueContext,
+    UploadSVG
   }
 })
 export default class Home extends Vue {
@@ -388,11 +390,15 @@ export default class Home extends Vue {
 
       & > .note-controls {
         margin-right: 10px;
+        display: inline-flex;
+
         & > .control {
+          display: inline-flex;
+          align-items: center;
           &:hover {
             cursor: pointer;
             svg {
-              fill: blue;
+              fill: darken(blue, 10);
             }
           }
 
@@ -407,7 +413,7 @@ export default class Home extends Vue {
           }
 
           svg {
-            fill: #333;
+            @extend %fill;
             transition: fill 0.125s linear;
           }
         }
@@ -457,12 +463,13 @@ export default class Home extends Vue {
 }
 
 .v-context {
-  @extend %bg;
+  @extend %bgAlt1;
+  @extend %text;
   position: absolute;
   max-width: 200px;
   padding: 10px 0;
   list-style: none;
-  box-shadow: 0px 0px 20px -4px #000000;
+  box-shadow: 0px 0px 3px 0px #000000;
   border-radius: 5px;
   z-index: 1000;
 

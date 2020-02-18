@@ -2,6 +2,7 @@ $lightMap: (
     "bg": white,
     "bgAlt": darken(white, 2),
     "bgAlt0": darken(white, 4),
+    "bgAlt1": darken(white, 8),
     "bg0": rgba(0,0,0,0.05),
     "bg1": rgba(0,0,0,0.1),
     "bg2": rgba(0,0,0,0.15),
@@ -21,6 +22,7 @@ $darkMap: (
     "bg": black,
     "bgAlt": lighten(black, 2),
     "bgAlt0": lighten(black, 4),
+    "bgAlt1": lighten(black, 16),
     "bg0": rgba(255,255,255,0.05),
     "bg1": rgba(255,255,255,0.1),
     "bg2": rgba(255,255,255,0.15),
@@ -79,6 +81,10 @@ $darkMap: (
 
 %bgAlt0 {
     @include bgSchemeResponsive("bgAlt0");
+}
+
+%bgAlt1 {
+    @include bgSchemeResponsive("bgAlt1");
 }
 
 %bg0 {
