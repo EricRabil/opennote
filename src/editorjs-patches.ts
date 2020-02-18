@@ -131,11 +131,18 @@ function loadClipboardPatches(editor: EditorJS) {
          */
         let result: any[] = old.call(this, wrapper.innerHTML);
 
-        result = result.map((ev: any) => {
-            const specialIndex = ev.content && specialTexts.indexOf(ev.content.innerText);
-            if (specialIndex === -1) return ev;
+        console.debug('got a paste', {
+            wrapper,
+            innerHTML,
+            specials,
+            specialTexts,
+            children,
+            prefix,
+            result
+        });
+
+        const eventForIndex = (specialIndex: number) => {
             const content = specials[specialIndex].children[0];
-            if (!children) return ev;
             return {
                 content,
                 isBlock: true,
@@ -144,9 +151,23 @@ function loadClipboardPatches(editor: EditorJS) {
                     data: content,
                 })
             }
+        }
+
+        let newResults: any[] = [];
+
+        // translate the results to their specialdata
+        result.forEach((ev: any) => {
+            const details = ev.content;
+            const content = details instanceof HTMLElement && details.innerText;
+            if (!content) return newResults.push(ev);
+            const contents = content.split(prefix).map(i => parseInt(i)).filter(i => !isNaN(i));
+            if (contents.length === 0) return newResults.push(ev);
+            contents.forEach(c => newResults.push(eventForIndex(c)));
         });
 
-        return result;
+        newResults = newResults.filter(r => !!r);
+
+        return newResults;
     });
 
     /**
