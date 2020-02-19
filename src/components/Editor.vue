@@ -21,7 +21,7 @@
 import EditorJS, { OutputData } from "@editorjs/editorjs";
 import { Component, Vue } from "vue-property-decorator";
 import { toolForVueComponent } from "@/tools/MQVueTool";
-import MathQuillComponent from './MathQuillComponent.vue';
+import MathQuillComponent from '@/components/MathQuillComponent.vue';
 
 import patchEditorJS from "../editorjs-patches";
 
@@ -277,7 +277,7 @@ export default class Editor extends Vue {
   .codex-editor {
     z-index: -5;
 
-    .codex-editor__redactor {
+    .codex-editor__redactor, .codex-editor__loader {
       height: 100vh;
     }
   }

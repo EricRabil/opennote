@@ -71,6 +71,7 @@ const { VueContext } = require("vue-context");
 import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import UploadSVG from "@/assets/upload.svg?inline";
+import Editor from "@/components/Editor.vue";
 
 function createRange(
   node: Node,
@@ -128,7 +129,7 @@ function setCurrentCursorPosition(index: number, node: Node) {
   components: {
     VueContext,
     UploadSVG,
-    Editor: () => import('@/components/Editor.vue')
+    Editor
   }
 })
 export default class Home extends Vue {
