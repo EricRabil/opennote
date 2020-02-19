@@ -109,7 +109,7 @@ export default class Editor extends Vue {
       .editor as any).core.moduleInstances.BlockManager.blocks.find(
       (block: any) => block.name === "math"
     );
-    if (quill) quill.tool.send('updateQuills');
+    if (quill) await quill.tool.send('updateQuills');
   }
 
   /**
@@ -151,9 +151,6 @@ export default class Editor extends Vue {
    * Called when Codex is ready
    */
   async editorLoaded() {
-    this.showRibbon = true;
-    this.save();
-    this.$emit("ready");
     await this.renderData(this.cachedData);
 
     (this.editor as any).core.moduleInstances.Events.on('keydown', (ev: KeyboardEvent) => {
@@ -162,6 +159,10 @@ export default class Editor extends Vue {
 
     // reveal tooltip lib
     Vue.set(this.$root.$children[0], 'tooltip', this.getModule('API').methods.tooltip);
+
+    this.showRibbon = true;
+    this.save();
+    this.$emit("ready");
   }
 
   /**
@@ -203,12 +204,13 @@ export default class Editor extends Vue {
       data,
       logLevel: "VERBOSE" as any,
       ['blockElements' as any]: ['mq-paste-data'],
-      ['specialElements' as any]: ['mq-paste-data']
+      ['specialElements' as any]: ['mq-paste-data'],
+      ['patch' as any]: patchEditorJS
     });
 
     (this.editor as any).VueEditor = this;
 
-    this.editor.isReady.then(() => patchEditorJS(this.editor)).then(() => this.editorLoaded());
+    this.editor.isReady.then(() => this.editorLoaded());
 
     (this.editor as any).blockIndexDidChange = (index: number) => {
       if (index > -1) this.lastIndex = index;

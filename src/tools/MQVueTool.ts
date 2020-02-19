@@ -138,7 +138,9 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         }
     
         send(message: string, ...data: any[]) {
-            this.component.$emit(message, ...data);
+            return new Promise((resolve, reject) => {
+                this.component.$emit(message, ...data, resolve);
+            });
         }
     
         /**

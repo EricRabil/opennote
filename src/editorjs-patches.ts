@@ -450,8 +450,6 @@ function loadUsabilityPatches(editor: EditorJS) {
     const core = (editor as any).core;
     const { BlockSelection, BlockManager, Caret, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI } = core.moduleInstances;
 
-
-
     hook(BlockSelection, 'handleCommandA', old => function(event: KeyboardEvent): void {
         /** allow default selection on native inputs */
         if ($.isNativeInput(event.target) && !this.readyToBlockSelection) {
@@ -507,20 +505,32 @@ function loadUsabilityPatches(editor: EditorJS) {
 
         return old.call(this, event);
     })
+
+    hook(UI, 'removeLoader', old => function() {
+        console.log(old);
+        if ((editor as any).VueEditor) {
+            return (editor as any).VueEditor.$once('ready', old.bind(this));
+        }
+        old.call(this);
+    });
 }
 
 /**
  * Loads various patches to EditorJS to better integrate
  * @param editor editor
  */
-export default function patchEditorJS(editor: EditorJS) {
+export default async function patchEditorJS(editor: EditorJS) {
     (editor as any).core.editor = editor;
 
-    loadClipboardPatches(editor);
-    loadToolPatches();
-    loadBlockPatches(editor);
-    loadBlockEventPatches(editor);
-    loadCaretPatches(editor);
-    loadBlockManagerPatches(editor);
-    loadUsabilityPatches(editor);
+    hook((editor as any).core, 'start', old => async function() {
+        await old.call(this).then(() => {
+            loadClipboardPatches(editor);
+            loadToolPatches();
+            loadBlockPatches(editor);
+            loadBlockEventPatches(editor);
+            loadCaretPatches(editor);
+            loadBlockManagerPatches(editor);
+            loadUsabilityPatches(editor);
+        })
+    });
 }
