@@ -1,27 +1,19 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "7b7e287c1812d4d952fa1e3fb31a9a25",
-    "url": "/opennote/073cde2ce94d5b307e71.worker.js"
+    "revision": "6962ac7796ef8a059e91b39a0baceedf",
+    "url": "/opennote/85a21f87bc0f5d69d6ab.worker.js"
   },
   {
-    "revision": "271cc5502b709a9e7cf708df45be9028",
-    "url": "/opennote/chunk-13f526c0.073cde2ce94d5b307e71.worker.js"
-  },
-  {
-    "revision": "915b592ab84417d5d35e6484d9324079",
-    "url": "/opennote/chunk-28959806.073cde2ce94d5b307e71.worker.js"
-  },
-  {
-    "revision": "df248006597ee9f4dc71",
+    "revision": "2466c578cc40f8a0b66c",
     "url": "/opennote/css/app.d7dcbd0b.css"
   },
   {
-    "revision": "621ff35c910421932df33232c796a15c",
+    "revision": "8a83e85aaf4c330342bc07e495eee76e",
     "url": "/opennote/index.html"
   },
   {
-    "revision": "df248006597ee9f4dc71",
-    "url": "/opennote/js/app.675499c0.js"
+    "revision": "2466c578cc40f8a0b66c",
+    "url": "/opennote/js/app.93f7073a.js"
   },
   {
     "revision": "0a5db2e88e2a52d7564d",

@@ -1,8 +1,8 @@
 
 import utensils from "latex-utensils";
+import nerdamer from 'nerdamer';
+require('nerdamer/Calculus.js');
 import { TextString, Group, Node } from 'latex-utensils/out/src/latex/latex_parser';
-
-const nerdamer = () => (import('nerdamer').then(nerdamer => import('nerdamer/Calculus.js' as any).then(c => nerdamer)));
 
 globalThis.window = globalThis.window || globalThis as any;
 
@@ -181,7 +181,7 @@ class Commands {
         if (derive) {
             const expression = replaceFunctionReferencesWithLiterals((await collapseGroup(group(siblings.slice(index + 1)), context)).content, context);
             // const derived = Algebrite.derivative(expression, derive.respectTo).toString();
-            const derived = (await nerdamer() as any).diff(expression, derive.respectTo, derive.count).text();
+            const derived = (nerdamer as any).diff(expression, derive.respectTo, derive.count).text();
             siblings.splice(index, siblings.length - 1);
             siblings[index] = text(derived);
             return derived;
@@ -211,9 +211,9 @@ class Commands {
 
         let result;
         if (definite) {
-            result = (await nerdamer() as any).defint(strContent, subscript.content, superscript.content).text()
+            result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
         } else {
-            result = (await nerdamer() as any).integrate(strContent).text();
+            result = (nerdamer as any).integrate(strContent).text();
         }
         
         siblings.splice(index, siblings.length - 1);
@@ -255,7 +255,7 @@ class Commands {
         const [variable, startIdx] = startStr.split('=');
 
         // const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
-        const result = (await nerdamer()).sum(contentStr, variable, startIdx, stopIdx);
+        const result = (nerdamer).sum(contentStr, variable, startIdx, stopIdx);
 
         console.debug(`glenoxi, we sum`, {
             start,
