@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/opennote/chunk-28959806.e8f9f27c811af1b96c7f.worker.js"
   },
   {
-    "revision": "c29063be2cc5df75f294",
+    "revision": "fd8bad0696cc588b4aec",
     "url": "/opennote/css/app.d7dcbd0b.css"
   },
   {
@@ -16,16 +16,12 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/opennote/e8f9f27c811af1b96c7f.worker.js"
   },
   {
-    "revision": "0ca7cc63cac84bcc60409a6fcb1ba188",
+    "revision": "3579c47c2a0d923f021cd1038d57ac30",
     "url": "/opennote/index.html"
   },
   {
-    "revision": "c29063be2cc5df75f294",
-    "url": "/opennote/js/app.d05ea647.js"
-  },
-  {
-    "revision": "71bd81c97222ed218bc9",
-    "url": "/opennote/js/chunk-2d0f04af.41003125.js"
+    "revision": "fd8bad0696cc588b4aec",
+    "url": "/opennote/js/app.c3c7c9ca.js"
   },
   {
     "revision": "0a5db2e88e2a52d7564d",

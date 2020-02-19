@@ -3,9 +3,8 @@ import "mathquill/build/mathquill.js";
 import "./mathquill-patches";
 import Vue from 'vue';
 
-import('./algebra.worker.ts' as any).then(worker => {
-  (window as any).AlgebraWorker = new worker.default();
-});
+const worker = require('./algebra.worker.ts');
+(window as any).AlgebraWorker = new worker();
 
 import App from './App.vue'
 import './registerServiceWorker'
