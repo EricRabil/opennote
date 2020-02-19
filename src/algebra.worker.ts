@@ -1,10 +1,8 @@
-import Algebrite from "algebrite";
-import nerdamer from "nerdamer";
-require('nerdamer/Calculus.js');
+
 import utensils from "latex-utensils";
 import { TextString, Group, Node } from 'latex-utensils/out/src/latex/latex_parser';
 
-(globalThis).nerdamer = nerdamer;
+const nerdamer = () => (import('nerdamer').then(nerdamer => import('nerdamer/Calculus.js' as any).then(c => nerdamer)));
 
 const fakePos = {
     column: NaN,
@@ -181,7 +179,7 @@ class Commands {
         if (derive) {
             const expression = replaceFunctionReferencesWithLiterals((await collapseGroup(group(siblings.slice(index + 1)), context)).content, context);
             // const derived = Algebrite.derivative(expression, derive.respectTo).toString();
-            const derived = nerdamer.diff(expression, derive.respectTo, derive.count).text();
+            const derived = (await nerdamer() as any).diff(expression, derive.respectTo, derive.count).text();
             siblings.splice(index, siblings.length - 1);
             siblings[index] = text(derived);
             return derived;
@@ -211,9 +209,9 @@ class Commands {
 
         let result;
         if (definite) {
-            result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
+            result = (await nerdamer() as any).defint(strContent, subscript.content, superscript.content).text()
         } else {
-            result = (nerdamer as any).integrate(strContent).text();
+            result = (await nerdamer() as any).integrate(strContent).text();
         }
         
         siblings.splice(index, siblings.length - 1);
@@ -255,7 +253,7 @@ class Commands {
         const [variable, startIdx] = startStr.split('=');
 
         // const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
-        const result = nerdamer.sum(contentStr, variable, startIdx, stopIdx);
+        const result = (await nerdamer()).sum(contentStr, variable, startIdx, stopIdx);
 
         console.debug(`glenoxi, we sum`, {
             start,

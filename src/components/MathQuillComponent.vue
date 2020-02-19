@@ -32,15 +32,17 @@ import FractionSVG from "@/assets/frac.svg?inline";
 import DecimalSVG from "@/assets/decimal.svg?inline";
 import GraphSVG from "@/assets/graph.svg?inline";
 
-import plot from "function-plot/lib/index.js";
 import { SanitizerConfig } from '@editorjs/editorjs';
 
 type TypeWithGeneric<T> = Partial<T>;
 type extractGeneric<Type> = Type extends TypeWithGeneric<infer X> ? X : never
 
-const math: mathjs.MathJsStatic = mathjs.create(mathjs.all, {}) as any;
-math.import(require("mathjs-simple-integral"), {});
-(window as any).math = math;
+let math: typeof import('mathjs');
+async function loadMath() {
+    const mathjs = await import('mathjs');
+    math = mathjs.create(mathjs.all, {}) as any;
+    math.import(await import('mathjs-simple-integral' as any), {});
+}
 
 declare const d3: any;
 
@@ -135,7 +137,7 @@ export default class MathQuillComponent extends Vue {
     resultFn: Function | null = null;
     result: string | null = null;
     showGraph: boolean = false;
-    chart: ReturnType<typeof plot> | null = null;
+    chart: ReturnType<typeof import('function-plot/lib/index.js')> | null = null;
     error: string | null = null;
 
     @Prop()
@@ -323,9 +325,11 @@ export default class MathQuillComponent extends Vue {
         this.chart = null;
     }
 
-    updateGraph() {
+    async updateGraph() {
         if (!this.resultFn) return;
         if (this.chart) this.removeGraph();
+
+        const { default: plot } = await import('function-plot/lib/index.js');
 
         this.chart = plot({
             target: this.$refs.graph,
@@ -377,6 +381,7 @@ export default class MathQuillComponent extends Vue {
      * Calculates the result of this quill using the given scope
      */
     async calc(scope: any) {
+        if (!math) await loadMath();
         this.lastScope = Object.assign({}, scope);
         this.error = null;
 
@@ -422,10 +427,11 @@ export default class MathQuillComponent extends Vue {
         this.showGraph = !this.showGraph;
     }
 
-    updateResultView(result: any) {
+    async updateResultView(result: any) {
+        if (!math) await loadMath();
         switch (this.renderFormat) {
             case 'frac':
-                var frac = this.fraction(result);
+                var frac = await this.fraction(result);
                 if (frac) {
                     this.resultView.latex(frac);
                     break;
@@ -450,7 +456,8 @@ export default class MathQuillComponent extends Vue {
     /**
      * Returns a fraction representation
      */
-    fraction(result: string) {
+    async fraction(result: string) {
+        if (!math) await loadMath();
         try {
             return (math.fraction(result) as any).toLatex();
         } catch {

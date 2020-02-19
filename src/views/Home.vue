@@ -127,7 +127,8 @@ function setCurrentCursorPosition(index: number, node: Node) {
 @Component({
   components: {
     VueContext,
-    UploadSVG
+    UploadSVG,
+    Editor: () => import('@/components/Editor.vue')
   }
 })
 export default class Home extends Vue {
