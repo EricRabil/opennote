@@ -4,6 +4,8 @@ import { TextString, Group, Node } from 'latex-utensils/out/src/latex/latex_pars
 
 const nerdamer = () => (import('nerdamer').then(nerdamer => import('nerdamer/Calculus.js' as any).then(c => nerdamer)));
 
+globalThis.window = globalThis.window || globalThis as any;
+
 const fakePos = {
     column: NaN,
     line: NaN,
