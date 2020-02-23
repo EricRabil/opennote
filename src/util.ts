@@ -1,4 +1,15 @@
 export namespace _ {
+    interface DisplayableErrorOptions {
+        title?: string;
+        message: string;
+    }
+
+    export class DisplayableError extends Error {
+        constructor(message: string, public options: DisplayableErrorOptions) {
+            super(message);
+        }
+    }
+
     /**
      * Programatically saves a file to the browser
      * @param data the data to save
