@@ -38,7 +38,7 @@
           </span>
         </span>
       </div>
-      <div class="navigator-contents">
+      <transition-group name="list" mode="out-in" tag="div" class="navigator-contents">
         <div
           :class="{'navigator-item': true, active: id === currentNote}"
           :style="{display: !name ? 'none' : 'flex'}"
@@ -56,6 +56,7 @@
           >{{name}}</span>
           <span class="item-timestamp">{{timestamp}}</span>
         </div>
+      </transition-group>
       </div>
     </div>
     <editor :show-burger="navCollapse" :exporter="download" :canDelete="canDelete" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
