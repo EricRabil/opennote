@@ -183,10 +183,10 @@ export default class Home extends Vue {
 
     document.addEventListener("mousedown", this.mouseDown);
 
-    /**
-     * populate render data
-     */
-    this.reload();
+    this.$on('ct-mouseenter', (ev: MouseEvent) => this.mouseenter(ev));
+    this.$on('ct-mouseleave', (ev: MouseEvent) => this.mouseleave(ev));
+
+    this.list = this.sortedList(this.notes);
   }
 
   destroyed() {

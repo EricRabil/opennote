@@ -181,6 +181,17 @@ export default class Editor extends Vue {
     window.removeEventListener('beforeunload', this.unloadListener as any);
   }
 
+  mouseenter(ev: MouseEvent) {
+    if (!(ev.target as HTMLElement).getAttribute('data-tooltip')) return;
+    console.log(this.$parent);
+    this.$parent.$emit('ct-mouseenter', ev);
+  }
+
+  mouseleave(ev: MouseEvent) {
+    if (!(ev.target as HTMLElement).getAttribute('data-tooltip')) return;
+    this.$parent.$emit('ct-mouseleave', ev);
+  }
+
   async renderData(data: OutputData) {
     data = data || this.cachedData;
     if (!data || !data.blocks) return;
