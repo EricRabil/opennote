@@ -2,6 +2,8 @@ import EditorJS, { EditorConfig, SanitizerConfig, PasteEvent } from "@editorjs/e
 const List = require('@editorjs/list');
 const CheckList = require('@editorjs/checklist');
 const janitor = require("html-janitor");
+const Code = require('@editorjs/code');
+const Raw = require('@editorjs/raw');
 
 function hook(lib: any, meth: string, replacement: (old: Function) => (this: any, ...args: any[]) => any) {
     const oldMeth = lib[meth] || (() => void 0);
@@ -234,6 +236,22 @@ function loadToolPatches() {
         lastChild.parentElement!.remove();
         this.api.caret.setToBlock(this.api.blocks.getCurrentBlockIndex());
     });
+
+    Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function(e: KeyboardEvent) {
+        const empty = this.block.holder.querySelector('textarea').value.length === 0
+        if (empty) {
+            const index = this.Editor.moduleInstances.BlockManager.currentBlockIndex;
+            this.Editor.moduleInstances.BlockManager.removeBlock(index);
+            const previousBlock = this.Editor.moduleInstances.BlockManager.blocks[index];
+            let needsFocus = previousBlock;
+            if (!previousBlock) {
+                needsFocus = this.Editor.moduleInstances.BlockManager.insert(undefined, undefined, undefined, index);
+            }
+            this.Editor.moduleInstances.Caret.setToBlock(needsFocus, this.Editor.moduleInstances.Caret.positions.END)
+            return true;
+        }
+        return false;
+    }
 }
 
 /**
@@ -283,7 +301,7 @@ function loadBlockPatches(editor: EditorJS) {
  */
 function loadBlockEventPatches(editor: EditorJS) {
     const core = (editor as any).core;
-    const { BlockEvents, BlockManager, Events } = core.moduleInstances;
+    const { BlockEvents, BlockManager, Events, Caret, UI } = core.moduleInstances;
 
     /**
      * Allows tool to override backspace
@@ -294,6 +312,41 @@ function loadBlockEventPatches(editor: EditorJS) {
         if (currentBlock.call('ignoreBackspace', event) === true) return;
 
         old.call(this, event);
+    });
+
+    function ancestorHasClass(node: HTMLElement, className: string) {
+        let ancestor = node;
+        if (!ancestor) return false;
+        while (ancestor) {
+            if (!ancestor.classList) {
+                ancestor = ancestor.parentElement!;
+                continue;
+            }
+            if (ancestor.classList.contains(className)) return true;
+            ancestor = ancestor.parentElement!;
+        }
+        return false;
+    }
+
+    function hasAncestor(node: Node, ancestor: Node) {
+        let parent = node;
+        if (!parent) return false;
+        while (parent) {
+            if (parent.isEqualNode(ancestor)) return true;
+            parent = parent.parentNode!;
+        }
+        return false;
+    }
+
+    hook(BlockManager, 'highlightCurrentNode', old => function() {
+        old.call(this);
+        setTimeout(() => {
+            const focusNode = window.getSelection()!.focusNode;
+            const needsFocus = !ancestorHasClass(focusNode as HTMLElement, 'ce-block') || !hasAncestor(focusNode!, BlockManager.currentBlock.holder);
+            if (needsFocus) {
+                Caret.setToBlock(BlockManager.currentBlock, Caret.positions.END)
+            }
+        });
     });
 
     /**
