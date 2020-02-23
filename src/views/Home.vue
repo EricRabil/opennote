@@ -666,4 +666,8 @@ export default class Home extends Vue {
     }
   }
 }
+
+.list-move {
+  transition: transform 0.25s;
+}
 </style>
