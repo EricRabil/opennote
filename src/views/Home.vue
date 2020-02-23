@@ -483,8 +483,14 @@ export default class Home extends Vue {
     flex-flow: column;
 
     & > .title {
-      @extend %borderBottom;
-      height: 44px;
+      &:first-child {
+        @extend %borderBottom;
+      }
+
+      &:last-child {
+        @extend %borderTop;
+      }
+      min-height: 44px;
       position: relative;
       display: flex;
       flex-flow: row-reverse;
@@ -495,6 +501,12 @@ export default class Home extends Vue {
         display: inline-flex;
         position: absolute;
         left: 10px;
+      }
+
+      & > .note-controls-right {
+        display: inline-flex;
+        position: absolute;
+        right: 10px;
       }
 
         & .control {
@@ -567,11 +579,12 @@ export default class Home extends Vue {
 
     & > .navigator-contents {
       // box-shadow: 10px 0 5px -2px rgba(0,0,0,0.25);
-      height: calc(100vh - 44px);
+      flex-grow: 1;
+      overflow: scroll;
       display: flex;
       flex-flow: column;
 
-      & > .navigator-item {
+      & .navigator-item {
         display: flex;
         flex-flow: column;
         margin: 5px;
