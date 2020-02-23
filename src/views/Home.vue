@@ -325,7 +325,12 @@ export default class Home extends Vue {
    * Switches to a new note ID
    */
   selectNote(id: string) {
+    if (this.currentNote === id) return;
     this.$store.commit("setNote", id);
+    if (document.activeElement && document.activeElement.getAttribute('data-id') === id) return;
+    if (document.body.clientWidth <= 500 && !this.navCollapse) {
+      this.navCollapse = true;
+    }
   }
 
   /**
