@@ -202,6 +202,7 @@ export default class MathQuillComponent extends Vue {
 
         this.$on('updateQuills', (resolve?: (value: void) => any) => this.updateQuills().then(resolve));
         this.$on('moved', () => this.updateQuills());
+        this.$on('reflow', () => this.reflow());
 
         this.$on('parsePaste', (e: CustomEvent) => {
             const data: HTMLElement = e.detail.data;

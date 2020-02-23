@@ -250,7 +250,22 @@ export default class Editor extends Vue {
 
     // only show ribbon by default if we are on big screen
     this.showRibbon = document.body.clientWidth > 500;
-    this.save();
+    await this.save();
+
+    const redactor = (this.editor as any).core.moduleInstances.UI.nodes.redactor;
+
+    var observer = new MutationObserver((mutation) => {
+      console.debug('reflowing mathquills');
+      this.quills.forEach((q: any) => q.tool.send('reflow'));
+    });
+
+    observer.observe(redactor, {
+      attributes: true, 
+      attributeFilter: ['class'],
+      childList: false, 
+      characterData: false
+    });
+
     this.$emit("ready");
   }
 
