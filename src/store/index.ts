@@ -18,16 +18,18 @@ function uuidv4() {
 
 const NEW_NOTE_NAME = 'Untitled Note';
 
+export interface Note {
+  name: string;
+  data: OutputData;
+  created: number;
+}
+
 export default new Vuex.Store({
   state: {
     currentNote: uuidv4(),
     notes: {
 
-    } as { [id: string]: {
-      name: string;
-      data: OutputData;
-      created: number;
-    } }
+    } as { [id: string]: Note }
   },
   mutations: {
     /**
@@ -52,9 +54,7 @@ export default new Vuex.Store({
     delNote(state, id) {
       const ids = Object.keys(state.notes);
       const index = ids.indexOf(id);
-      const newSelected = ids[index - 1] || ids[index + 1] || ids[0];
       delete state.notes[id];
-      state.currentNote = newSelected;
     },
     /**
      * Updates a note, or inserts it if it was not present already
