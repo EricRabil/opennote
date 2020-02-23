@@ -299,6 +299,8 @@ export default class Home extends Vue {
     const leftOffset = 0;
 
     if (!this.tooltip) return;
+    // no tooltips on mobile, please. its fucking ugly
+    if (document.body.clientWidth <= 500) return;
     const tip = (ev.target! as HTMLElement).getAttribute("data-tooltip");
     const placement = (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
     if (!tip) return;
