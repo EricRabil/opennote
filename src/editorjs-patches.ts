@@ -131,16 +131,6 @@ function loadClipboardPatches(editor: EditorJS) {
          */
         let result: any[] = old.call(this, wrapper.innerHTML);
 
-        console.debug('got a paste', {
-            wrapper,
-            innerHTML,
-            specials,
-            specialTexts,
-            children,
-            prefix,
-            result
-        });
-
         const eventForIndex = (specialIndex: number) => {
             const content = specials[specialIndex].children[0];
             return {
@@ -507,7 +497,6 @@ function loadUsabilityPatches(editor: EditorJS) {
     })
 
     hook(UI, 'removeLoader', old => function() {
-        console.log(old);
         if ((editor as any).VueEditor) {
             return (editor as any).VueEditor.$once('ready', old.bind(this));
         }

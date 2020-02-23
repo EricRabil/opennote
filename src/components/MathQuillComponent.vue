@@ -209,12 +209,6 @@ export default class MathQuillComponent extends Vue {
             const latex = data.getAttribute('latex');
             const showGraph = data.getAttribute('showGraph');
 
-            console.debug('pasted', {
-                renderFormat,
-                latex,
-                showGraph
-            });
-
             this.mathField.write(latex || '');
             this.updateQuills().then(() => {
                 this.renderFormat = (renderFormat as any) || this.renderFormat;
@@ -245,10 +239,6 @@ export default class MathQuillComponent extends Vue {
             }
         });
     }
-    
-    destroyed() {
-        console.log('bye');
-    }
 
     get mqRootBlock(): HTMLSpanElement {
         return this.$refs.mqMount.querySelector('.mq-root-block') as any;
@@ -278,14 +268,8 @@ export default class MathQuillComponent extends Vue {
      */
     async math() {
         if (!this.latex) return null;
-        console.log(this);
         const parsed = utensils.latexParser.parse(this.latex);
         const expression = await runAlgebraOnWorker(parsed.content, this.lastScope);
-        console.debug(`math expression from latex`, {
-            latex: this.latex,
-            expression,
-            parsed
-        });
         return expression.toString();
     }
 

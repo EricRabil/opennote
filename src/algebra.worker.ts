@@ -52,7 +52,6 @@ async function collapseGroup(group: Group, context: any): Promise<TextString> {
 }
 
 async function condenseSiblings(siblings: utensils.latexParser.Node[], context: any): Promise<utensils.latexParser.Node[]> {
-    // console.debug(`condensing siblings`, siblings);
     for (let i = 0; i < siblings.length; i++) {
         let item = siblings[i];
         let prev = siblings[i - 1];
@@ -143,7 +142,6 @@ function command(...aliases: string[]): any {
 function replaceFunctionReferencesWithLiterals(str: string, functions: any) {
     Object.keys(functions).forEach(fn => {
         while(str.includes(fn)) {
-            console.log(fn);
             str = fn.replace(fn, functions[fn]);
         }
     });
@@ -202,13 +200,6 @@ class Commands {
         let strContent = await flattenContentForEvaluation(content, context);
         const definite = subscript.content.length > 0 && superscript.content.length > 0;
 
-        console.debug('processing integral', {
-            subscript,
-            superscript,
-            strContent,
-            definite
-        });
-
         let result;
         if (definite) {
             result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
@@ -256,18 +247,6 @@ class Commands {
 
         // const result = Algebrite.sum(contentStr, variable, startIdx, stopIdx).toString();
         const result = (nerdamer).sum(contentStr, variable, startIdx, stopIdx);
-
-        console.debug(`glenoxi, we sum`, {
-            start,
-            stop,
-            content,
-            startStr,
-            stopIdx,
-            contentStr,
-            variable,
-            startIdx,
-            result
-        });
 
         siblings.splice(index, siblings.length - 1);
 

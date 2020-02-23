@@ -128,7 +128,6 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
 
         onPaste(e: PasteEvent) {
             if (!this.component) return this.pendingPasteEvent = e;
-            console.log(e);
             this.component.$emit('parsePaste', e);
         }
     
