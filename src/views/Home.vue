@@ -240,8 +240,11 @@ export default class Home extends Vue {
     range.setEnd(_range.endContainer, _range.endOffset);
     const pos = range.toString().length;
 
-    const name = target.innerText,
+    const name = target.innerText.split('\n').join(''),
       id = target.getAttribute("data-id")!;
+
+    target.innerText = name;
+
     this.$store.commit("updateNote", {
       id,
       name
