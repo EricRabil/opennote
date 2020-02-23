@@ -3,7 +3,7 @@
         <div :class="['control', `control-${confirmStyle}`]" @click="confirm">
             {{confirmText}}
         </div>
-        <div class="control control-neutral" @click="cancel">
+        <div v-if="hasCancel" class="control control-neutral" @click="cancel">
             {{cancelText}}
         </div>
     </div>
@@ -19,6 +19,9 @@ export default class ConfirmationModal extends Vue {
 
     @Prop()
     confirm: () => any;
+
+    @Prop({ default: true })
+    hasCancel: boolean;
 
     @Prop({ default: 'Cancel' })
     confirmText: string;
