@@ -403,6 +403,16 @@ export default class Home extends Vue {
   grid-template-columns: 250px auto;
   grid-template-rows: 100vh;
 
+  @media only screen and (max-width: 500px) {
+    grid-template-columns: auto;
+    
+    &:not(.nav-collapse) {
+      & > .editor-view {
+        visibility: hidden;
+      }
+    }
+  }
+
   &.nav-collapse {
     grid-template-columns: 0px auto;
 
@@ -432,8 +442,6 @@ export default class Home extends Vue {
         position: absolute;
         left: 10px;
       }
-
-
 
         & .control {
           display: inline-flex;
