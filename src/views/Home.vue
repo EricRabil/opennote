@@ -145,6 +145,7 @@ export default class Home extends Vue {
   } = {};
 
   navCollapse: boolean = false;
+  canDelete: boolean = false;
 
   /**
    * put placeholder data in the list, will be populated on render
@@ -259,17 +260,17 @@ export default class Home extends Vue {
   }
 
   /**
+   * all notes
+   */
+  get notes() {
+    return this.$store.state.notes;
+  }
+
+  /**
    * internal tooltip API
    */
   get tooltip(): Tooltip {
     return (this.$root.$children[0] as any).tooltip;
-  }
-
-  /**
-   * cannot delete if only one note left!
-   */
-  canDelete() {
-    return Object.keys(this.$store.state.notes).length > 1;
   }
 
   /**
@@ -326,7 +327,7 @@ export default class Home extends Vue {
    * deletes the current note
    */
   delNote(id: string = this.currentNote) {
-    if (!this.canDelete()) return;
+    if (!this.canDelete) return;
     this.$root.$emit('modal-show', {
       header: 'Delete Note?',
       body: 'Deleting a note is permanent, it cannot be restored unless you have a backup.',
@@ -360,6 +361,7 @@ export default class Home extends Vue {
    */
   reload() {
     this.list = {};
+    this.canDelete = Object.keys(this.$store.state.notes).length > 1;
     for (let prop in this.$store.state.notes) {
       this.loadNote(prop, this.$store.state.notes[prop]);
     }
