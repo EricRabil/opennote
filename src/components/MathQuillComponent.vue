@@ -1,20 +1,22 @@
 <template>
     <div :class="{'codex-mq-root': true, 'codex-mq-focused': isFocused}">
-        <div :class="{'mq-editable-field': true, 'mq-math-mode': true, 'border-top': borderBottom !== 'mq', border: borderBottom === 'mq'}" ref="mqMount" @focusin='focused' @focusout='unfocused'></div>
-        <div :class="{'mq-result-bar': true, 'text-right': true, 'border-bottom': borderBottom === 'error'}" v-show="error !== null">
+        <div class="mq-calc-root">
+            <div :class="{'mq-editable-field': true, 'mq-math-mode': true}" ref="mqMount" @focusin='focused' @focusout='unfocused'></div>
+            <span class="mq-result-view" ref="mqResult" v-show="result !== null">
+            </span>
+        </div>
+        <div :class="{'mq-result-bar': true, 'text-right': true}" v-show="error !== null">
             {{error}}
         </div>
         <template v-show="error === null">
-            <div :class="{'mq-result-bar': true, 'border-bottom': borderBottom === 'result'}" v-show="result !== null">
+            <div :class="{'mq-result-bar': true}" v-show="result !== null">
                 <FractionSVG @click='toggleRenderFormat()' v-if="renderFormat === 'dec'" />
                 <DecimalSVG @click='toggleRenderFormat()' v-else />
-                <span class="mq-result-view" ref="mqResult">
-                </span>
             </div>
-            <div :class="{'mq-result-bar': true, 'border-bottom': borderBottom === 'fnBar'}" v-if="resultFn !== null">
+            <div :class="{'mq-result-bar': true}" v-if="resultFn !== null">
                 <GraphSVG @click='toggleGraph()' />
             </div>
-            <div :class="{'border-bottom': borderBottom === 'graph'}" ref="graph" v-show="showGraph">
+            <div ref="graph" v-show="showGraph">
 
             </div>
         </template>
@@ -241,6 +243,17 @@ export default class MathQuillComponent extends Vue {
         });
     }
 
+    updated() {
+        if (this.resultView) {
+            this.resultView.reflow();
+        }
+    }
+
+    reflow() {
+        this.resultView && this.resultView.reflow();
+        this.mathField && this.mathField.reflow();
+    }
+
     get mqRootBlock(): HTMLSpanElement {
         return this.$refs.mqMount.querySelector('.mq-root-block') as any;
     }
@@ -254,14 +267,6 @@ export default class MathQuillComponent extends Vue {
         } catch {
             return false;
         }
-    }
-
-    get borderBottom() {
-        if (this.result !== null) return 'result';
-        else if (this.showGraph && this.chart !== null) return 'graph';
-        else if (this.resultFn !== null) return 'fnBar';
-        else if (this.error !== null) return 'error';
-        else return 'mq';
     }
 
     /**
@@ -424,7 +429,9 @@ export default class MathQuillComponent extends Vue {
             case 'dec':
             default:
                 try {
-                    result = math.simplify(result);
+                    if (isNaN(result)) {
+                        result = math.simplify(result);
+                    }
                     if (typeof result.toLatex === "function") result = result.toLatex();
                     if (typeof result.toTex === "function") result = result.toTex();
                 } catch(e) {
@@ -469,28 +476,68 @@ export default class MathQuillComponent extends Vue {
     flex-flow: column;
     justify-content: center;
     transition: border 0.5s linear;
-    padding: 10px 0;
+    margin: 10px 0;
+    border-radius: 5px;
+    overflow: hidden;
 
-    .border-bottom {
-        border-radius: 0 0 5px 5px !important;
+    @media print {
+        @include schemeResponsive("border", "border");
+    }
 
-        svg {
-            border-radius: 0 0 5px 5px !important;
+    .mq-calc-root {
+        @extend %bg0;
+        display: grid;
+        grid-template-columns: minmax(0,1fr) min-content;
+        padding: 10px;
+
+        @media print {
+            @include schemeResponsive("border-bottom", "border");
+        }
+
+        & > .mq-result-view {
+            text-align: right;
+            flex-grow: 1;
+            display: flex;
+            flex-flow: row-reverse;
+            align-items: center;
+            margin-right: 10px;
+
+            box-shadow: -10px 0px 3px 0px rgba(map-get($lightMap, "bg0"), 0.9);
+            z-index: 10;
+
+            @media (prefers-color-scheme: dark) {
+                box-shadow: -10px 0px 3px 0px rgba(map-get($darkMap, "bg0"), 0.9);
+            }
+            
+            @media(prefers-color-scheme: light) {
+                box-shadow: -10px 0px 3px 0px rgba(map-get($lightMap, "bg0"), 0.9);
+            }
+
+            @media print {
+                box-shadow: none;
+            }
+
+            & > .mq-root-block {
+                width: min-content !important;
+            }
+
+            &:not(.mq-math-mode) {
+                &::after {
+                    margin-right: 5px;
+                }
+            }
+
+            &::after {
+                content: '= ';
+            }
         }
     }
 
-    .border-top {
-        border-radius: 5px 5px 0 0 !important;
-    }
-
-    .border {
-        border-radius: 5px !important;
-    }
-
     .mq-editable-field {
-        @extend %bg0;
+        flex-grow: 1;
         border: none;
-        padding: 10px;
+        overflow-x: scroll;
+        overflow-y: hidden;
 
         .mq-sup, .mq-sub, .mq-sup-inner {
             &.mq-empty {
@@ -509,6 +556,38 @@ export default class MathQuillComponent extends Vue {
         .mq-root-block .mq-cursor {
             @extend %borderLeftAlt;
         }
+
+        @media(prefers-color-scheme: dark) {
+            --thumbBG: #{map-get($darkMap, "bgAlt2")};
+        }
+
+        @media(prefers-color-scheme: light) {
+            --thumbBG: #{map-get($lightMap, "bgAlt2")};
+        }
+
+        --scrollbarBG: rgba(0,0,0,0);
+
+        &::-webkit-scrollbar {
+            height: 4px;
+        }
+        & {
+            scrollbar-width: thin;
+            scrollbar-color: var(--thumbBG) var(--scrollbarBG);
+        }
+        &::-webkit-scrollbar-track {
+            background: var(--scrollbarBG);
+        }
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--thumbBG) ;
+            border-radius: 6px;
+            border: 3px solid var(--scrollbarBG);
+        }
+
+        & > .mq-root-block {
+            overflow: scroll;
+            display: unset;
+        }
+
     }
 
     svg.function-plot {
@@ -524,6 +603,10 @@ export default class MathQuillComponent extends Vue {
         align-items: center;
         height: 36px;
 
+        @media print {
+            display: none !important;
+        }
+
         &.text-right {
             flex-flow: row-reverse;
             padding-right: 10px;
@@ -538,30 +621,6 @@ export default class MathQuillComponent extends Vue {
 
             &:hover {
                 @extend %fill;
-            }
-        }
-
-        & > .mq-result-view {
-            text-align: right;
-            flex-grow: 1;
-            display: flex;
-            flex-flow: row-reverse;
-            align-items: center;
-            margin-right: 10px;
-
-            & > .mq-root-block {
-                width: min-content !important;
-                font-size: 60% !important;
-            }
-
-            &:not(.mq-math-mode) {
-                &::after {
-                    margin-right: 5px;
-                }
-            }
-
-            &::after {
-                content: '= ';
             }
         }
     }
