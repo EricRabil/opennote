@@ -19,11 +19,10 @@
       </span>
       <span class="controls-right">
         <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
-          <span class="label-text">Toolbar</span>
-          <ToolSVG class="alt-icon" />
+          <span class="label-text no-kill">Toolbar</span>
         </span>
-        <span :class="{'labels-control': true, 'hiding-labels': !showLabels, 'not-important': true}" @click="showLabels = !showLabels">
-          <span class="label-text">Labels</span>
+        <span :class="{'labels-control': true, 'hiding-labels': !showLabels}" @click="showLabels = !showLabels">
+          <span class="label-text no-kill">Labels</span>
         </span>
       </span>
     </div>
@@ -357,27 +356,18 @@ export default class Editor extends Vue {
     }
 
     @media only screen and (max-width: 650px) {
-      & .label-text {
+      & .label-text:not(.no-kill) {
         display: none;
-      }
-
-      background: none;
-
-      &.labels-control:not(.labels-control-btn) {
-        height: 25px;
-        display: flex;
-        align-items: center;
-        padding: 1px 5px;
-
-        &.not-important {
-          display: none;
-        }
       }
 
       & svg.alt-icon {
         @include fillSchemeResponsive("fg1");
         display: initial;
-        height: 12px;
+        height: 15px;
+
+        &.icon-invert {
+          transform: rotate(180deg);
+        }
       }
     }
 
@@ -403,6 +393,9 @@ export default class Editor extends Vue {
 
     &.labels-control-btn {
       @extend %bgAlt6;
+
+      display: flex;
+      align-items: center;
 
       &:hover {
         @extend %bgAlt1;
