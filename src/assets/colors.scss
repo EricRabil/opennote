@@ -90,6 +90,10 @@ $darkMap: (
         #{$prop}: $dark;
     }
 
+    @media print {
+        #{$prop}: $light;
+    }
+
     @media (prefers-color-scheme: light) {
         #{$prop}: $light;
     }

@@ -330,6 +330,10 @@ export default class Editor extends Vue {
   align-items: center;
   user-select: none;
 
+  @media print {
+    display: none !important;
+  }
+
   & > .editor-burger {
     position: absolute;
     left: 10px;
@@ -460,6 +464,11 @@ export default class Editor extends Vue {
   padding: 10px 0;
   overflow-y: scroll;
 
+  @media print {
+    border: none !important;
+    color: black !important;
+  }
+
   .codex-editor--narrow .ce-toolbar__plus {
     left: 0px;
   }
@@ -516,6 +525,12 @@ export default class Editor extends Vue {
   }
 }
 
+@media print {
+  .ce-toolbar {
+    display: none !important;
+  }
+}
+
 .editor-view {
   @extend %bgAlt;
   @extend %text;
@@ -531,6 +546,10 @@ export default class Editor extends Vue {
   @extend %fill;
   
   @include schemeResponsive("box-shadow", "shadow-bottom");
+
+  @media print {
+    display: none !important;
+  }
 
   z-index: 5;
 
