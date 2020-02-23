@@ -314,7 +314,7 @@ export default class Editor extends Vue {
     }
 
     .codex-editor--narrow .ce-toolbar__plus {
-      left: 0;
+      left: 0px;
     }
 
     .codex-editor--narrow .ce-toolbar__actions {
