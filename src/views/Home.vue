@@ -75,8 +75,7 @@
         </span>
         <span class="note-controls-right">
           <span :class="['labels-control labels-control-btn']">
-            <span class="label-text" @click="exportNotes">Export All</span>
-            <TrashSVG class="alt-icon" />
+            <span class="label-text no-kill" @click="exportNotes">Export All</span>
           </span>
         </span>
       </div>
@@ -466,7 +465,8 @@ export default class Home extends Vue {
 .home {
   display: grid;
   grid-template-columns: 250px calc(100vw - 250px);
-  grid-template-rows: 100vh;
+  // grid-template-rows: 100vh;
+  height: -webkit-fill-available;
   overflow: hidden;
 
   @media only screen and (max-width: 500px) {
@@ -477,6 +477,10 @@ export default class Home extends Vue {
         visibility: hidden;
         height: 0;
       }
+    }
+
+    & > .navigator {
+      border-right: none !important;
     }
   }
 
@@ -502,7 +506,9 @@ export default class Home extends Vue {
     @extend %borderRight;
     z-index: 10;
     display: flex;
+    height: -webkit-fill-available;
     flex-flow: column;
+    padding-bottom: env(safe-area-inset-bottom);
 
     & > .title {
       &:first-child {
@@ -639,6 +645,10 @@ export default class Home extends Vue {
         }
       }
     }
+  }
+
+  & > .navigator, &.nav-collapse > .editor-view {
+    padding-left: env(safe-area-inset-left);
   }
 }
 
