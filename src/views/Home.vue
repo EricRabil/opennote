@@ -76,6 +76,7 @@ import UploadSVG from "@/assets/upload.svg?inline";
 import Editor from "@/components/Editor.vue";
 import { ModalOptions } from '../App.vue';
 import DecisionButtons from "@/components/DecisionButtons.vue";
+import ConfirmationModal from '@/components/DecisionButtons.vue';
 
 function createRange(
   node: Node,
@@ -351,8 +352,25 @@ export default class Home extends Vue {
   }
 
   async importNote() {
-    const files = await _.getFilesAsString();
-    files.forEach(file => this.$store.commit('newNote', JSON.parse(file)));
+    try {
+      const files = await _.getFilesAsString();
+      files.forEach(file => this.$store.commit('newNote', JSON.parse(file)));
+    } catch (e) {
+      if (e instanceof _.DisplayableError) {
+        const { options: { message, title } } = e;
+        await this.$root.$emit('modal-show', {
+          header: title,
+          body: message,
+          footer: DecisionButtons,
+          footerOptions: {
+            hasCancel: false,
+            confirm: () => this.$root.$emit('modal-close'),
+            confirmText: 'OK',
+            confirmStyle: 'primary'
+          }
+        } as ModalOptions);
+      }
+    }
   }
 
   /**

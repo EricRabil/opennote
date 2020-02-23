@@ -52,8 +52,14 @@ export namespace _ {
             input.multiple = true;
             input.addEventListener('change', function(ev) {
                 if (!this.files) return reject(new Error('missing files property'));
-                resolve(Promise.all(Array.from(this.files).filter(file => file.name.endsWith('.onote')).map(file => {
+                resolve(Promise.all(Array.from(this.files).map(file => {
                     return new Promise((resolve, reject) => {
+                        if (!file.name.endsWith('.onote')) {
+                            return reject(new DisplayableError(`bad filename: ${file.name}`, {
+                                title: 'Unsupported File',
+                                message: `The file '${file.name}' is unsupported. Please upload .onote files only.`
+                            }));
+                        }
                         const reader = new FileReader();
                         reader.readAsArrayBuffer(file);
                         reader.addEventListener('load', function() {
