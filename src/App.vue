@@ -133,6 +133,10 @@ body {
   display: none;
 }
 
+.cdx-input.cdx-simple-image__caption {
+  display: none;
+}
+
 .fade-enter-active, .fade-leave-active {
   @keyframes modal-entry {
     from {
