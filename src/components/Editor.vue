@@ -28,15 +28,34 @@
     </div>
     <div class="editor-ribbon-container" v-if="showRibbon">
       <div class="editor-ribbon">
-        <span
-          :class="{'ribbon-item': true, active: key === active}"
-          @click="switchTool(key)"
-          v-for="(value, key) in toolboxData"
-          :key="key"
-        >
-          <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
-          <span class="ribbon-icon" v-html="value.icon"></span>
-        </span>
+        <template v-for="(value, key) in topLevelToolboxData">
+          <span
+            :class="{'ribbon-item': true, active: key === active}"
+            :data-tooltip="showLabels ? '' : value.title"
+            @mouseenter="mouseenter"
+            @mouseleave="mouseleave"
+            @click="switchTool(key)"
+            :key="key"
+          >
+            <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
+            <span class="ribbon-icon" v-html="value.icon"></span>
+          </span>
+          <span :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']" :key="`${key}-drawer`" v-if="key in toolDrawers" @click="toggleDrawer(key)">
+            <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave"></span>
+            <span
+              :class="{'ribbon-item': true, active: key === active}"
+              :data-tooltip="showLabels ? '' : value.title"
+              @mouseenter="mouseenter"
+              @mouseleave="mouseleave"
+              @click="switchTool(key)"
+              v-for="sliderItemKey of toolDrawers[key]"
+              :key="sliderItemKey"
+            >
+              <span class="ribbon-text" v-if="showLabels">{{toolboxData[sliderItemKey].title}}</span>
+              <span class="ribbon-icon" v-html="toolboxData[sliderItemKey].icon"></span>
+            </span>
+          </span>
+        </template>
       </div>
     </div>
     <div class="editor-container" ref="mountPoint"></div>
@@ -102,6 +121,12 @@ export default class Editor extends Vue {
 
   showLabels: boolean = true;
 
+  toolDrawers: {[key: string]: string[]} = {
+    paragraph: ['list', 'header', 'delimiter', 'quote']
+  };
+
+  openDrawers: string[] = [];
+
   $refs: {
     mountPoint: HTMLDivElement;
   };
@@ -116,6 +141,11 @@ export default class Editor extends Vue {
     }
 
     window.addEventListener('beforeunload', this.unloadListener = () => this.save());
+  }
+
+  toggleDrawer(drawer: string) {
+    if (this.openDrawers.includes(drawer)) return this.openDrawers.splice(this.openDrawers.indexOf(drawer));
+    this.openDrawers.push(drawer);
   }
 
   mounted() {
@@ -161,6 +191,10 @@ export default class Editor extends Vue {
       (block: any) => block.name === "math"
     );
     if (quill) await quill.tool.send('updateQuills');
+  }
+
+  get notInMainToolbox() {
+    return Object.values(this.toolDrawers).reduce((a,c) => a.concat(c), []);
   }
 
   /**
@@ -243,6 +277,7 @@ export default class Editor extends Vue {
         }),
         checklist: Checklist,
         code: Code,
+        raw: Raw,
         delimiter: Delimiter,
         embed: Embed,
         inlineCode: InlineCode,
@@ -251,7 +286,6 @@ export default class Editor extends Vue {
         header: Header,
         paragraph: Paragraph,
         quote: Quote,
-        raw: Raw,
         simpleImage: SimpleImage,
         table: Table,
         warning: Warning
@@ -315,6 +349,10 @@ export default class Editor extends Vue {
     } catch (e) {
       return {};
     }
+  }
+
+  get topLevelToolboxData() {
+    return _.filterObject(this.toolboxData, key => !this.notInMainToolbox.includes(key));
   }
 }
 </script>
@@ -482,12 +520,36 @@ export default class Editor extends Vue {
     flex-flow: row;
     flex-wrap: wrap;
 
-    & > span.ribbon-item {
+    & > .tools-drawer-slider {
       display: flex;
-      flex-flow: row-reverse;
-      padding: 10px 15px;
-      align-items: center;
+      flex-flow: row;
 
+      & .drawer-toggle {
+        display: flex;
+        line-height: 0;
+        align-items: center;
+        height: 100%;
+        padding: 0 5px;
+        color: white;
+
+        &::after {
+          font-size: 20px;
+        }
+      }
+
+      &.drawer-closed .drawer-toggle::after {
+        content: '\00bb';
+      }
+      &:not(.drawer-closed) .drawer-toggle::after {
+        content: '\00ab';
+      }
+
+      &.drawer-closed .ribbon-item {
+        display: none;
+      }
+    }
+
+    & span.ribbon-item, & span.drawer-toggle {
       &:hover {
         @extend %bg0;
         cursor: pointer;
@@ -500,6 +562,13 @@ export default class Editor extends Vue {
       &.active {
         @extend %bg1;
       }
+    }
+
+    & span.ribbon-item {
+      display: flex;
+      flex-flow: row-reverse;
+      padding: 10px 15px;
+      align-items: center;
 
       & > span.ribbon-text {
         height: min-content;
