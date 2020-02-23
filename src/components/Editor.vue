@@ -2,6 +2,11 @@
   <div class="editor-view">
     <div class="editor-ribbon-container">
       <div class="editor-ribbon" v-if="showRibbon">
+        <span v-if="showBurger" class="ribbon-item" @click="$emit('burgerClick')">
+          <span class="ribbon-icon">
+            &#9776;
+          </span>
+        </span>
         <span
           :class="{'ribbon-item': true, active: key === active}"
           @click="switchTool(key)"
@@ -52,6 +57,9 @@ export default class Editor extends Vue {
   interval: any;
   unloadListener: Function;
   hasChanges: boolean = false;
+
+  @Prop({ default: false })
+  showBurger: boolean;
 
   $refs: {
     mountPoint: HTMLDivElement;
