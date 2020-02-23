@@ -58,10 +58,10 @@
         </div>
       </div>
     </div>
-    <editor :show-burger="navCollapse" :exporter="download" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
+    <editor :show-burger="navCollapse" :exporter="download" :canDelete="canDelete" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
     <vue-context v-for="(data, id) in list" :key="id" :ref="`contextMenu${id}`">
       <li @click="download(id)">Export</li>
-      <li class="ctx-danger" @click="delNote(id)">Delete</li>
+      <li :class="['ctx-danger', canDelete ? '' : 'ctx-danger-disabled']" @click="delNote(id)">Delete</li>
     </vue-context>
   </div>
 </template>
@@ -570,6 +570,11 @@ export default class Home extends Vue {
 
       &.ctx-danger {
         @extend %bgRed;
+
+        &.ctx-danger-disabled {
+          @extend %bgRedBad;
+          cursor: not-allowed;
+        }
       }
     }
 
@@ -578,6 +583,10 @@ export default class Home extends Vue {
 
       &.ctx-danger {
         @extend %bgRedAlt;
+
+        &.ctx-danger-disabled {
+          @extend %bgRedAlt;
+        }
       }
     }
   }

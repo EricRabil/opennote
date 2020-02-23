@@ -6,10 +6,12 @@
           &#9776;
         </span>
         <span class="labels-control labels-control-btn" @click="exporter(noteID)">
-          Export
+          <span class="label-text">Export</span>
+          <UploadSVG class="alt-icon icon-invert" />
         </span>
-        <span class="labels-control labels-control-btn labels-control-btn-danger" @click="deleter(noteID)">
-          Delete
+        <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="deleter(noteID)">
+          <span class="label-text">Delete</span>
+          <TrashSVG class="alt-icon" />
         </span>
       </span>
       <span class="note-name">
@@ -17,10 +19,11 @@
       </span>
       <span class="controls-right">
         <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
-          Toolbar
+          <span class="label-text">Toolbar</span>
+          <ToolSVG class="alt-icon" />
         </span>
-        <span :class="{'labels-control': true, 'hiding-labels': !showLabels}" @click="showLabels = !showLabels">
-          Labels
+        <span :class="{'labels-control': true, 'hiding-labels': !showLabels, 'not-important': true}" @click="showLabels = !showLabels">
+          <span class="label-text">Labels</span>
         </span>
       </span>
     </div>
@@ -46,6 +49,9 @@ import EditorJS, { OutputData } from "@editorjs/editorjs";
 import { Component, Vue, Prop } from "vue-property-decorator";
 import { toolForVueComponent } from "@/tools/MQVueTool";
 import MathQuillComponent from '@/components/MathQuillComponent.vue';
+import UploadSVG from "@/assets/upload.svg?inline";
+import TrashSVG from "@/assets/trash.svg?inline";
+import ToolSVG from "@/assets/tool.svg?inline";
 
 import patchEditorJS from "../editorjs-patches";
 
@@ -67,7 +73,13 @@ const Warning = require("@editorjs/warning");
 /**
  * Wrapper around Codex, manages all communication with it.
  */
-@Component
+@Component({
+  components: {
+    UploadSVG,
+    TrashSVG,
+    ToolSVG
+  }
+})
 export default class Editor extends Vue {
   editor: EditorJS;
   showRibbon = false;
@@ -85,6 +97,9 @@ export default class Editor extends Vue {
 
   @Prop()
   deleter: (id: string) => any;
+
+  @Prop({ default: false })
+  canDelete: boolean;
 
   showLabels: boolean = true;
 
@@ -322,6 +337,11 @@ export default class Editor extends Vue {
     cursor: pointer;
   }
 
+  & .note-name {
+    flex-grow: 1;
+    text-align: center;
+  }
+
   & .labels-control, & .labels-control-btn {
     @extend %bgAlt1;
     padding: 5px;
@@ -331,6 +351,35 @@ export default class Editor extends Vue {
     margin: 5px;
     transition: background-color 0.0625s linear;
     cursor: pointer;
+
+    & svg.alt-icon {
+      display: none;
+    }
+
+    @media only screen and (max-width: 650px) {
+      & .label-text {
+        display: none;
+      }
+
+      background: none;
+
+      &.labels-control:not(.labels-control-btn) {
+        height: 25px;
+        display: flex;
+        align-items: center;
+        padding: 1px 5px;
+
+        &.not-important {
+          display: none;
+        }
+      }
+
+      & svg.alt-icon {
+        @include fillSchemeResponsive("fg1");
+        display: initial;
+        height: 12px;
+      }
+    }
 
     &:hover {
       @extend %bgAlt6;
@@ -360,13 +409,24 @@ export default class Editor extends Vue {
 
         &.labels-control-btn-danger {
           @extend %bgRed;
+          color: white;
+        }
+      }
+
+      &.labels-control-btn-disabled {
+        &:hover {
+          cursor: not-allowed;
+          @extend %bgAlt2;
+
+          &.labels-control-btn-danger {
+            @extend %bgRedBad;
+          }
         }
       }
     }
   }
 
   & > .controls-left, & > .controls-right {
-    position: absolute;
     display: flex;
     flex-flow: row;
     align-items: center;
@@ -376,11 +436,11 @@ export default class Editor extends Vue {
     }
 
     &.controls-left {
-      left: 10px;
+      margin-left: 10px;
     }
 
     &.controls-right {
-      right: 10px;
+      margin-right: 10px;
     }
   }
 }
@@ -509,11 +569,11 @@ export default class Editor extends Vue {
 
       & > span.ribbon-text {
         height: min-content;
+        margin-left: 5px;
       }
 
       & > span.ribbon-icon {
         line-height: 0;
-        margin-right: 5px;
       }
     }
   }
