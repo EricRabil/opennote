@@ -4,6 +4,8 @@ $lightMap: (
     "bg": white,
     "bgAlt": darken(white, 2),
     "bgAlt0": darken(white, 4),
+    "bgAlt6": darken(white, 6),
+    "bgAlt7": darken(white, 7),
     "bgAlt1": darken(white, 8),
     "bgAlt2": darken(white, 16),
     "bgAlt3": darken(white, 32),
@@ -23,7 +25,7 @@ $lightMap: (
     "borderAlt": 1px solid black,
     "border1": 1px solid darken(white, 20),
     "borderAlt1": 1px solid lighten(black, 40),
-    "shadow-bottom": 0px -3px 15px 5px rgba(0, 0, 0, 0.25),
+    "shadow-bottom": 0px 6px 15px 0px rgba(0, 0, 0, 0.25),
     "shadow-regular": 0px 0px 20px 5px rgba(0, 0, 0, 0.25),
     "ce-block--focused": linear-gradient(17deg,rgba(243,248,255,.03) 63.45%,rgba(207,214,229,.27) 98%)
 );
@@ -34,6 +36,8 @@ $darkMap: (
     "bg": black,
     "bgAlt": lighten(black, 2),
     "bgAlt0": lighten(black, 4),
+    "bgAlt6": lighten(black, 8),
+    "bgAlt7": lighten(black, 12),
     "bgAlt1": lighten(black, 16),
     "bgAlt2": lighten(black, 32),
     "bgAlt3": lighten(black, 48),
@@ -53,7 +57,7 @@ $darkMap: (
     "borderAlt": 1px solid white,
     "border1": 1px solid lighten(black, 20),
     "borderAlt1": 1px solid darken(white, 40),
-    "shadow-bottom": 0px -3px 15px 5px rgba(3, 2, 2, 0.95),
+    "shadow-bottom": 0px 6px 15px 0px rgb(6, 7, 12),
     "shadow-regular": 0px 0px 20px 5px rgba(3, 2, 2, 0.95),
     "ce-block--focused": linear-gradient(17deg,rgba(0, 0, 0, 0.03) 63.45%,rgba(89, 92, 97, 0.068) 98%)
 );
@@ -101,6 +105,14 @@ $darkMap: (
 
 %bgAlt0 {
     @include bgSchemeResponsive("bgAlt0");
+}
+
+%bgAlt6 {
+    @include bgSchemeResponsive("bgAlt6");
+}
+
+%bgAlt7 {
+    @include bgSchemeResponsive("bgAlt7");
 }
 
 %bgAlt1 {
