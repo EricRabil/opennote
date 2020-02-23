@@ -18,7 +18,7 @@
             data-tooltip="Delete Note"
             @mouseenter="mouseenter"
             @mouseleave="mouseleave"
-            @click="delNote"
+            @click="delNote(currentNote)"
           >
             <svg class="icon icon--cross" width="12px" height="12px">
               <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#cross" />
@@ -60,6 +60,7 @@
     <editor></editor>
     <vue-context v-for="(data, id) in list" :key="id" :ref="`contextMenu${id}`">
       <li @click="download(id)">Download</li>
+      <li @click="delNote(id)">Delete</li>
     </vue-context>
   </div>
 </template>
@@ -72,6 +73,8 @@ import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import UploadSVG from "@/assets/upload.svg?inline";
 import Editor from "@/components/Editor.vue";
+import { ModalOptions } from '../App.vue';
+import DecisionButtons from "@/components/DecisionButtons.vue";
 
 function createRange(
   node: Node,
@@ -311,9 +314,25 @@ export default class Home extends Vue {
   /**
    * deletes the current note
    */
-  delNote() {
+  delNote(id: string = this.currentNote) {
     if (!this.canDelete()) return;
-    this.$store.commit("delNote", this.currentNote);
+    this.$root.$emit('modal-show', {
+      header: 'Delete Note?',
+      body: 'Deleting a note is permanent, it cannot be restored unless you have a backup.',
+      footer: DecisionButtons,
+      footerOptions: {
+        cancel: () => {
+          this.$root.$emit('modal-close');
+        },
+        confirm: () => {
+          this.$store.commit("delNote", id);
+          this.$root.$emit('modal-close');
+        },
+        confirmText: 'Delete Note',
+        cancelText: 'Keep Note',
+        confirmStyle: 'danger'
+      }
+    } as ModalOptions);
   }
 
   async importNote() {
