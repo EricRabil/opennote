@@ -90,7 +90,6 @@ async function condenseSiblings(siblings: utensils.latexParser.Node[], context: 
                     /**
                      * Adds implicit multiplication for things immediately following paren
                      */
-                    siblings.splice(i, 0, text('*'));
                 } else if (prev.kind === 'command' || (prev as any).wasCommand) {
                     if (item.content.startsWith('(')) continue;
                     /**
