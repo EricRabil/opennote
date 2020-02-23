@@ -41,10 +41,10 @@
       <div class="navigator-contents">
         <div
           :class="{'navigator-item': true, active: id === currentNote}"
-          :style="{display: !data.name ? 'none' : 'flex'}"
-          @contextmenu.prevent="triggerContext($event, id)"
+          :style="{display: !name ? 'none' : 'flex'}"
+          @contextmenu.prevent="triggerContext($event, idx)"
           @click="selectNote(id)"
-          v-for="(data, id) in list"
+          v-for="({id, name, timestamp}, idx) in list"
           :key="id"
         >
           <span
@@ -53,8 +53,8 @@
             contenteditable="true"
             :data-id="id"
             @input="setTitle"
-          >{{data.name}}</span>
-          <span class="item-timestamp">{{data.timestamp}}</span>
+          >{{name}}</span>
+          <span class="item-timestamp">{{timestamp}}</span>
         </div>
       </div>
     </div>
@@ -138,22 +138,12 @@ function setCurrentCursorPosition(index: number, node: Node) {
   }
 })
 export default class Home extends Vue {
-  list: {
-    [id: string]: {
-      name: string;
-      timestamp: string;
-    };
-  } = {};
+  list: Array<{id: string, name: string, timestamp: string}> = [];
 
   navCollapse: boolean = false;
   canDelete: boolean = false;
 
-  /**
-   * put placeholder data in the list, will be populated on render
-   */
-  created() {
-    this.list[this.currentNote] = {} as any;
-  }
+  sortListAscending: boolean = false;
 
   mounted() {
     /**
@@ -161,12 +151,17 @@ export default class Home extends Vue {
      */
     this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case "updateNote":
-        case "newNote":
-        case "delNote":
-          this.reload();
+        case 'setNote':
+        case 'newNote':
+        case 'delNote':
+        case 'updateNote':
+          this.list = this.sortedList(this.notes);
       }
     });
+
+    this.$watch('sortListAscending', () => {
+      this.list = this.sortedList(this.notes);
+    })
 
     document.addEventListener("mousedown", this.mouseDown);
 
@@ -266,7 +261,7 @@ export default class Home extends Vue {
   /**
    * all notes
    */
-  get notes() {
+  get notes(): { [id: string]: Note } {
     return this.$store.state.notes;
   }
 
@@ -341,11 +336,31 @@ export default class Home extends Vue {
     this.$store.commit("newNote");
   }
 
+  get prevNote() {
+    const list = this.sortedList(this.notes);
+    return list[list.findIndex(note => note.id === this.currentNote) - 1];
+  }
+
+  get nextNote() {
+    const list = this.sortedList(this.notes);
+    return list[list.findIndex(note => note.id === this.currentNote) + 1];
+  }
+
   /**
    * deletes the current note
    */
   delNote(id: string = this.currentNote) {
     if (!this.canDelete) return;
+    const nextNote = this.nextNote;
+    const completion = () => {
+      this.$store.commit("delNote", id);
+      this.$store.commit("setNote", nextNote.id);
+    };
+    if (!this.notes[id].data || this.notes[id].data.blocks.length === 0) {
+      completion();
+      return;
+    }
+
     this.$root.$emit('modal-show', {
       header: 'Delete Note?',
       body: 'Deleting a note is permanent, it cannot be restored unless you have a backup.',
@@ -355,7 +370,7 @@ export default class Home extends Vue {
           this.$root.$emit('modal-close');
         },
         confirm: () => {
-          this.$store.commit("delNote", id);
+          completion();
           this.$root.$emit('modal-close');
         },
         confirmText: 'Delete Note',
@@ -390,29 +405,19 @@ export default class Home extends Vue {
   /**
    * Reloads all notes into the navigator view
    */
-  reload() {
-    this.list = {};
+  sortedList(notes: this['notes']) {
     this.canDelete = Object.keys(this.$store.state.notes).length > 1;
-    for (let prop in this.$store.state.notes) {
-      this.loadNote(prop, this.$store.state.notes[prop]);
-    }
-  }
+    const flatNotes = Object.keys(this.notes).map(k => ({id: k, ...this.notes[k]}));
 
-  /**
-   * Computes the renderable data for a note in the navigator view
-   */
-  loadNote(id: string, note: any) {
-    if (!note) {
-      console.warn("invalid note passed to loadNote");
-      return;
-    }
-
-    const time = typeof note.data === "object" ? note.data.time : note.created;
-
-    Vue.set(this.list, id, {
-      name: note.name,
-      timestamp: moment(time).calendar()
-    });
+    return flatNotes.sort((a, b) => {
+      const aTime = a.data && a.data.time || a.created;
+      const bTime = b.data && b.data.time || b.created;
+      return this.sortListAscending ? (aTime - bTime) : (bTime - aTime);
+    }).map(({id, name, created, data}) => ({
+      id,
+      name,
+      timestamp: moment(data && data.time || created).calendar()
+    }));
   }
 }
 </script>
