@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.aeabde4aef71c1519ce23f66781f0b75.js"
+  "/opennote/precache-manifest.b6f534104f8d95f171f021322f920a8f.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "opennote"});
