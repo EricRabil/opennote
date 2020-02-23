@@ -33,19 +33,23 @@ export namespace _ {
     /**
      * Prompts a user for a file and returns the raw data
      */
-    export function getFile(): Promise<ArrayBuffer | null> {
+    export function getFiles(): Promise<ArrayBuffer[]> {
         return new Promise((resolve, reject) => {
             const input = document.createElement('input');
             input.type = 'file';
+            input.accept = '.onote';
+            input.multiple = true;
             input.addEventListener('change', function(ev) {
                 if (!this.files) return reject(new Error('missing files property'));
-                const file = this.files.item(0);
-                if (!file) return resolve(null);
-                const reader = new FileReader();
-                const data = reader.readAsArrayBuffer(file);
-                reader.addEventListener('load', function(event) {
-                    resolve(this.result as ArrayBuffer);
-                });
+                resolve(Promise.all(Array.from(this.files).filter(file => file.name.endsWith('.onote')).map(file => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsArrayBuffer(file);
+                        reader.addEventListener('load', function() {
+                            resolve(this.result as ArrayBuffer);
+                        });
+                    }) as Promise<ArrayBuffer>;
+                })));
             });
             input.click();
         });
@@ -54,12 +58,11 @@ export namespace _ {
     /**
      * Prompts a user for a file and decodes it to a string
      */
-    export function getFileAsString(): Promise<string | null> {
-        return getFile().then(file => {
-            if (file === null) return file;
+    export function getFilesAsString(): Promise<string[]> {
+        return getFiles().then(files => {
             const decoder = new TextDecoder('utf-8');
-            return decoder.decode(file);
-        })
+            return files.map(file => decoder.decode(file));
+        });
     }
 
     export function registerDevModule(data: any) {

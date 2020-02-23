@@ -348,12 +348,8 @@ export default class Home extends Vue {
   }
 
   async importNote() {
-    const file = await _.getFileAsString();
-    /**
-     * @todo proper error handling
-     */
-    if (!file) return;
-    this.$store.commit('newNote', JSON.parse(file));
+    const files = await _.getFilesAsString();
+    files.forEach(file => this.$store.commit('newNote', JSON.parse(file)));
   }
 
   /**
