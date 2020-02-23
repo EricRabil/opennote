@@ -66,6 +66,14 @@
           <span class="item-timestamp">{{timestamp}}</span>
         </div>
       </transition-group>
+      <div class="title">
+        <span class="note-controls-left">
+          <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="delNote(noteID)">
+            <span class="label-text">Delete</span>
+            <TrashSVG class="alt-icon" />
+          </span>
+        </span>
+        </span>
       </div>
     </div>
     <editor :show-burger="navCollapse" :exporter="download" :canDelete="canDelete" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
@@ -87,6 +95,8 @@ import Editor from "@/components/Editor.vue";
 import { ModalOptions } from '../App.vue';
 import DecisionButtons from "@/components/DecisionButtons.vue";
 import ConfirmationModal from '@/components/DecisionButtons.vue';
+import { Note } from '../store';
+import TrashSVG from "@/assets/trash.svg?inline";
 
 function createRange(
   node: Node,
@@ -144,7 +154,8 @@ function setCurrentCursorPosition(index: number, node: Node) {
   components: {
     VueContext,
     UploadSVG,
-    Editor
+    Editor,
+    TrashSVG
   }
 })
 export default class Home extends Vue {
@@ -156,9 +167,6 @@ export default class Home extends Vue {
   sortListAscending: boolean = false;
 
   mounted() {
-    /**
-     * Reload on note mutations
-     */
     this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
         case 'setNote':
