@@ -4,16 +4,16 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/opennote/bd97eacc3c9a1ec2aec7.worker.js"
   },
   {
-    "revision": "3b427b20f7b55ca32aa5",
+    "revision": "eb9d0cb7ec4ef5991fb0",
     "url": "/opennote/css/app.2470c2c2.css"
   },
   {
-    "revision": "3ce4f2e3ca78957c861814a0b4e116bd",
+    "revision": "88fd75de30e23718960668e75899a4e5",
     "url": "/opennote/index.html"
   },
   {
-    "revision": "3b427b20f7b55ca32aa5",
-    "url": "/opennote/js/app.eced1a7f.js"
+    "revision": "eb9d0cb7ec4ef5991fb0",
+    "url": "/opennote/js/app.e39a4a8d.js"
   },
   {
     "revision": "0a5db2e88e2a52d7564d",
