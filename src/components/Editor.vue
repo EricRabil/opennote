@@ -9,10 +9,6 @@
           <span class="label-text">Export</span>
           <UploadSVG class="alt-icon icon-invert" />
         </span>
-        <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="deleter(noteID)">
-          <span class="label-text">Delete</span>
-          <TrashSVG class="alt-icon" />
-        </span>
       </span>
       <span class="note-name">
         {{note.name}}
@@ -72,6 +68,7 @@ import TrashSVG from "@/assets/trash.svg?inline";
 import ToolSVG from "@/assets/tool.svg?inline";
 
 import patchEditorJS from "../editorjs-patches";
+import _ from '../util';
 
 const Checklist = require("@editorjs/checklist");
 const Code = require("@editorjs/code");
@@ -202,6 +199,10 @@ export default class Editor extends Vue {
       (block: any) => block.name === "math"
     );
     if (quill) await quill.tool.send('updateQuills');
+  }
+
+  get quills() {
+    return (this.editor as any).core.moduleInstances.BlockManager.blocks.filter((block: {name: string}) => block.name === 'math');
   }
 
   get notInMainToolbox() {
