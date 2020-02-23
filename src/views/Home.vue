@@ -289,7 +289,21 @@ export default class Home extends Vue {
     const tip = (ev.target! as HTMLElement).getAttribute("data-tooltip");
     const placement = (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
     if (!tip) return;
-    this.tooltip.show(ev.target as HTMLElement, tip, { placement });
+
+    const content = document.createTextNode(tip);
+
+    const observer = new MutationObserver((mutation) => {
+      content.textContent = (ev.target! as HTMLElement).getAttribute("data-tooltip");
+    });
+
+    observer.observe(ev.target as HTMLElement, {
+      attributes: true,
+      attributeFilter: ['data-tooltip'],
+      childList: false,
+      characterData: false
+    });
+
+    this.tooltip.show(ev.target as HTMLElement, content, { placement });
     const tooltipContainers = Array.from(
       document.querySelectorAll(".ct.ct--bottom")
     ) as HTMLElement[];
