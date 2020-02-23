@@ -26,17 +26,6 @@
             <UploadSVG width="12px" />
           </span>
           <span
-            :class="{'control': true, 'control-danger': true, disabled: !canDelete()}"
-            data-tooltip="Delete Note"
-            @mouseenter="mouseenter"
-            @mouseleave="mouseleave"
-            @click="delNote(currentNote)"
-          >
-            <svg class="icon icon--cross" width="12px" height="12px">
-              <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#cross" />
-            </svg>
-          </span>
-          <span
             class="control control-primary"
             data-tooltip="New Note"
             @mouseenter="mouseenter"
@@ -46,15 +35,6 @@
             <svg class="icon icon--plus" width="14px" height="14px">
               <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#plus" />
             </svg>
-          </span>
-          <span
-            class="control control-success control-invert"
-            data-tooltip="Download Note"
-            @mouseenter="mouseenter"
-            @mouseleave="mouseleave"
-            @click="download(currentNote)"
-          >
-            <UploadSVG width="12px" />
           </span>
         </span>
       </div>
@@ -78,10 +58,10 @@
         </div>
       </div>
     </div>
-    <editor :show-burger="navCollapse" @burgerClick="navCollapse = !navCollapse"></editor>
+    <editor :show-burger="navCollapse" :exporter="download" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
     <vue-context v-for="(data, id) in list" :key="id" :ref="`contextMenu${id}`">
-      <li @click="download(id)">Download</li>
-      <li @click="delNote(id)">Delete</li>
+      <li @click="download(id)">Export</li>
+      <li class="ctx-danger" @click="delNote(id)">Delete</li>
     </vue-context>
   </div>
 </template>
@@ -407,12 +387,12 @@ export default class Home extends Vue {
 <style lang="scss">
 .home {
   display: grid;
-  grid-template-columns: 250px auto;
+  grid-template-columns: 250px calc(100vw - 250px);
   grid-template-rows: 100vh;
   overflow: hidden;
 
   @media only screen and (max-width: 500px) {
-    grid-template-columns: auto;
+    grid-template-columns: 100vw;
     
     &:not(.nav-collapse) {
       & > .editor-view {
@@ -423,7 +403,7 @@ export default class Home extends Vue {
   }
 
   &.nav-collapse {
-    grid-template-columns: 0px auto;
+    grid-template-columns: 0px 100vw;
 
     & > .navigator {
       visibility: hidden;
@@ -445,6 +425,7 @@ export default class Home extends Vue {
       display: flex;
       flex-flow: row-reverse;
       align-items: center;
+      user-select: none;
 
       & > .note-controls-left {
         display: inline-flex;
@@ -455,12 +436,9 @@ export default class Home extends Vue {
         & .control {
           display: inline-flex;
           align-items: center;
+          margin: 5px;
           &:hover {
             cursor: pointer;
-          }
-
-          &:not(:last-child) {
-            margin-right: 5px;
           }
 
           &:hover {
@@ -587,10 +565,18 @@ export default class Home extends Vue {
 
     &:hover {
       @extend %bg0;
+
+      &.ctx-danger {
+        @extend %bgRed;
+      }
     }
 
     &:active {
       @extend %bg1;
+
+      &.ctx-danger {
+        @extend %bgRedAlt;
+      }
     }
   }
 }

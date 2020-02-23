@@ -1,19 +1,38 @@
 <template>
   <div class="editor-view">
-    <div class="editor-ribbon-container">
-      <div class="editor-ribbon" v-if="showRibbon">
-        <span v-if="showBurger" class="ribbon-item" @click="$emit('burgerClick')">
-          <span class="ribbon-icon">
-            &#9776;
-          </span>
+    <div class="editor-meta-view" v-if="note">
+      <span class="controls-left">
+        <span v-if="showBurger" class="editor-burger" @click="$emit('burgerClick')">
+          &#9776;
         </span>
+        <span class="labels-control labels-control-btn" @click="exporter(noteID)">
+          Export
+        </span>
+        <span class="labels-control labels-control-btn labels-control-btn-danger" @click="deleter(noteID)">
+          Delete
+        </span>
+      </span>
+      <span class="note-name">
+        {{note.name}}
+      </span>
+      <span class="controls-right">
+        <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
+          Toolbar
+        </span>
+        <span :class="{'labels-control': true, 'hiding-labels': !showLabels}" @click="showLabels = !showLabels">
+          Labels
+        </span>
+      </span>
+    </div>
+    <div class="editor-ribbon-container" v-if="showRibbon">
+      <div class="editor-ribbon">
         <span
           :class="{'ribbon-item': true, active: key === active}"
           @click="switchTool(key)"
           v-for="(value, key) in toolboxData"
           :key="key"
         >
-          <span class="ribbon-text">{{value.title}}</span>
+          <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
           <span class="ribbon-icon" v-html="value.icon"></span>
         </span>
       </div>
@@ -61,6 +80,14 @@ export default class Editor extends Vue {
   @Prop({ default: false })
   showBurger: boolean;
 
+  @Prop()
+  exporter: (id: string) => any;
+
+  @Prop()
+  deleter: (id: string) => any;
+
+  showLabels: boolean = true;
+
   $refs: {
     mountPoint: HTMLDivElement;
   };
@@ -87,6 +114,8 @@ export default class Editor extends Vue {
       this.editor.clear();
 
       if (!this.cachedData) return;
+
+      const note = this.note;
 
       this.hasChanges = false;
       await this.renderData(this.cachedData);
@@ -124,8 +153,11 @@ export default class Editor extends Vue {
    * Returns note data of the currently selected note
    */
   get cachedData() {
-    let note = this.$store.state.notes[this.noteID];
-    return note ? note.data : undefined;
+    return this.note && this.note.data;
+  }
+
+  get note() {
+    return this.$store.state.notes[this.noteID];
   }
 
   /**
@@ -168,7 +200,8 @@ export default class Editor extends Vue {
     // reveal tooltip lib
     Vue.set(this.$root.$children[0], 'tooltip', this.getModule('API').methods.tooltip);
 
-    this.showRibbon = true;
+    // only show ribbon by default if we are on big screen
+    this.showRibbon = document.body.clientWidth > 500;
     this.save();
     this.$emit("ready");
   }
@@ -273,6 +306,97 @@ export default class Editor extends Vue {
 </script>
 
 <style lang="scss">
+.editor-meta-view {
+  @extend %borderBottom;
+  position: sticky;
+  display: flex;
+  flex-flow: row;
+  min-height: 44px;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+
+  & > .editor-burger {
+    position: absolute;
+    left: 10px;
+    cursor: pointer;
+  }
+
+  & .labels-control, & .labels-control-btn {
+    @extend %bgAlt1;
+    padding: 5px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin: 5px;
+    transition: background-color 0.0625s linear;
+    cursor: pointer;
+
+    &:hover {
+      @extend %bgAlt6;
+    }
+
+    &.hiding-labels:not(:hover) {
+      background: none;
+    }
+
+    &:not(.hiding-labels):hover {
+      @extend %bgAlt7;
+
+      &:active {
+        @extend %bgAlt2;
+      }
+    }
+
+    &:active {
+      @extend %bgAlt2;
+    }
+
+    &.labels-control-btn {
+      @extend %bgAlt6;
+
+      &:hover {
+        @extend %bgAlt1;
+
+        &.labels-control-btn-danger {
+          @extend %bgRed;
+        }
+      }
+    }
+  }
+
+  & > .controls-left, & > .controls-right {
+    position: absolute;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+
+    & .editor-burger {
+      margin: 5px;
+    }
+
+    &.controls-left {
+      left: 10px;
+    }
+
+    &.controls-right {
+      right: 10px;
+    }
+  }
+}
+
+@media only screen and (max-width: 1150px) {
+  .home:not(.nav-collapse) .editor-container {
+    border: 0 !important;
+  }
+}
+
+@media only screen and (max-width: 900px) {
+  .home .editor-container {
+    border: 0 !important;
+  }
+}
+
 .editor-container {
   @extend %border1;
   border-top: 0;
@@ -283,26 +407,39 @@ export default class Editor extends Vue {
   padding: 10px 0;
   overflow-y: scroll;
 
+  .codex-editor--narrow .ce-toolbar__plus {
+    left: 0px;
+  }
+
   z-index: 0;
 
   .codex-editor {
     z-index: -5;
 
+    @media only screen and (max-width: 975px) {
+      .ce-block {
+        margin-right: 0;
+        padding-right: 0;
+      }
+
+      &.codex-editor--narrow .ce-toolbox {
+        left: 34px;
+        background: none;
+      }
+
+      .ce-toolbar__plus {
+        left: 0px;
+      }
+
+      .ce-block__content {
+        max-width: calc(100% - 90px);
+        margin: 0;
+        padding-left: 34px;
+      }
+    }
+
     .codex-editor__redactor, .codex-editor__loader {
       height: 100vh;
-
-      @media only screen and (max-width: 975px) {
-        .ce-block {
-          margin-right: 0;
-          padding-right: 0;
-        }
-
-        .ce-block__content {
-          max-width: calc(100vw - 250px - 105px);
-          margin: 0;
-          margin-left: 34px;
-        }
-      }
     }
   }
 }
@@ -313,26 +450,16 @@ export default class Editor extends Vue {
       margin: 0;
     }
 
-    .codex-editor--narrow .ce-toolbar__plus {
-      left: 0px;
-    }
-
     .codex-editor--narrow .ce-toolbar__actions {
       right: 10px;
     }
 
-    .editor-container .codex-editor .codex-editor__redactor {
-      .ce-block__content {
-        max-width: calc(100vw - 105px);
-        margin: 0;
-        padding-left: 34px;
-      }
-
-      .ce-block.ce-block--focused {
-        margin: 0;
-        padding: 0;
-      }
-    }
+  //   .editor-container .codex-editor .codex-editor__redactor {
+  //     .ce-block.ce-block--focused {
+  //       margin: 0;
+  //       padding: 0;
+  //     }
+  //   }
   }
 }
 
