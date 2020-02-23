@@ -1,3 +1,6 @@
+import JSZip from "jszip";
+import saver from "file-saver";
+
 export namespace _ {
     interface DisplayableErrorOptions {
         title?: string;
@@ -84,6 +87,17 @@ export namespace _ {
 
     export function registerDevModule(data: any) {
         Object.assign(window, data);
+    }
+
+    export function filterObject<T>(obj: T, filter: (key: string, value: any) => boolean): T {
+        return Object.keys(obj).filter(k => filter(k, (obj as any)[k])).reduce((a,c) => {a[c] = (obj as any)[c]; return a;}, {} as any);
+    }
+
+    export async function zipFilesAndDownload(zipName: string, files: Array<{name: string, text: string}>): Promise<void> {
+        const zip = new JSZip();
+        files.forEach(({name, text}) => zip.file(name, text));
+        const content = await zip.generateAsync({type: "blob"});
+        await saver.saveAs(content, zipName);
     }
 }
 

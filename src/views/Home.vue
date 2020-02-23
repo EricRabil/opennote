@@ -73,6 +73,11 @@
             <TrashSVG class="alt-icon" />
           </span>
         </span>
+        <span class="note-controls-right">
+          <span :class="['labels-control labels-control-btn']">
+            <span class="label-text" @click="exportNotes">Export All</span>
+            <TrashSVG class="alt-icon" />
+          </span>
         </span>
       </div>
     </div>
@@ -231,6 +236,23 @@ export default class Home extends Vue {
   download(id: string) {
     const note = this.$store.state.notes[id];
     _.saveFile(JSON.stringify(note), `${note.name}.onote`, "application/json");
+  }
+
+  async exportNotes() {
+    let repeats: {
+      [name: string]: number
+    } = {};
+    const serialized = Object.keys(this.notes).map(k => ({
+      name: this.notes[k].name,
+      text: JSON.stringify(this.notes[k])
+    })).map((data, idx, files) => {
+      if (!repeats[data.name]) repeats[data.name] = 0;
+      return {
+        name: files.filter(f => f.name === data.name).length === 1 ? data.name : `${data.name}${repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ''}`,
+        text: data.text
+      }
+    });
+    await _.zipFilesAndDownload('OpenNote Export.zip', serialized);
   }
 
   /**
