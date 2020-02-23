@@ -13,6 +13,15 @@
             >
             &#9776;
           </span>
+          <span class="control"
+          :data-tooltip="`Sort ${sortListAscending ? 'Descending' : 'Ascending'}`"
+          data-placement="right"
+          @mouseenter="mouseenter"
+          @mouseleave="mouseleave"
+          @click="sortListAscending = !sortListAscending"
+          v-html="sortListAscending ? '&#8595;' : '&#8593;'"
+          >
+          </span>
         </span>
         <span class="note-title">Notes</span>
         <span class="note-controls">
