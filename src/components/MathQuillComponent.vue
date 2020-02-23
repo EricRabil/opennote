@@ -487,7 +487,7 @@ export default class MathQuillComponent extends Vue {
     }
 
     .mq-editable-field {
-        @extend %bg1;
+        @extend %bg0;
         border: none;
         padding: 10px;
 
@@ -511,12 +511,12 @@ export default class MathQuillComponent extends Vue {
     }
 
     svg.function-plot {
-        @extend %bg3;
+        @extend %bg2;
         width: 100%;
     }
 
     .mq-result-bar {
-        @extend %bg2;
+        @extend %bg1;
         font-family: Symbola,"Times New Roman",serif;
         display: flex;
         flex-flow: row;
