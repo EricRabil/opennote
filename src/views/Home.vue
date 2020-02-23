@@ -407,6 +407,7 @@ export default class Home extends Vue {
   display: grid;
   grid-template-columns: 250px auto;
   grid-template-rows: 100vh;
+  overflow: hidden;
 
   @media only screen and (max-width: 500px) {
     grid-template-columns: auto;
@@ -414,6 +415,7 @@ export default class Home extends Vue {
     &:not(.nav-collapse) {
       & > .editor-view {
         visibility: hidden;
+        height: 0;
       }
     }
   }
