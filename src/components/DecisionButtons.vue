@@ -65,6 +65,17 @@ export default class ConfirmationModal extends Vue {
                 @extend %bgRedAlt1;
             }
         }
+
+        &.control-primary {
+            @extend %bgBlue;
+            &:hover {
+                @extend %bgBlueAlt;
+            }
+
+            &:active {
+                @extend %bgBlueAlt1;
+            }
+        }
     }
     .controls {
         display: flex;
