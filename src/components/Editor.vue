@@ -19,7 +19,7 @@
 
 <script lang="ts">
 import EditorJS, { OutputData } from "@editorjs/editorjs";
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Prop } from "vue-property-decorator";
 import { toolForVueComponent } from "@/tools/MQVueTool";
 import MathQuillComponent from '@/components/MathQuillComponent.vue';
 
@@ -269,7 +269,8 @@ export default class Editor extends Vue {
   @extend %border1;
   border-top: 0;
   border-bottom: 0;
-  width: 850px;
+  width: 100%;
+  max-width: 850px;
   margin: 0 auto;
   padding: 10px 0;
   overflow-y: scroll;
@@ -281,6 +282,48 @@ export default class Editor extends Vue {
 
     .codex-editor__redactor, .codex-editor__loader {
       height: 100vh;
+
+      @media only screen and (max-width: 975px) {
+        .ce-block {
+          margin-right: 0;
+          padding-right: 0;
+        }
+
+        .ce-block__content {
+          max-width: calc(100vw - 250px - 105px);
+          margin: 0;
+          margin-left: 34px;
+        }
+      }
+    }
+  }
+}
+
+.nav-collapse {
+  @media only screen and (max-width: 975px) {
+    .ce-toolbar__content {
+      margin: 0;
+    }
+
+    .codex-editor--narrow .ce-toolbar__plus {
+      left: 0;
+    }
+
+    .codex-editor--narrow .ce-toolbar__actions {
+      right: 10px;
+    }
+
+    .editor-container .codex-editor .codex-editor__redactor {
+      .ce-block__content {
+        max-width: calc(100vw - 105px);
+        margin: 0;
+        padding-left: 34px;
+      }
+
+      .ce-block.ce-block--focused {
+        margin: 0;
+        padding: 0;
+      }
     }
   }
 }
