@@ -1,8 +1,17 @@
+$redLight: #eb4034;
+
 $lightMap: (
     "bg": white,
     "bgAlt": darken(white, 2),
     "bgAlt0": darken(white, 4),
     "bgAlt1": darken(white, 8),
+    "bgAlt2": darken(white, 16),
+    "bgAlt3": darken(white, 32),
+    "bgAlt4": darken(white, 40),
+    "bgAlt5": darken(white, 48),
+    "red": $redLight,
+    "redAlt": darken($redLight, 10),
+    "redAlt1": darken($redLight, 14),
     "bg0": rgba(0,0,0,0.05),
     "bg1": rgba(0,0,0,0.1),
     "bg2": rgba(0,0,0,0.15),
@@ -15,14 +24,24 @@ $lightMap: (
     "border1": 1px solid darken(white, 20),
     "borderAlt1": 1px solid lighten(black, 40),
     "shadow-bottom": 0px -3px 15px 5px rgba(0, 0, 0, 0.25),
+    "shadow-regular": 0px 0px 20px 5px rgba(0, 0, 0, 0.25),
     "ce-block--focused": linear-gradient(17deg,rgba(243,248,255,.03) 63.45%,rgba(207,214,229,.27) 98%)
 );
+
+$redDark: #b32f25;
 
 $darkMap: (
     "bg": black,
     "bgAlt": lighten(black, 2),
     "bgAlt0": lighten(black, 4),
     "bgAlt1": lighten(black, 16),
+    "bgAlt2": lighten(black, 32),
+    "bgAlt3": lighten(black, 48),
+    "bgAlt4": lighten(black, 56),
+    "bgAlt5": lighten(black, 64),
+    "red": $redDark,
+    "redAlt": lighten($redDark, 8),
+    "redAlt1": lighten($redDark, 16),
     "bg0": rgba(255,255,255,0.05),
     "bg1": rgba(255,255,255,0.1),
     "bg2": rgba(255,255,255,0.15),
@@ -35,6 +54,7 @@ $darkMap: (
     "border1": 1px solid lighten(black, 20),
     "borderAlt1": 1px solid darken(white, 40),
     "shadow-bottom": 0px -3px 15px 5px rgba(3, 2, 2, 0.95),
+    "shadow-regular": 0px 0px 20px 5px rgba(3, 2, 2, 0.95),
     "ce-block--focused": linear-gradient(17deg,rgba(0, 0, 0, 0.03) 63.45%,rgba(89, 92, 97, 0.068) 98%)
 );
 
@@ -87,8 +107,36 @@ $darkMap: (
     @include bgSchemeResponsive("bgAlt1");
 }
 
+%bgAlt2 {
+    @include bgSchemeResponsive("bgAlt2");
+}
+
+%bgAlt3 {
+    @include bgSchemeResponsive("bgAlt3");
+}
+
+%bgAlt4 {
+    @include bgSchemeResponsive("bgAlt4");
+}
+
+%bgAlt5 {
+    @include bgSchemeResponsive("bgAlt5");
+}
+
 %bg0 {
     @include bgSchemeResponsive("bg0");
+}
+
+%bgRed {
+    @include bgSchemeResponsive("red");
+}
+
+%bgRedAlt {
+    @include bgSchemeResponsive("redAlt");
+}
+
+%bgRedAlt1 {
+    @include bgSchemeResponsive("redAlt1");
 }
 
 %bg1 {
@@ -149,6 +197,10 @@ $darkMap: (
 
 %borderLeft {
     @include schemeResponsive("border-left", "border");
+}
+
+%borderTop {
+    @include schemeResponsive("border-top", "border");
 }
 
 %borderLeftAlt {

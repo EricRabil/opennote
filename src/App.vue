@@ -1,23 +1,257 @@
 <template>
   <div id="app">
-    <router-view/>
+    <router-view />
+    <transition name="fade">
+      <div class="modal-root" 
+          v-if="modalOptions !== null"
+          @transitionend="modalAnimationDidEnd"
+          ref="modalRoot">
+          <div class="modal" ref="modal">
+            <!-- Close Button -->
+            <div class="modal-close" @click="closeModal">&times;</div>
+
+            <!-- Header -->
+            <div class="modal-header">
+              <h1
+                v-if="modalOptions.header && typeof modalOptions.header === 'string'"
+              >{{modalOptions.header}}</h1>
+              <component
+                v-else-if="modalOptions.header && typeof modalOptions.header === 'function'"
+                v-bind="modalOptions.headerOptions"
+                :is="modalOptions.header"
+              ></component>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body" v-if="typeof modalOptions.body === 'string'">
+              {{modalOptions.body}}
+            </div>
+            <component class="modal-body" v-else :is="modalOptions.body" v-bind="modalOptions.bodyOptions"></component>
+
+            <!-- Footer -->
+            <div
+              class="modal-footer"
+              v-if="typeof modalOptions.footer === 'string'"
+            >{{modalOptions.footer}}</div>
+            <component
+              class="modal-footer"
+              v-else-if="modalOptions.footer && typeof modalOptions.footer === 'function'"
+              v-bind="modalOptions.footerOptions"
+              :is="modalOptions.footer"
+            ></component>
+          </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import { Tooltip } from '@editorjs/editorjs/types/api';
+import { Tooltip } from "@editorjs/editorjs/types/api";
+import { VueConstructor } from "vue";
+
+export interface ModalOptions {
+  header?: string | VueConstructor;
+  headerOptions?: any;
+  footer?: string | VueConstructor;
+  footerOptions?: any;
+  body: string | VueConstructor;
+  bodyOptions?: any;
+}
 
 @Component
 export default class App extends Vue {
   tooltip: Tooltip = null as any;
+  modalOptions: ModalOptions | null = null;
+  modalReady: boolean = false;
+  onclick = (e: MouseEvent) => this.clickListener(e);
+
+  $refs: {
+    modal: HTMLDivElement;
+    modalRoot: HTMLDivElement;
+  };
+
+  mounted() {
+    this.$on("modal-show", (options: ModalOptions) => this.showModal(options));
+    this.$on("modal-close", () => this.closeModal());
+
+    this.$root.$on("modal-show", (options: ModalOptions) =>
+      this.$emit("modal-show", options)
+    );
+    this.$root.$on("modal-close", () => this.$emit("modal-close"));
+
+    document.addEventListener("click", this.onclick);
+  }
+
+  destroyed() {
+    document.removeEventListener("click", this.onclick);
+  }
+
+  modalAnimationDidEnd(e: TransitionEvent) {
+    if (!this.modalOptions) return;
+    if (e.target !== this.$refs.modalRoot) return;
+    console.debug("modal transition did end", {
+      options: this.modalOptions
+    });
+    this.modalReady = true;
+  }
+
+  clickListener(e: MouseEvent) {
+    const inside =
+      this.$refs.modal &&
+      (this.$refs.modal === e.target ||
+        this.$refs.modal.contains(e.target as Node));
+    if (inside || !this.modalReady) return;
+    this.closeModal();
+  }
+
+  showModal(options: ModalOptions) {
+    console.debug("showing modal with options", {
+      options
+    });
+    this.modalOptions = options;
+  }
+
+  closeModal() {
+    if (!this.modalOptions) return;
+    console.debug("closing modal with options", {
+      options: this.modalOptions
+    });
+    this.modalOptions = null;
+    this.modalReady = false;
+  }
 }
 </script>
 
 <style lang="scss">
 body {
   margin: 0;
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
+}
+
+.cdx-input.cdx-warning__message {
+  display: none;
+}
+
+.fade-enter-active, .fade-leave-active {
+  @keyframes modal-entry {
+    from {
+      transform: translateY(-200px);
+    }
+    to {
+      transform: translateY(0px);
+    }
+  }
+
+  & > .modal {
+    @media only screen and (min-width: 651px) {
+      animation: modal-entry 0.25s linear;
+    }
+    will-change: transform;
+  }
+
+  &.fade-leave-active > .modal {
+    animation-direction: reverse;
+  }
+
+  transition: opacity .25s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
+
+.modal-root {
+  @extend %bgAlt1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transform: translateY(-100vh);
+  z-index: 100000;
+  transform: translateY(0);
+
+  @supports (backdrop-filter: blur(10px)) {
+    backdrop-filter: blur(10px);
+    background: none;
+  }
+
+  @media only screen and (max-width: 650px) {
+    display: block;
+
+    .modal-header {
+      padding: 10px 40px !important;
+      margin-bottom: 0px !important;
+    }
+  }
+
+  & > .modal {
+    @extend %bgAlt1;
+    @extend %text;
+    @include schemeResponsive("box-shadow", "shadow-regular");
+    border-radius: 5px;
+    overflow: hidden;
+    position: absolute;
+    max-width: 465px;
+
+    @media only screen and (max-width: 650px) {
+      max-width: 100%;
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      display: flex;
+      flex-flow: column;
+      justify-content: center;
+
+      & > .modal-header {
+        background: none !important;
+      }
+    }
+
+    & > .modal-header {
+      @extend %bgAlt2;
+      display: flex;
+      padding: 20px 40px;
+      margin-bottom: 10px;
+      line-height: 1;
+
+      & > .modal-close {
+        line-height: 0;
+      }
+
+      & h1 {
+        font-size: 20px;
+        font-weight: 300;
+        margin: 0;
+      }
+
+      &:empty {
+        display: none;
+      }
+    }
+
+    & > .modal-body {
+      padding: 10px 40px;
+    }
+
+    & > .modal-footer {
+      margin: 10px 0;
+      padding: 10px 60px;
+    }
+
+    & > .modal-close {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      cursor: pointer;
+    }
+  }
 }
 
 .ce-block {
@@ -38,7 +272,10 @@ body {
     }
   }
 
-  .ce-code__textarea, .ce-rawtool__textarea, .cdx-block.cdx-quote > .cdx-input, .cdx-block.cdx-warning > .cdx-input {
+  .ce-code__textarea,
+  .ce-rawtool__textarea,
+  .cdx-block.cdx-quote > .cdx-input,
+  .cdx-block.cdx-warning > .cdx-input {
     @extend %bg1;
     @extend %border1;
     @extend %text;
@@ -56,7 +293,8 @@ body {
         border-left: none;
       }
 
-      .tc-table tbody tr td:first-child, .tc-table tbody tr:first-child td {
+      .tc-table tbody tr td:first-child,
+      .tc-table tbody tr:first-child td {
         border-top: none;
       }
 
