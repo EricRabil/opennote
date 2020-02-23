@@ -171,7 +171,7 @@ export default class Editor extends Vue {
       if (!this.hasChanges) return;
       this.save();
       this.hasChanges = false;
-    }, 2000);
+    }, 250);
 
     this.createEditor();
   }
