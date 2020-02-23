@@ -458,6 +458,14 @@ export default class Home extends Vue {
     }
   }
 
+  @media print {
+    grid-template-columns: 0px 100vw;
+
+    & > .navigator {
+      visibility: hidden;
+    }
+  }
+
   &.nav-collapse {
     grid-template-columns: 0px 100vw;
 
