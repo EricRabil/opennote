@@ -1,4 +1,4 @@
-$redLight: #eb4034;
+$redLight: #f75449;
 
 $lightMap: (
     "bg": white,
@@ -14,6 +14,7 @@ $lightMap: (
     "red": $redLight,
     "redAlt": darken($redLight, 10),
     "redAlt1": darken($redLight, 14),
+    "redBad": darken($redLight, 28),
     "bg0": rgba(0,0,0,0.05),
     "bg1": rgba(0,0,0,0.1),
     "bg2": rgba(0,0,0,0.15),
@@ -46,6 +47,7 @@ $darkMap: (
     "red": $redDark,
     "redAlt": lighten($redDark, 8),
     "redAlt1": lighten($redDark, 16),
+    "redBad": darken($redDark, 8),
     "bg0": rgba(255,255,255,0.05),
     "bg1": rgba(255,255,255,0.1),
     "bg2": rgba(255,255,255,0.15),
@@ -145,6 +147,10 @@ $darkMap: (
 
 %bgRedAlt {
     @include bgSchemeResponsive("redAlt");
+}
+
+%bgRedBad {
+    @include bgSchemeResponsive("redBad");
 }
 
 %bgRedAlt1 {
