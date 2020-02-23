@@ -1,11 +1,23 @@
 <template>
-  <div class="home">
+  <div :class="{'home': true, 'nav-collapse': navCollapse}">
     <div class="navigator">
       <div class="title">
+        <span class="note-controls-left">
+          <span
+            class="control"
+            data-tooltip="Toggle Menu"
+            data-placement="right"
+            @mouseenter="mouseenter"
+            @mouseleave="mouseleave"
+            @click="navCollapse = !navCollapse"
+            >
+            &#9776;
+          </span>
+        </span>
         <span class="note-title">Notes</span>
         <span class="note-controls">
           <span
-            class="control"
+            class="control control-success"
             data-tooltip="Import Note"
             @mouseenter="mouseenter"
             @mouseleave="mouseleave"
@@ -25,7 +37,7 @@
             </svg>
           </span>
           <span
-            class="control"
+            class="control control-primary"
             data-tooltip="New Note"
             @mouseenter="mouseenter"
             @mouseleave="mouseleave"
@@ -34,6 +46,15 @@
             <svg class="icon icon--plus" width="14px" height="14px">
               <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#plus" />
             </svg>
+          </span>
+          <span
+            class="control control-success control-invert"
+            data-tooltip="Download Note"
+            @mouseenter="mouseenter"
+            @mouseleave="mouseleave"
+            @click="download(currentNote)"
+          >
+            <UploadSVG width="12px" />
           </span>
         </span>
       </div>
@@ -57,7 +78,7 @@
         </div>
       </div>
     </div>
-    <editor></editor>
+    <editor :show-burger="navCollapse" @burgerClick="navCollapse = !navCollapse"></editor>
     <vue-context v-for="(data, id) in list" :key="id" :ref="`contextMenu${id}`">
       <li @click="download(id)">Download</li>
       <li @click="delNote(id)">Delete</li>
@@ -142,6 +163,8 @@ export default class Home extends Vue {
       timestamp: string;
     };
   } = {};
+
+  navCollapse: boolean = false;
 
   /**
    * put placeholder data in the list, will be populated on render
@@ -273,19 +296,20 @@ export default class Home extends Vue {
    * Hover, trigger tooltip now
    */
   mouseenter(ev: MouseEvent) {
-    const leftOffset = 7;
+    const leftOffset = 0;
 
     if (!this.tooltip) return;
     const tip = (ev.target! as HTMLElement).getAttribute("data-tooltip");
+    const placement = (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
     if (!tip) return;
-    this.tooltip.show(ev.target as HTMLElement, tip, { placement: "bottom" });
+    this.tooltip.show(ev.target as HTMLElement, tip, { placement });
     const tooltipContainers = Array.from(
       document.querySelectorAll(".ct.ct--bottom")
     ) as HTMLElement[];
     tooltipContainers.forEach(tooltipContainer => {
-      tooltipContainer.style.left = `${parseInt(
+      tooltipContainer.style.left = `${(parseInt(
         tooltipContainer.style.left!.split("px")[0]
-      ) + leftOffset}px`;
+      ) || 0) + leftOffset}px`;
     });
   }
 
@@ -379,6 +403,14 @@ export default class Home extends Vue {
   grid-template-columns: 250px auto;
   grid-template-rows: 100vh;
 
+  &.nav-collapse {
+    grid-template-columns: 0px auto;
+
+    & > .navigator {
+      visibility: hidden;
+    }
+  }
+
   & > .navigator {
     @extend %bg;
     @extend %text;
@@ -395,6 +427,64 @@ export default class Home extends Vue {
       flex-flow: row-reverse;
       align-items: center;
 
+      & > .note-controls-left {
+        display: inline-flex;
+        position: absolute;
+        left: 10px;
+      }
+
+
+
+        & .control {
+          display: inline-flex;
+          align-items: center;
+          &:hover {
+            cursor: pointer;
+          }
+
+          &:not(:last-child) {
+            margin-right: 5px;
+          }
+
+          &:hover {
+            &:not(.disabled) {
+              &.control-danger {
+                svg {
+                  fill: #c74545;
+                }
+              }
+
+              &.control-primary {
+                svg {
+                  fill: #8e84f9;
+                }
+              }
+
+              &.control-success {
+                svg {
+                  fill: #5ad677;
+                }
+              }
+            }
+
+            &.disabled {
+              svg {
+                @extend %fill;
+                cursor: not-allowed;
+              }
+            }
+          }
+
+          &.control-invert {
+            transform: rotate(180deg);
+          }
+
+          svg {
+            @extend %fill;
+            transition: fill 0.125s linear;
+          }
+        }
+
       // absolute center with no regard to the other bitches
       & > .note-title {
         position: absolute;
@@ -410,34 +500,9 @@ export default class Home extends Vue {
       }
 
       & > .note-controls {
-        margin-right: 10px;
         display: inline-flex;
-
-        & > .control {
-          display: inline-flex;
-          align-items: center;
-          &:hover {
-            cursor: pointer;
-            svg {
-              fill: darken(blue, 10);
-            }
-          }
-
-          &:not(:last-child) {
-            margin-right: 5px;
-          }
-
-          &.control-danger:hover {
-            svg {
-              fill: red;
-            }
-          }
-
-          svg {
-            @extend %fill;
-            transition: fill 0.125s linear;
-          }
-        }
+        position: absolute;
+        right: 10px;
       }
     }
 
