@@ -97,12 +97,38 @@ const Warning = require("@editorjs/warning");
 })
 export default class Editor extends Vue {
   editor: EditorJS;
-  showRibbon = false;
   active: string = "";
   lastIndex: number = 0;
   interval: any;
   unloadListener: Function;
   hasChanges: boolean = false;
+
+  overrides: {
+    showRibbon: boolean | null;
+    showLabels: boolean | null;
+  } = {
+    showRibbon: null,
+    showLabels: null
+  }
+
+  ready: boolean = false;
+
+  get showRibbon(): boolean {
+    if (!this.ready) return false;
+    return this.overrides.showRibbon === null ? this.$store.state.preferences.showToolbox : this.overrides.showRibbon;
+  }
+
+  set showRibbon(val: boolean) {
+    this.overrides.showRibbon = val;
+  }
+
+  get showLabels(): boolean {
+    return this.overrides.showLabels === null ? this.$store.state.preferences.showLabels : this.overrides.showLabels;
+  }
+
+  set showLabels(val: boolean) {
+    this.overrides.showLabels = val;
+  }
 
   @Prop({ default: false })
   showBurger: boolean;
@@ -115,8 +141,6 @@ export default class Editor extends Vue {
 
   @Prop({ default: false })
   canDelete: boolean;
-
-  showLabels: boolean = true;
 
   toolDrawers: {[key: string]: string[]} = {
     paragraph: ['list', 'header', 'delimiter', 'quote']
@@ -261,7 +285,6 @@ export default class Editor extends Vue {
     Vue.set(this.$root.$children[0], 'tooltip', this.getModule('API').methods.tooltip);
 
     // only show ribbon by default if we are on big screen
-    this.showRibbon = document.body.clientWidth > 500;
     await this.save();
 
     const redactor = (this.editor as any).core.moduleInstances.UI.nodes.redactor;
@@ -279,14 +302,14 @@ export default class Editor extends Vue {
     });
 
     this.$emit("ready");
+
+    this.ready = true;
   }
 
   /**
    * Creates and mounts a Codex editor, destroying the old one if it exists
    */
   createEditor(data?: any) {
-    this.showRibbon = false;
-
     if (this.editor) {
       this.editor.destroy();
     }

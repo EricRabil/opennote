@@ -29,7 +29,11 @@ export default new Vuex.Store({
     currentNote: uuidv4(),
     notes: {
 
-    } as { [id: string]: Note }
+    } as { [id: string]: Note },
+    preferences: {
+      showLabels: true,
+      showToolbox: true
+    }
   },
   mutations: {
     /**
@@ -63,6 +67,9 @@ export default new Vuex.Store({
       const note = (state.notes[id] || (state.notes[id] = {} as any));
       note.data = data || note.data;
       note.name = name || note.name || NEW_NOTE_NAME;
+    },
+    setPreference(state, { name, value }) {
+      state.preferences[name] = value;
     }
   },
   actions: {
