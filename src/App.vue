@@ -84,11 +84,13 @@ export default class App extends Vue {
   mounted() {
     this.$on("modal-show", (options: ModalOptions) => this.showModal(options));
     this.$on("modal-close", () => this.closeModal());
+    this.$on("modal-patch", (options: Partial<ModalOptions>) => Object.assign(this.modalOptions, options));
 
     this.$root.$on("modal-show", (options: ModalOptions) =>
       this.$emit("modal-show", options)
     );
     this.$root.$on("modal-close", () => this.$emit("modal-close"));
+    this.$root.$on("modal-patch", (options: Partial<ModalOptions>) => this.$emit("modal-patch", options));
 
     document.addEventListener("click", this.onclick);
   }
