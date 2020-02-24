@@ -62,6 +62,7 @@ async function condenseSiblings(siblings: utensils.latexParser.Node[], context: 
                 /**
                  * Flatten superscript block into a text group
                  */
+                if (next.content[0].kind === 'text.string' && next.content[0].content === '^') continue;
                 next.content.unshift(text('^'), text('('));
                 next.content.push(text(')'));
                 siblings.splice(i, 1);
