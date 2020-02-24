@@ -4,6 +4,7 @@ const CheckList = require('@editorjs/checklist');
 const janitor = require("html-janitor");
 const Code = require('@editorjs/code');
 const Raw = require('@editorjs/raw');
+const Paragraph = require('@editorjs/paragraph');
 
 function hook(lib: any, meth: string, replacement: (old: Function) => (this: any, ...args: any[]) => any) {
     const oldMeth = lib[meth] || (() => void 0);
@@ -215,7 +216,7 @@ function loadClipboardPatches(editor: EditorJS) {
 /**
  * Patches bugs in tools to make them work properly/in an expected behavior
  */
-function loadToolPatches() {
+function loadToolPatches(editor: EditorJS) {
     // properly gets out of list because the plugin is fucking stupid
     hook(List.prototype, 'getOutofList', old => function (event: KeyboardEvent) {
         old.call(this, event);
@@ -236,6 +237,101 @@ function loadToolPatches() {
         lastChild.parentElement!.remove();
         this.api.caret.setToBlock(this.api.blocks.getCurrentBlockIndex());
     });
+
+    Paragraph.prototype.onTab = function(event: KeyboardEvent) {
+        if (!this._suggestions) {
+            return false;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (typeof this.selectedSuggestion === 'undefined') this.selectedSuggestion = 0;
+        else this.selectedSuggestion++;
+        const oldSuggestion = this.suggestions[this.selectedSuggestion - 1];
+        let suggestion = this.suggestions[this.selectedSuggestion];
+        if (!suggestion) suggestion = this.suggestions[this.selectedSuggestion = 0];
+
+        if (oldSuggestion) (oldSuggestion as HTMLElement).classList.remove('active');
+        suggestion.classList.add('active');
+
+        return true;
+    }
+
+    Paragraph.prototype.teardownSuggestions = function() {
+        if (this._suggestions) (this._suggestions as HTMLElement).remove();
+        delete this._suggestions;
+        delete this.suggestions;
+        delete this.selectedSuggestion;
+    }
+
+    Paragraph.prototype.focused = function(newVal: boolean) {
+        if (!newVal && this._suggestions) {
+            console.log('tearing down suggestions');
+            this.teardownSuggestions();
+        }
+    }
+
+    Paragraph.prototype.onEnter = function(event: KeyboardEvent) {
+        if (!this._suggestions) {
+            return false;
+        }
+        
+        const selected = this.suggestions[this.selectedSuggestion].innerText;
+
+        const block = (editor as any).core.moduleInstances.BlockManager.replace(selected);
+        (editor as any).core.moduleInstances.Caret.setToBlock(block);
+
+        this.teardownSuggestions();
+
+        return true;
+    }
+
+    Paragraph.prototype.removed = function() {
+        this.teardownSuggestions();
+    }
+
+    hook(Paragraph.prototype, 'onKeyUp', old => function(event: KeyboardEvent) {
+        old.call(this, event);
+
+        const {textContent} = this._element as HTMLElement;
+        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1) {
+            if (this._suggestions) {
+                this.teardownSuggestions();
+            }
+            return;
+        }
+        const [ command ] = textContent!.substring(1).split(' ');
+        const tools = Object.keys((editor as any).core.moduleInstances.Tools.blockTools);
+        const possible = tools.filter(t => t.startsWith(command)).sort((a, b) => a.length - b.length);
+        const match = possible.find(t => t === command);
+
+        if (possible.length === tools.length) return;
+        
+        const wantsExec = event.code === 'Enter';
+        const wantsCompletion = event.code === 'Tab';
+
+        if (wantsCompletion) return;
+
+        const [ selected ] = possible;
+
+        const suggestions = this.suggestions = possible.map(s => {
+            const elm = document.createElement('span');
+            elm.innerText = s;
+            elm.classList.add('tool-suggestion');
+            return elm;
+        });
+
+        if (this._suggestions) (this._suggestions as HTMLElement).remove();
+        const suggestionContainer = this._suggestions = document.createElement('span');
+        suggestionContainer.style.position = 'absolute';
+        suggestionContainer.classList.add('tool-suggestion-container');
+        suggestionContainer.style.left = window.getSelection()!.getRangeAt(0).getBoundingClientRect().left + 'px';
+        suggestionContainer.style.top = window.getSelection()!.getRangeAt(0).getBoundingClientRect().top + 'px';
+        suggestions.forEach(s => suggestionContainer.appendChild(s));
+
+        document.body.appendChild(suggestionContainer);
+    })
 
     Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function(e: KeyboardEvent) {
         const empty = this.block.holder.querySelector('textarea').value.length === 0
@@ -272,6 +368,16 @@ function loadBlockPatches(editor: EditorJS) {
         return old.call(this);
     });
 
+    hookSet(Block, 'focused', old => function(newVal) {
+        old.call(this, newVal);
+        this.call('focused', newVal);
+    });
+
+    hookSet(Block, 'selected', old => function(newVal) {
+        old.call(this, newVal);
+        this.call('selected', newVal);
+    });
+
     /**
      * Allows calls to be passed to the tool
      */
@@ -295,6 +401,18 @@ function loadBlockPatches(editor: EditorJS) {
     });
 }
 
+
+
+function hasAncestor(node: Node, ancestor: Node) {
+    let parent = node;
+    if (!parent) return false;
+    while (parent) {
+        if (parent.isEqualNode(ancestor)) return true;
+        parent = parent.parentNode!;
+    }
+    return false;
+}
+
 /**
  * Allows tools to override various events, and exposes keydown to the global event namespace
  * @param editor editor
@@ -302,6 +420,25 @@ function loadBlockPatches(editor: EditorJS) {
 function loadBlockEventPatches(editor: EditorJS) {
     const core = (editor as any).core;
     const { BlockEvents, BlockManager, Events, Caret, UI } = core.moduleInstances;
+
+    hook(BlockEvents, 'tabPressed', old => function(event: KeyboardEvent) {
+         /**
+         * Clear blocks selection by tab
+         */
+        this.Editor.BlockSelection.clearSelection(event);
+
+        const { BlockManager } = this.Editor;
+        const currentBlock = BlockManager.currentBlock;
+
+        if (!currentBlock) {
+            return;
+        }
+
+        const shouldHandoffTabEvent = currentBlock.call('onTab', event);
+        if (shouldHandoffTabEvent) return;
+
+        old.call(this, event);
+    });
 
     /**
      * Allows tool to override backspace
@@ -324,16 +461,6 @@ function loadBlockEventPatches(editor: EditorJS) {
             }
             if (ancestor.classList.contains(className)) return true;
             ancestor = ancestor.parentElement!;
-        }
-        return false;
-    }
-
-    function hasAncestor(node: Node, ancestor: Node) {
-        let parent = node;
-        if (!parent) return false;
-        while (parent) {
-            if (parent.isEqualNode(ancestor)) return true;
-            parent = parent.parentNode!;
         }
         return false;
     }
@@ -378,6 +505,31 @@ function loadBlockEventPatches(editor: EditorJS) {
         if (tool && tool.customEnter === true) return;
         old.call(this, event);
     });
+
+    hook(BlockEvents, 'enter', old => function(event: KeyboardEvent) {
+        const { BlockManager } = this.Editor;
+        const { currentBlock } = BlockManager;
+        const shouldHandoffEnterEvent = currentBlock.call('onEnter', event);
+        console.log(currentBlock.tool.onEnter);
+        if (shouldHandoffEnterEvent) return;
+        old.call(this, event);
+    });
+
+    hook(UI, 'enterPressed', old => function(event: KeyboardEvent) {
+        const { BlockManager, BlockSelection, Caret } = this.Editor;
+        const hasPointerToBlock = BlockManager.currentBlockIndex >= 0;
+
+        if (BlockSelection.anyBlockSelected) {
+            return old.call(this, event);
+        }
+
+        const currentBlock = BlockManager.currentBlock;
+        if (currentBlock && currentBlock.tool) {
+            if (currentBlock.call('onEnter', event)) return;
+        }
+
+        return old.call(this, event);
+    })
 
     /**
      * Dispatch keydown to the main events world
@@ -567,7 +719,7 @@ export default async function patchEditorJS(editor: EditorJS) {
     hook((editor as any).core, 'start', old => async function() {
         await old.call(this).then(() => {
             loadClipboardPatches(editor);
-            loadToolPatches();
+            loadToolPatches(editor);
             loadBlockPatches(editor);
             loadBlockEventPatches(editor);
             loadCaretPatches(editor);
