@@ -277,17 +277,24 @@ function loadToolPatches(editor: EditorJS) {
         }
     }
 
+    Paragraph.prototype.selectSuggestion = function(suggestion: HTMLElement) {
+        const selected = suggestion.innerText;
+
+        const block = (editor as any).core.moduleInstances.BlockManager.composeBlock(selected, {});
+        const currentIndex = (editor as any).core.moduleInstances.BlockManager._blocks.indexOf(this.block);
+        (editor as any).core.moduleInstances.BlockManager._blocks.insert(currentIndex, block, true);
+
+        (editor as any).core.moduleInstances.Caret.setToBlock(block);
+
+        this.teardownSuggestions();
+    }
+
     Paragraph.prototype.onEnter = function(event: KeyboardEvent) {
         if (!this._suggestions) {
             return false;
         }
         
-        const selected = this.suggestions[this.selectedSuggestion].innerText;
-
-        const block = (editor as any).core.moduleInstances.BlockManager.replace(selected);
-        (editor as any).core.moduleInstances.Caret.setToBlock(block);
-
-        this.teardownSuggestions();
+        this.selectSuggestion(this.suggestions[this.selectedSuggestion]);
 
         return true;
     }
@@ -324,6 +331,7 @@ function loadToolPatches(editor: EditorJS) {
             const elm = document.createElement('span');
             elm.innerText = s;
             elm.classList.add('tool-suggestion');
+            elm.addEventListener('click', () => this.selectSuggestion(elm));
             return elm;
         });
 
