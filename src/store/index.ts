@@ -32,7 +32,8 @@ export default new Vuex.Store({
     } as { [id: string]: Note },
     preferences: {
       showLabels: true,
-      showToolbox: true
+      showToolbox: true,
+      hideEditorByDefaultOnMobile: true
     }
   },
   mutations: {

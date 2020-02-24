@@ -172,7 +172,20 @@ function setCurrentCursorPosition(index: number, node: Node) {
 export default class Home extends Vue {
   list: Array<{id: string, name: string, timestamp: string}> = [];
 
-  navCollapse: boolean = false;
+  overrides: {
+    navCollapse: boolean | null;
+  } = {
+    navCollapse: null
+  }
+
+  get navCollapse() {
+    return this.overrides.navCollapse === null ? !this.$store.state.preferences.hideEditorByDefaultOnMobile : this.overrides.navCollapse;
+  }
+
+  set navCollapse(c: boolean) {
+    this.overrides.navCollapse = c;
+  }
+  
   canDelete: boolean = false;
 
   sortListAscending: boolean = false;
