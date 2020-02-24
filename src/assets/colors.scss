@@ -7,6 +7,7 @@ $lightMap: (
     "bgAlt0": darken(white, 4),
     "bgAlt6": darken(white, 6),
     "bgAlt7": darken(white, 7),
+    "bgAlt8": darken(white, 12),
     "bgAlt1": darken(white, 8),
     "bgAlt2": darken(white, 16),
     "bgAlt3": darken(white, 32),
@@ -47,6 +48,7 @@ $darkMap: (
     "bgAlt0": lighten(black, 4),
     "bgAlt6": lighten(black, 8),
     "bgAlt7": lighten(black, 12),
+    "bgAlt8": lighten(black, 24),
     "bgAlt1": lighten(black, 16),
     "bgAlt2": lighten(black, 32),
     "bgAlt3": lighten(black, 48),
@@ -278,8 +280,21 @@ $darkMap: (
     transition: background-color 0.0625s linear;
     cursor: pointer;
 
+    & svg {
+        @include fillSchemeResponsive("fg1");
+        height: 15px;
+
+        &.icon-invert {
+            transform: rotate(180deg);
+        }
+    }
+
     & svg.alt-icon {
       display: none;
+    }
+
+    & svg:only-child {
+        display: initial;
     }
 
     @media only screen and (max-width: 650px) {
@@ -287,14 +302,8 @@ $darkMap: (
         display: none;
       }
 
-      & svg.alt-icon {
-        @include fillSchemeResponsive("fg1");
-        display: initial;
-        height: 15px;
-
-        &.icon-invert {
-          transform: rotate(180deg);
-        }
+      & svg {
+        display: initial !important;
       }
     }
 
