@@ -39,11 +39,11 @@
           <span :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']" :key="`${key}-drawer`" v-if="key in toolDrawers" @click="toggleDrawer(key)">
             <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave"></span>
             <span
-              :class="{'ribbon-item': true, active: key === active}"
+              :class="{'ribbon-item': true, active: sliderItemKey === active}"
               :data-tooltip="showLabels ? '' : value.title"
               @mouseenter="mouseenter"
               @mouseleave="mouseleave"
-              @click="switchTool(key)"
+              @click="switchTool(sliderItemKey)"
               v-for="sliderItemKey of toolDrawers[key]"
               :key="sliderItemKey"
             >
