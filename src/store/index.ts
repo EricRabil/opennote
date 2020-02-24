@@ -34,7 +34,7 @@ export default new Vuex.Store({
       showLabels: true,
       showToolbox: true,
       hideEditorByDefaultOnMobile: true,
-      firstRun: true
+      sawFirstRun: false
     }
   },
   mutations: {

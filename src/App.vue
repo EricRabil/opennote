@@ -89,7 +89,7 @@ export default class App extends Vue {
   };
 
   get firstRun() {
-    return this.$store.state.preferences.firstRun;
+    return !this.$store.state.preferences.sawFirstRun;
   }
 
   mounted() {
@@ -105,7 +105,7 @@ export default class App extends Vue {
 
     document.addEventListener("click", this.onclick);
 
-    if (this.$store.state.preferences.firstRun) {
+    if (!this.$store.state.preferences.sawFirstRun) {
       this.$root.$emit('modal-show', {
         header: 'Hello',
         body: Onboarding,
@@ -114,7 +114,7 @@ export default class App extends Vue {
           confirmText: "Launch OpenNote",
           confirmStyle: "primary",
           confirm: () => {
-            this.$store.state.preferences.firstRun = false;
+            this.$store.state.preferences.sawFirstRun = true;
             this.$root.$emit('modal-close');
           },
           hasCancel: false
