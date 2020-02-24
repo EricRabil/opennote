@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <router-view />
+    <router-view v-if="!firstRun" />
     <transition name="fade">
       <div class="modal-root" 
           v-if="modalOptions !== null"
@@ -8,7 +8,7 @@
           ref="modalRoot">
           <div :class="['modal', ...(modalOptions.customClasses || [])]" ref="modal">
             <!-- Close Button -->
-            <div class="modal-close" @click="closeModal">&times;</div>
+            <div class="modal-close" v-if="modalOptions.closable !== false" @click="closeModal">&times;</div>
 
             <!-- Header -->
             <element-host
@@ -54,6 +54,8 @@ import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import { VueConstructor } from "vue";
 import ElementHost from "@/components/ElementHost.vue";
+import Onboarding from './components/Onboarding.vue';
+import DecisionButtons from "@/components/DecisionButtons.vue";
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -63,6 +65,11 @@ export interface ModalOptions {
   body: string | VueConstructor;
   bodyOptions?: any;
   customClasses?: string[];
+  closable?: boolean;
+}
+
+function mergeObject(thisArg: any, prop: string, obj: any) {
+  Object.keys(obj).forEach(k => Vue.set(thisArg[prop], k, obj[k]));
 }
 
 @Component({
@@ -81,10 +88,14 @@ export default class App extends Vue {
     modalRoot: HTMLDivElement;
   };
 
+  get firstRun() {
+    return this.$store.state.preferences.firstRun;
+  }
+
   mounted() {
     this.$on("modal-show", (options: ModalOptions) => this.showModal(options));
     this.$on("modal-close", () => this.closeModal());
-    this.$on("modal-patch", (options: Partial<ModalOptions>) => Object.assign(this.modalOptions, options));
+    this.$on("modal-patch", (options: Partial<ModalOptions>) => mergeObject(this, 'modalOptions', options));
 
     this.$root.$on("modal-show", (options: ModalOptions) =>
       this.$emit("modal-show", options)
@@ -93,6 +104,24 @@ export default class App extends Vue {
     this.$root.$on("modal-patch", (options: Partial<ModalOptions>) => this.$emit("modal-patch", options));
 
     document.addEventListener("click", this.onclick);
+
+    if (this.$store.state.preferences.firstRun) {
+      this.$root.$emit('modal-show', {
+        header: 'Hello',
+        body: Onboarding,
+        footer: DecisionButtons,
+        footerOptions: {
+          confirmText: "Launch OpenNote",
+          confirmStyle: "primary",
+          confirm: () => {
+            this.$store.state.preferences.firstRun = false;
+            this.$root.$emit('modal-close');
+          },
+          hasCancel: false
+        },
+        closable: false
+      } as ModalOptions);
+    }
   }
 
   isNode(obj: any) {
@@ -141,6 +170,7 @@ export default class App extends Vue {
 
 <style lang="scss">
 body {
+  @extend %bg;
   margin: 0;
   font-family: "Open Sans", sans-serif;
 }
@@ -211,11 +241,6 @@ html, body, #app {
 
   @media only screen and (max-width: 650px) {
     display: block;
-
-    .modal-header {
-      padding: 10px 40px !important;
-      margin-bottom: 0px !important;
-    }
   }
 
   & > .modal {
@@ -227,7 +252,7 @@ html, body, #app {
     position: absolute;
     max-width: 465px;
 
-    @media only screen and (max-width: 650px), only screen and (max-height: 450px) {
+    @mixin modalFullscreen {
       max-width: 100%;
       width: 100%;
       height: 100%;
@@ -238,7 +263,17 @@ html, body, #app {
 
       & > .modal-header {
         background: none !important;
+        padding: 10px 40px !important;
+        margin-bottom: 0px !important;
       }
+    }
+
+    &.modal-fullscreen {
+      @include modalFullscreen();
+    }
+
+    @media only screen and (max-width: 650px), only screen and (max-height: 450px) {
+      @include modalFullscreen();
     }
 
     & > .modal-header {

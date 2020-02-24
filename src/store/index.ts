@@ -33,7 +33,8 @@ export default new Vuex.Store({
     preferences: {
       showLabels: true,
       showToolbox: true,
-      hideEditorByDefaultOnMobile: true
+      hideEditorByDefaultOnMobile: true,
+      firstRun: true
     }
   },
   mutations: {
