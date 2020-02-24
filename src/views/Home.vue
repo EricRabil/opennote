@@ -73,6 +73,7 @@
             <TrashSVG class="alt-icon" />
           </span>
         </span>
+        <span class="note-title muted-title-version">{{version}}</span>
         <span class="note-controls-right">
           <span :class="['labels-control labels-control-btn']">
             <span class="label-text no-kill" @click="exportNotes">Export All</span>
@@ -230,6 +231,10 @@ export default class Home extends Vue {
     }
     context.open(event);
     this.activeContext = context;
+  }
+
+  get version() {
+    return process.env.VUE_APP_VERSION;
   }
 
   download(id: string) {
@@ -596,6 +601,11 @@ export default class Home extends Vue {
         overflow: auto;
         transform: translate(-50%, -50%);
         user-select: none;
+
+        &.muted-title-version {
+          font-size: 12px;
+          
+        }
       }
 
       & > .note-controls {

@@ -1,3 +1,8 @@
+const fs = require('fs')
+const packageJson = fs.readFileSync('./package.json')
+const version = JSON.parse(packageJson).version || 0
+process.env.VUE_APP_VERSION = version;
+
 module.exports = {
     css: {
       loaderOptions: {
@@ -8,7 +13,7 @@ module.exports = {
         }
       }
     },
-    publicPath: '/opennote/',
+    // publicPath: '/opennote/',
     parallel: true,
     chainWebpack: config => {
       config.module.rules.delete('eslint');
