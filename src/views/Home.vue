@@ -468,14 +468,14 @@ export default class Home extends Vue {
 
 <style lang="scss">
 .home {
-  display: grid;
-  grid-template-columns: 250px calc(100vw - 250px);
-  // grid-template-rows: 100vh;
-  height: -webkit-fill-available;
   overflow: hidden;
+  display: grid;
+  grid-template-columns: 250px auto;
+  grid-template-rows: 100%;
+  height: 100%;
 
   @media only screen and (max-width: 500px) {
-    grid-template-columns: 100vw;
+    grid-template-columns: 100vw 0px;
     
     &:not(.nav-collapse) {
       & > .editor-view {
@@ -510,10 +510,13 @@ export default class Home extends Vue {
     @extend %text;
     @extend %borderRight;
     z-index: 10;
-    display: flex;
-    min-height: -webkit-fill-available;
-    flex-flow: column;
     padding-bottom: env(safe-area-inset-bottom);
+
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 45px 1fr 45px;
+    max-height: stretch;
+    overflow: hidden;
 
     & > .title {
       &:first-child {
@@ -604,7 +607,7 @@ export default class Home extends Vue {
 
         &.muted-title-version {
           font-size: 12px;
-          
+
         }
       }
 
@@ -616,8 +619,6 @@ export default class Home extends Vue {
     }
 
     & > .navigator-contents {
-      // box-shadow: 10px 0 5px -2px rgba(0,0,0,0.25);
-      flex-grow: 1;
       overflow: scroll;
       display: flex;
       flex-flow: column;
@@ -628,6 +629,7 @@ export default class Home extends Vue {
         margin: 5px;
         padding: 5px;
         border-radius: 5px;
+        min-height: 39px;
 
         &:hover {
           @extend %bg1;

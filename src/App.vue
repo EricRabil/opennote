@@ -129,6 +129,14 @@ body {
   font-family: "Open Sans", sans-serif;
 }
 
+html, body, #app {
+  overflow: hidden;
+  width: 100vw;
+  height: -webkit-fill-available;
+  max-height: 100vh;
+  touch-action: manipulation;
+}
+
 .cdx-input.cdx-warning__message {
   display: none;
 }
