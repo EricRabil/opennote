@@ -72,6 +72,7 @@ try {
   passiveSupported = false;
 }
 
+const nerdamer = require('nerdamer');
 const PASTE_DATA_TAG = 'mq-paste-data';
 
 Vue.config.ignoredElements.push(PASTE_DATA_TAG);
@@ -430,9 +431,10 @@ export default class MathQuillComponent extends Vue {
             default:
                 try {
                     if (isNaN(result)) {
-                        result = math.simplify(result);
+                        const oldResult = result;
+                        result = nerdamer(oldResult).toTeX()
                     }
-                    if (typeof result.toLatex === "function") result = result.toLatex();
+                    if (typeof result.toTeX === "function") result = result.toTeX();
                     if (typeof result.toTex === "function") result = result.toTex();
                 } catch(e) {
                     console.debug('failed to render result', {
