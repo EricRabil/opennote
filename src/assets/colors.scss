@@ -27,6 +27,8 @@ $lightMap: (
     "bg4": rgba(0,0,0,0.5),
     "fg1": #333,
     "text": black,
+    "textAlt": lighten(black, 16),
+    "textAlt0": lighten(black, 8),
     "border": 1px solid darken(white, 10),
     "borderAlt": 1px solid black,
     "border1": 1px solid darken(white, 20),
@@ -65,6 +67,8 @@ $darkMap: (
     "bg4": rgba(255,255,255,0.5),
     "fg1": #CCC,
     "text": white,
+    "textAlt": darken(white, 64),
+    "textAlt0": darken(white, 32),
     "border": 1px solid lighten(black, 10),
     "borderAlt": 1px solid white,
     "border1": 1px solid lighten(black, 20),
@@ -213,6 +217,14 @@ $darkMap: (
 
 %textAlt {
     @include textSchemeResponsive("fg1");
+}
+
+%textAlt1 {
+    @include textSchemeResponsive("textAlt");
+}
+
+%textAlt2 {
+    @include textSchemeResponsive("textAlt0");
 }
 
 %fill {
