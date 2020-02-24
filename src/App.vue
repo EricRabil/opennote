@@ -6,7 +6,7 @@
           v-if="modalOptions !== null"
           @transitionend="modalAnimationDidEnd"
           ref="modalRoot">
-          <div class="modal" ref="modal">
+          <div :class="['modal', ...(modalOptions.customClasses || [])]" ref="modal">
             <!-- Close Button -->
             <div class="modal-close" @click="closeModal">&times;</div>
 
@@ -62,6 +62,7 @@ export interface ModalOptions {
   footerOptions?: any;
   body: string | VueConstructor;
   bodyOptions?: any;
+  customClasses?: string[];
 }
 
 @Component({
