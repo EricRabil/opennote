@@ -81,6 +81,18 @@ export default class Settings extends Vue {
                     type: 'checkbox',
                     update: (value: boolean) => this.$store.commit('setPreference', { name: 'showToolbox', value }),
                     value: () => this.$store.state.preferences.showToolbox
+                },
+                {
+                    id: 'hideEditorByDefaultOnMobile',
+                    name: 'Default Mobile View',
+                    description: 'Which screen should be presented when opening the app?',
+                    type: 'string',
+                    options: [
+                        'Menu',
+                        'Editor'
+                    ],
+                    update: (value: 'Menu' | 'Editor') => this.$store.commit('setPreference', { name: 'hideEditorByDefaultOnMobile', value: value === 'Editor' ? false : true }),
+                    value: () => this.$store.state.preferences.hideEditorByDefaultOnMobile ? 'Menu' : 'Editor'
                 }
             ]
         },
