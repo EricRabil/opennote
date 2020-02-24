@@ -11,7 +11,11 @@
             <div class="modal-close" @click="closeModal">&times;</div>
 
             <!-- Header -->
-            <div class="modal-header">
+            <element-host
+              v-if="isNode(modalOptions.header)"
+              :element="modalOptions.header"
+              ></element-host>
+            <div class="modal-header" v-else>
               <h1
                 v-if="modalOptions.header && typeof modalOptions.header === 'string'"
               >{{modalOptions.header}}</h1>
@@ -49,9 +53,10 @@
 import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import { VueConstructor } from "vue";
+import ElementHost from "@/components/ElementHost.vue";
 
 export interface ModalOptions {
-  header?: string | VueConstructor;
+  header?: string | VueConstructor | HTMLElement;
   headerOptions?: any;
   footer?: string | VueConstructor;
   footerOptions?: any;
@@ -59,7 +64,11 @@ export interface ModalOptions {
   bodyOptions?: any;
 }
 
-@Component
+@Component({
+  components: {
+    ElementHost
+  }
+})
 export default class App extends Vue {
   tooltip: Tooltip = null as any;
   modalOptions: ModalOptions | null = null;
@@ -81,6 +90,10 @@ export default class App extends Vue {
     this.$root.$on("modal-close", () => this.$emit("modal-close"));
 
     document.addEventListener("click", this.onclick);
+  }
+
+  isNode(obj: any) {
+    return obj && obj.nodeType === Node.ELEMENT_NODE;
   }
 
   destroyed() {
