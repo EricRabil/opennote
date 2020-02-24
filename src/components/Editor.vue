@@ -302,18 +302,30 @@ export default class Editor extends Vue {
         }, {
           tags: ['MQ-PASTE-DATA']
         }),
-        checklist: Checklist,
+        // checklist: Checklist,
         code: Code,
         raw: Raw,
         delimiter: Delimiter,
         embed: Embed,
         inlineCode: InlineCode,
         list: List,
-        marker: Marker,
-        header: Header,
-        paragraph: Paragraph,
-        quote: Quote,
-        simpleImage: SimpleImage,
+        marker: {
+          class: Marker,
+          shortcut: 'CMD+SHIFT+U',
+        },
+        header: {
+          class: Header,
+          inlineToolbar: true
+        },
+        paragraph: {
+          class: Paragraph,
+          inlineToolbar: true
+        },
+        quote: {
+          class: Quote,
+          inlineToolbar: true
+        },
+        image: SimpleImage,
         table: Table,
         warning: Warning
       },
@@ -438,6 +450,47 @@ export default class Editor extends Vue {
 @media only screen and (max-width: 900px) {
   .home .editor-container {
     border: 0 !important;
+  }
+}
+
+.tool-suggestion-container {
+  @extend %textAlt1;
+  display: flex;
+  flex-flow: row;
+  margin: 0 2.5px;
+
+  & > .tool-suggestion {
+    margin: 0 2.5px;
+    transition: color 0.0625s linear;
+
+    &.active {
+      @extend %textAlt2;
+    }
+  }
+}
+
+.ce-inline-toolbar {
+  @extend %bg0;
+  @extend %border;
+  & svg {
+    @extend %fill;
+  }
+
+  & .ce-conversion-toolbar {
+    @extend %bg0;
+    @extend %border;
+
+    & .ce-conversion-tool {
+      &:hover {
+        @extend %bgAlt2;
+      }
+    }
+  }
+
+  & .ce-inline-toolbar__dropdown, & .ce-inline-tool {
+    &:hover {
+      @extend %bgAlt2;
+    }
   }
 }
 
