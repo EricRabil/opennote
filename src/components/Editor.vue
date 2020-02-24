@@ -36,8 +36,8 @@
             <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
             <span class="ribbon-icon" v-html="value.icon"></span>
           </span>
-          <span :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']" :key="`${key}-drawer`" v-if="key in toolDrawers" @click="toggleDrawer(key)">
-            <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave"></span>
+          <span :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']" :key="`${key}-drawer`" v-if="key in toolDrawers">
+            <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave" @click="toggleDrawer(key)"></span>
             <span
               :class="{'ribbon-item': true, active: sliderItemKey === active}"
               :data-tooltip="showLabels ? '' : value.title"
