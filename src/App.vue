@@ -114,7 +114,7 @@ export default class App extends Vue {
           confirmText: "Launch OpenNote",
           confirmStyle: "primary",
           confirm: () => {
-            this.$store.state.preferences.sawFirstRun = true;
+            this.$store.commit('setPreference', { name: 'sawFirstRun', value: true });
             this.$root.$emit('modal-close');
           },
           hasCancel: false
