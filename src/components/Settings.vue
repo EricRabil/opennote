@@ -10,9 +10,18 @@
             <p class="pane-desc" v-if="pane.description" v-html="pane.description"></p>
             <form v-if="pane.fields">
                 <span class="input-group" v-for="(input, index) of pane.fields" :key="index">
-                    <span :class="['input-field', `input-${input.type}`]">
-                        <label :for="`${pane.id}:${input.id}`" class="input-name" >{{input.name}}</label>
-                        <input :id="`${pane.id}:${input.id}`" :type="input.type" v-model="controls[pane.id][input.id]">
+                    <span :class="['input-field', `input-${input.type}`, input.options ? 'input-pick' : '']">
+                        <template v-if="!input.options">
+                            <label :for="`${pane.id}:${input.id}`" class="input-name" >{{input.name}}</label>
+                            <input :id="`${pane.id}:${input.id}`" :type="input.type" v-model="controls[pane.id][input.id]">
+                        </template>
+                        <template v-else>
+                            <span class="input-pick-name">{{input.name}}</span>
+                            <template v-for="(choice, choiceIndex) of input.options">
+                                <input type="radio" :id="`${pane.id}:${input.id}:${choiceIndex}`" :value="choice" :key="`${pane.id}:${input.id}:${choice}:${choiceIndex}`" v-model="controls[pane.id][input.id]">
+                                <label :for="`${pane.id}:${input.id}:${choiceIndex}`" class="input-name" :key="`${pane.id}:${input.id}:${choice}:${choiceIndex}:label`">{{choice}}</label>
+                            </template>
+                        </template>
                     </span>
                     <span class="input-desc" v-if="input.description">{{input.description}}</span>
                 </span>
@@ -271,6 +280,27 @@ export default class Settings extends Vue {
 
                     input {
                         margin-right: 10px;
+                    }
+                }
+
+                &.input-pick {
+                    padding: 10px;
+                    display: grid;
+                    grid-template-columns: min-content auto;
+                    grid-row-gap: 10px;
+
+                    & .input-pick-name {
+                        grid-column: 1 / span 2;
+                    }
+
+                    & input {
+                        margin-right: 10px;
+                    }
+
+                    & ~ .input-desc {
+                        @extend %textAlt;
+                        padding: 0 10px 10px;
+                        font-size: 11px;
                     }
                 }
 
