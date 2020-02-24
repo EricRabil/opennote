@@ -487,8 +487,9 @@ export default class Editor extends Vue {
     margin: 0 2.5px;
     transition: color 0.0625s linear;
 
-    &.active {
+    &.active, &:hover {
       @extend %textAlt2;
+      cursor: pointer;
     }
   }
 }
