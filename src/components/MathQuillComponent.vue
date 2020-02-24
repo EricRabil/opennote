@@ -159,11 +159,71 @@ export default class MathQuillComponent extends Vue {
     mathField: MathQuill.MathField;
     resultView: MathQuill.StaticMath;
 
+    flaggedForDeletion: {
+        [token: string]: number;
+    } = {};
+
+    static startGarbageWatcher(interval: number, lifetime: number) {
+        this.garbageTimer = setInterval(() => {
+            console.debug('🗑 time to take out the trash, bitches');
+            this.garbageClients.forEach(client => {
+                const scopeToken = client.scopeToken;
+                const tokens = Array.from(client.mathCache.keys()).concat(Array.from(client.calcCache.keys())).filter((t, i, a) => a.indexOf(t) === i);
+                tokens.forEach(token => {
+                    if (token === scopeToken) return;
+
+                    if (typeof client.flaggedForDeletion[token] === 'undefined') client.flaggedForDeletion[token] = Date.now();
+                    else if ((Date.now() - client.flaggedForDeletion[token]) > lifetime) {
+                        const mathCache = client.mathCache.get(token);
+                        const calcCache = client.calcCache.get(token);
+                        console.debug('🗑 purging expired caches for component', {
+                            mathCache: {
+                                keys: mathCache && mathCache.keys(),
+                                values: mathCache && mathCache.values()
+                            },
+                            calcCache: {
+                                keys: calcCache && calcCache.keys(),
+                                values: calcCache && calcCache.values()
+                            },
+                            token,
+                            flaggedAt: client.flaggedForDeletion[token]
+                        });
+                        mathCache && mathCache.clear();
+                        calcCache && calcCache.clear();
+                        client.mathCache.delete(token);
+                        client.calcCache.delete(token);
+                    }
+                });
+            });
+        }, interval);
+    }
+
+    static stopGarbageWatcher() {
+        clearTimeout(this.garbageTimer);
+        delete this.garbageTimer;
+    }
+
+    private static garbageTimer: NodeJS.Timer;
+    private static garbageClients: MathQuillComponent[] = [];
+
+    private static registerWithGarbageMan(component: MathQuillComponent) {
+        if (this.garbageClients.includes(component)) return;
+        this.garbageClients.push(component);
+    }
+
+    private static deregisterWithGarbageMan(component: MathQuillComponent) {
+        if (!this.garbageClients.includes(component)) return;
+        this.garbageClients.splice(this.garbageClients.indexOf(component), 1);
+    }
+
     mounted() {
+        var ready: boolean = false;
+        MathQuillComponent.registerWithGarbageMan(this);
         this.mathField = new MathQuill.MathField(this.$refs.mqMount, {
             handlers: {
                 edit: (field) => {
                     this.latex = field.latex();
+                    if (!ready) return;
                     this.updateQuills();
                 },
                 upOutOf: () => this.$emit('upOutOf'),
@@ -242,6 +302,16 @@ export default class MathQuillComponent extends Vue {
                 this.removeGraph();
             }
         });
+
+        this.$once('ready', () => {
+            ready = true;
+        });
+    }
+
+    destroyed() {
+        this.calcCache.clear();
+        this.mathCache.clear();
+        MathQuillComponent.deregisterWithGarbageMan(this);
     }
 
     updated() {
@@ -270,13 +340,36 @@ export default class MathQuillComponent extends Vue {
         }
     }
 
+    mathCache: Map<string, Map<string, string>> = new Map();
+
+    get scopeToken() {
+        return JSON.stringify(Object.assign({}, this.lastScope, functionsFromContext(this.lastScope)));
+    }
+
+    private resolveCachedLatex(latex: string) {
+        const token = this.scopeToken;
+        if (!this.mathCache.has(token)) this.mathCache.set(token, new Map());
+        return this.mathCache.get(token)!.get(latex);
+    }
+
+    private cacheLatex(latex: string, expression: string): void {
+        const token = this.scopeToken;
+        if (!this.mathCache.has(token)) this.mathCache.set(token, new Map());
+        this.mathCache.get(token)!.set(latex, expression);
+    }
+
     /**
      * Converts latex to math and returns it
      */
     async math() {
         if (!this.latex) return null;
-        const parsed = utensils.latexParser.parse(this.latex);
-        const expression = await runAlgebraOnWorker(parsed.content, this.lastScope);
+        var expression = this.resolveCachedLatex(this.latex);
+        var parsed;
+        if (!expression) {
+            parsed = utensils.latexParser.parse(this.latex);
+            expression = await runAlgebraOnWorker(parsed.content, this.lastScope);
+            this.cacheLatex(this.latex, expression);
+        }
         return expression.toString();
     }
 
@@ -368,27 +461,61 @@ export default class MathQuillComponent extends Vue {
         });
     }
 
+    calcCache: Map<string, Map<string, any>> = new Map();
+
+    private resolveCachedCalc(latex: string) {
+        const token = this.scopeToken;
+        if (!this.calcCache.has(token)) this.calcCache.set(token, new Map());
+        return this.calcCache.get(token)!.get(latex);
+    }
+
+    private cacheCalc(latex: string, result: any): void {
+        const token = this.scopeToken;
+        if (!this.calcCache.has(token)) this.calcCache.set(token, new Map());
+        this.calcCache.get(token)!.set(latex, result);
+    }
+
     /**
      * Calculates the result of this quill using the given scope
      */
     async calc(scope: any) {
         if (!math) await loadMath();
+        if (!this.latex) return;
+
         this.lastScope = Object.assign({}, scope);
         this.error = null;
 
-        let result, mathStr = await this.math();
+        let cachedResult = this.latex && this.resolveCachedCalc(this.latex);
+        let compiled;
+        if (cachedResult) {
+            compiled = cachedResult;
+            console.debug('using precompiled expression', {
+                latex: this.latex,
+                token: this.scopeToken,
+                compiled: cachedResult
+            });
+        } else {
+            const mathStr = await this.math();
+            if (!mathStr) return this.result = null;
+            compiled = math.parse(mathStr).compile();
+            this.cacheCalc(this.latex, compiled);
+            console.debug('compiled expression', {
+                latex: this.latex,
+                mathStr,
+                compiled
+            })
+        }
 
-        if (!mathStr) return this.result = null;
+        let result: any, mathStr = this.resolveCachedLatex(this.latex);
 
         try {
-            const compiled = math.parse(mathStr).compile();
             result = compiled.evaluate(scope);
         } catch (e) {
             result = mathStr;
             console.debug(`couldn't evaluate math, treating it as an expression`, {
                 scope,
-                result,
-                error: e
+                expression: result,
+                fromLatex: this.latex
             });
         } finally {
             if (typeof result !== 'function') this.resultFn = null;
@@ -410,6 +537,7 @@ export default class MathQuillComponent extends Vue {
         }
 
         this.result = result;
+        this.cacheCalc(this.latex!, result);
 
         return result;
     }
@@ -437,8 +565,9 @@ export default class MathQuillComponent extends Vue {
                     if (typeof result.toTeX === "function") result = result.toTeX();
                     if (typeof result.toTex === "function") result = result.toTex();
                 } catch(e) {
-                    console.debug('failed to render result', {
-                        result
+                    console.debug('failed to render result', e, {
+                        result,
+                        latex: this.latex
                     });
                     result = 'error';
                 }
@@ -470,6 +599,8 @@ export default class MathQuillComponent extends Vue {
         return new Promise((resolve) => this.$emit('get:components', resolve));
     }
 }
+
+MathQuillComponent.startGarbageWatcher(15000, 30000);
 </script>
 
 <style lang="scss">
