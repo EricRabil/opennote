@@ -580,6 +580,8 @@ export default class Editor extends Vue {
   flex-flow: column;
   max-height: 100vh;
   width: stretch;
+
+  padding-right: env(safe-area-inset-right);
 }
 
 .editor-ribbon-container {

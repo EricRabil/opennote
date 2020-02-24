@@ -472,7 +472,7 @@ export default class Home extends Vue {
   display: grid;
   grid-template-columns: 250px auto;
   grid-template-rows: 100%;
-  height: 100%;
+  height: -webkit-fill-available;
 
   @media only screen and (max-width: 500px) {
     grid-template-columns: 100vw 0px;

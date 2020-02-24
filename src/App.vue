@@ -132,7 +132,6 @@ body {
 html, body, #app {
   overflow: hidden;
   width: 100vw;
-  height: -webkit-fill-available;
   max-height: 100vh;
   touch-action: manipulation;
 }
@@ -178,7 +177,7 @@ html, body, #app {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100%;
   z-index: 0;
   display: flex;
   flex-flow: column;
@@ -212,7 +211,7 @@ html, body, #app {
     position: absolute;
     max-width: 465px;
 
-    @media only screen and (max-width: 650px) {
+    @media only screen and (max-width: 650px), only screen and (max-height: 450px) {
       max-width: 100%;
       width: 100%;
       height: 100%;
@@ -262,6 +261,11 @@ html, body, #app {
       right: 15px;
       top: 10px;
       cursor: pointer;
+
+      @media only screen and (max-height: 450px) {
+          right: 75px;
+          top: 25px;
+      }
     }
   }
 }
