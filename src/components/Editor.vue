@@ -377,7 +377,8 @@ export default class Editor extends Vue {
    */
   get toolboxData() {
     try {
-      const tools = (this.editor as any).core.configuration.tools;
+      const tools = (this.editor as any).core.moduleInstances.Tools.toolsClasses;
+      console.log(tools);
       return Object.keys(tools)
         .map(k => ({ key: k, toolbox: tools[k].toolbox }))
         .filter(k => !!k.toolbox)
