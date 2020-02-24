@@ -231,11 +231,16 @@ function loadToolPatches(editor: EditorJS) {
 
     // Fixes checklist exit list bug because stupid
     hook(CheckList.prototype, 'appendNewElement', old => function (event: KeyboardEvent) {
+        const currentNode = window.getSelection()!.anchorNode!;
+        const lastItem = this._elements.items[this._elements.items.length - 1].querySelector(`.${this.CSS.textField}`);
+        const lastItemText = lastItem.innerHTML.replace('<br>', ' ').trim();
+        if (hasAncestor(currentNode, lastItem) && !lastItemText) {
+            const lastChild: Element = this._elements.items[this._elements.items.length - 1].querySelector(`.${this.CSS.textField}`);
+            lastChild.parentElement!.remove();
+            (editor as any).core.moduleInstances.BlockManager.insert();
+            return;
+        }
         old.call(this, event);
-        if (!(event as any).propogationStopped) return;
-        const lastChild: Element = this._elements.items[this._elements.items.length - 1].querySelector(`.${this.CSS.textField}`);
-        lastChild.parentElement!.remove();
-        this.api.caret.setToBlock(this.api.blocks.getCurrentBlockIndex());
     });
 
     Paragraph.prototype.onTab = function(event: KeyboardEvent) {
