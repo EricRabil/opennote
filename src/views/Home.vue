@@ -72,6 +72,9 @@
             <span class="label-text">Delete</span>
             <TrashSVG class="alt-icon" />
           </span>
+          <span class="labels-control labels-control-btn" data-tooltip="Settings" data-placement="top" @mouseenter="mouseenter" @mouseleave="mouseleave" @click="showSettings()">
+            <SettingsSVG />
+          </span>
         </span>
         <span class="note-title muted-title-version">{{version}}</span>
         <span class="note-controls-right">
@@ -102,6 +105,8 @@ import DecisionButtons from "@/components/DecisionButtons.vue";
 import ConfirmationModal from '@/components/DecisionButtons.vue';
 import { Note } from '../store';
 import TrashSVG from "@/assets/trash.svg?inline";
+import SettingsSVG from "@/assets/settings.svg?inline";
+import Settings from '../components/Settings.vue';
 
 function createRange(
   node: Node,
@@ -160,7 +165,8 @@ function setCurrentCursorPosition(index: number, node: Node) {
     VueContext,
     UploadSVG,
     Editor,
-    TrashSVG
+    TrashSVG,
+    SettingsSVG
   }
 })
 export default class Home extends Vue {
@@ -196,6 +202,13 @@ export default class Home extends Vue {
 
   destroyed() {
     document.removeEventListener("mousedown", this.mouseDown);
+  }
+
+  showSettings() {
+    this.$root.$emit('modal-show', {
+      header: 'Settings',
+      body: Settings
+    } as ModalOptions);
   }
 
   $refs: {
