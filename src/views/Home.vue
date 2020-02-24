@@ -506,7 +506,7 @@ export default class Home extends Vue {
     @extend %borderRight;
     z-index: 10;
     display: flex;
-    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
     flex-flow: column;
     padding-bottom: env(safe-area-inset-bottom);
 
