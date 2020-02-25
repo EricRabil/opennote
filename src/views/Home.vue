@@ -648,7 +648,9 @@ export default class Home extends Vue {
     }
 
     & > .navigator-contents {
-      overflow: scroll;
+      @include scrollbar();
+
+      overflow-y: scroll;
       display: flex;
       flex-flow: column;
 

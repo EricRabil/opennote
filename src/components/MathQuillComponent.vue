@@ -651,7 +651,9 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
             }
 
             & > .mq-root-block {
+                @include scrollbar();
                 width: min-content !important;
+                overflow-x: scroll;
             }
 
             &:not(.mq-math-mode) {
@@ -667,6 +669,8 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
     }
 
     .mq-editable-field {
+        @include scrollbar();
+        
         flex-grow: 1;
         border: none;
         overflow-x: scroll;
@@ -688,32 +692,6 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
 
         .mq-root-block .mq-cursor {
             @extend %borderLeftAlt;
-        }
-
-        @media(prefers-color-scheme: dark) {
-            --thumbBG: #{map-get($darkMap, "bgAlt2")};
-        }
-
-        @media(prefers-color-scheme: light) {
-            --thumbBG: #{map-get($lightMap, "bgAlt2")};
-        }
-
-        --scrollbarBG: rgba(0,0,0,0);
-
-        &::-webkit-scrollbar {
-            height: 4px;
-        }
-        & {
-            scrollbar-width: thin;
-            scrollbar-color: var(--thumbBG) var(--scrollbarBG);
-        }
-        &::-webkit-scrollbar-track {
-            background: var(--scrollbarBG);
-        }
-        &::-webkit-scrollbar-thumb {
-            background-color: var(--thumbBG) ;
-            border-radius: 6px;
-            border: 3px solid var(--scrollbarBG);
         }
 
         & > .mq-root-block {
