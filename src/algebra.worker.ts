@@ -241,6 +241,26 @@ class Commands {
     }
 
     @command()
+    static ln(args: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
+        return `log`;
+    }
+
+    @command()
+    static sec() {
+        return `sec`;
+    }
+
+    @command()
+    static csc() {
+        return `csc`;
+    }
+
+    @command()
+    static cot() {
+        return `cot`;
+    }
+
+    @command()
     static async sum(_: Content[], siblings: utensils.latexParser.Node[], index: number, context: any) {
         const [,,start,,stop,...content] = siblings.slice(index) as Group[];
         const {content: startStr} = await collapseGroup(start, context);
