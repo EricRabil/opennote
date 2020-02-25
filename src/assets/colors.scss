@@ -26,6 +26,8 @@ $lightMap: (
     "bg2": rgba(0,0,0,0.15),
     "bg3": rgba(0,0,0,0.2),
     "bg4": rgba(0,0,0,0.5),
+    "box-shadow-color": rgba(#ededed, 0.9),
+    "highlight-color": rgba(245,235,111,0.29),
     "fg1": #333,
     "text": black,
     "textAlt": lighten(black, 16),
@@ -59,6 +61,7 @@ $darkMap: (
     "redAlt1": lighten($redDark, 16),
     "redBad": darken($redDark, 8),
     "blue": $blueDark,
+    "highlight-color": rgba(245,235,111,0.69),
     "blueAlt": lighten($blueDark, 8),
     "blueAlt1": lighten($blueDark, 16),
     "blueBad": darken($blueDark, 8),
@@ -67,6 +70,7 @@ $darkMap: (
     "bg2": rgba(255,255,255,0.15),
     "bg3": rgba(255,255,255,0.2),
     "bg4": rgba(255,255,255,0.5),
+    "box-shadow-color": rgba(18, 18, 18, 0.9),
     "fg1": #CCC,
     "text": white,
     "textAlt": darken(white, 64),
@@ -80,7 +84,7 @@ $darkMap: (
     "ce-block--focused": linear-gradient(17deg,rgba(0, 0, 0, 0.03) 63.45%,rgba(89, 92, 97, 0.068) 98%)
 );
 
-@mixin schemeResponsive($prop, $key, $default: 0) {
+@mixin schemeResponsive($prop, $key, $default: 0, $prefix:'') {
     $light: map-get($lightMap, $key);
     $dark: map-get($darkMap, $key);
 
@@ -90,18 +94,18 @@ $darkMap: (
         $default: $dark;
     }
 
-    #{$prop}: $default;
+    #{$prop}: #{$prefix} $default;
 
     @media (prefers-color-scheme: dark) {
-        #{$prop}: $dark;
+        #{$prop}: #{$prefix} $dark;
     }
 
     @media print {
-        #{$prop}: $light;
+        #{$prop}: #{$prefix} $light;
     }
 
     @media (prefers-color-scheme: light) {
-        #{$prop}: $light;
+        #{$prop}: #{$prefix} $light;
     }
 }
 
@@ -115,6 +119,35 @@ $darkMap: (
 
 @mixin fillSchemeResponsive($key, $default: 0) {
     @include schemeResponsive("fill", $key, $default);
+}
+
+@mixin customPropSuffixedResponsive($prop, $prefix, $key, $default: 0) {
+    @include schemeResponsive($prop, $key, $default, $prefix);
+}
+
+@mixin scrollbar() {
+    $scrollbarSize: 4px;
+
+    @include schemeResponsive("--thumbBG", "bgAlt2");
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--thumbBG) transparent;
+
+    &::-webkit-scrollbar {
+        height: $scrollbarSize;
+        width: $scrollbarSize;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--thumbBG);
+        border-radius: 6px;
+        border: 3px solid transparent;
+        cursor: default;
+    }
 }
 
 %bg {
