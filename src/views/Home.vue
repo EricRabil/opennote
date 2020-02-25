@@ -406,7 +406,7 @@ export default class Home extends Vue {
    * inserts new note into store
    */
   newNote() {
-    this.$store.commit("newNote");
+    this.$store.dispatch('newNote');
   }
 
   get prevNote() {
@@ -456,7 +456,7 @@ export default class Home extends Vue {
   async importNote() {
     try {
       const files = await _.getFilesAsString();
-      files.forEach(file => this.$store.commit('newNote', JSON.parse(file)));
+      files.forEach(file => this.$store.dispatch('newNote', JSON.parse(file)));
     } catch (e) {
       if (e instanceof _.DisplayableError) {
         const { options: { message, title } } = e;

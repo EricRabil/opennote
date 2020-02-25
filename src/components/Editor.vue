@@ -162,7 +162,7 @@ export default class Editor extends Vue {
       Object.keys(this.$store.state.notes).length === 0 ||
       Object.values(this.$store.state.notes).filter(n => !!n).length === 0
     ) {
-      this.$store.commit("newNote");
+      this.$store.dispatch('newNote');
     }
 
     window.addEventListener('beforeunload', this.unloadListener = () => this.save());
@@ -193,6 +193,7 @@ export default class Editor extends Vue {
     this.$store.subscribe(mutation => {
       switch (mutation.type) {
         case 'updateNote':
+        case 'setNote':
           this.name = this.note.name;
       }
     });
@@ -256,7 +257,7 @@ export default class Editor extends Vue {
   }
 
   get note() {
-    return this.$store.state.notes[this.noteID];
+    return this.$store.state.notes[this.noteID] || {};
   }
 
   /**

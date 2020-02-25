@@ -49,9 +49,7 @@ export default new Vuex.Store({
     /**
      * Creates a blank note and selects it
      */
-    newNote(state, { data, name, created } = {}) {
-      let id = uuidv4();
-      while (state.notes[id]) id = uuidv4();
+    newNote(state, { id, data, name, created } = {}) {
       name = name || state.preferences.defaultNoteName;
       
       const noteName = new RegExp(name);
@@ -73,7 +71,6 @@ export default new Vuex.Store({
         name,
         created: created || Date.now()
       };
-      state.currentNote = id;
     },
     delNote(state, id) {
       const ids = Object.keys(state.notes);
@@ -93,6 +90,13 @@ export default new Vuex.Store({
     }
   },
   actions: {
+    newNote(state, { data, name, created } = {}) {
+      let id = uuidv4();
+      while (state.state.notes[id]) id = uuidv4();
+      state.commit('newNote', { id, data, name, created });
+      state.commit('setNote', id);
+      return id;
+    }
   },
   getters: {
     preferredColorScheme: state => {
