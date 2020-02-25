@@ -52,9 +52,25 @@ export default new Vuex.Store({
     newNote(state, { data, name, created } = {}) {
       let id = uuidv4();
       while (state.notes[id]) id = uuidv4();
+      name = name || state.preferences.defaultNoteName;
+      
+      const noteName = new RegExp(name);
+      const quantifier = new RegExp(/(?:\s\((\d+)\))?/);
+
+      const merged = new RegExp("^" + noteName.source + quantifier.source + "$");
+
+      const clashingNotes: RegExpMatchArray[] = Object.values(state.notes as {[key: string]: Note}).map(note => note.name.match(merged)).filter(n => !!n) as RegExpMatchArray[];
+
+      if (clashingNotes.length > 0) {
+        const [ previousMax ] = clashingNotes.map(([,idx]) => parseInt(idx || '0')).sort((a,b) => b - a);
+        const nextNumber = previousMax + 1;
+
+        name = `${name} (${nextNumber})`;
+      }
+
       state.notes[id] = {
         data,
-        name: name || state.preferences.defaultNoteName,
+        name,
         created: created || Date.now()
       };
       state.currentNote = id;
