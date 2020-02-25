@@ -209,7 +209,6 @@ export default class Editor extends Vue {
 
   mouseenter(ev: MouseEvent) {
     if (!(ev.target as HTMLElement).getAttribute('data-tooltip')) return;
-    console.log(this.$parent);
     this.$parent.$emit('ct-mouseenter', ev);
   }
 
@@ -406,7 +405,6 @@ export default class Editor extends Vue {
   get toolboxData() {
     try {
       const tools = (this.editor as any).core.moduleInstances.Tools.toolsClasses;
-      console.log(tools);
       return Object.keys(tools)
         .map(k => ({ key: k, toolbox: tools[k].toolbox }))
         .filter(k => !!k.toolbox)
