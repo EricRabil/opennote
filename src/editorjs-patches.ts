@@ -353,8 +353,15 @@ function loadToolPatches(editor: EditorJS) {
         const suggestionContainer = this._suggestions = document.createElement('span');
         suggestionContainer.style.position = 'absolute';
         suggestionContainer.classList.add('tool-suggestion-container');
-        suggestionContainer.style.left = window.getSelection()!.getRangeAt(0).getBoundingClientRect().left + 'px';
-        suggestionContainer.style.top = window.getSelection()!.getRangeAt(0).getBoundingClientRect().top + 'px';
+        const range = window.getSelection()!.getRangeAt(0).cloneRange();
+        range.collapse(true);
+        suggestionContainer.style.left = range.getClientRects()[0].left + 'px';
+
+        const getPxStyle = (style: string) => parseInt((getComputedStyle(this._element) as any)[style].split('px')[0]);
+        const height = getPxStyle('height');
+        const padding = getPxStyle('padding-top') * 2;
+
+        suggestionContainer.style.top = this._element.getBoundingClientRect().top + padding + window.pageYOffset + 'px';
         suggestions.forEach(s => suggestionContainer.appendChild(s));
 
         document.body.appendChild(suggestionContainer);
