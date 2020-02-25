@@ -533,6 +533,7 @@ export default class Editor extends Vue {
 
 .ce-paragraph {
   box-sizing: border-box;
+  line-height: 1em;
 }
 
 .editor-container {

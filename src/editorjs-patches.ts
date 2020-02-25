@@ -360,11 +360,9 @@ function loadToolPatches(editor: EditorJS) {
         range.collapse(true);
         suggestionContainer.style.left = range.getClientRects()[0].left + 'px';
 
-        const getPxStyle = (style: string) => parseInt((getComputedStyle(this._element) as any)[style].split('px')[0]);
-        const height = getPxStyle('height');
-        const padding = getPxStyle('padding-top') * 2;
+        const getPxStyle = (style: string) => parseFloat((getComputedStyle(this._element) as any)[style].split('px')[0]);
 
-        suggestionContainer.style.top = this._element.getBoundingClientRect().top + padding + window.pageYOffset + 'px';
+        suggestionContainer.style.top = this._element.getBoundingClientRect().top + getPxStyle('padding-top') + 'px';
         suggestions.forEach(s => suggestionContainer.appendChild(s));
 
         document.body.appendChild(suggestionContainer);
