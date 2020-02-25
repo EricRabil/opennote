@@ -616,6 +616,11 @@ export default class Editor extends Vue {
   width: stretch;
 
   padding-right: env(safe-area-inset-right);
+
+  .cdx-marker {
+    @include schemeResponsive("background", "highlight-color");
+    @extend %text;
+  }
 }
 
 .editor-ribbon-container {
