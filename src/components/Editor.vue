@@ -638,17 +638,21 @@ export default class Editor extends Vue {
     flex-flow: row;
     flex-wrap: wrap;
 
+    @media only screen and (max-width: 500px) {
+      overflow-x: scroll;
+      overflow-y: hidden;
+      flex-wrap: nowrap;
+    }
+
     & > .tools-drawer-slider {
-      display: flex;
-      flex-flow: row;
+      display: contents;
 
       & .drawer-toggle {
+        @extend %fill;
+        @extend %text;
         display: flex;
-        line-height: 0;
         align-items: center;
-        height: 100%;
         padding: 0 5px;
-        color: white;
 
         &::after {
           font-size: 20px;
@@ -686,6 +690,7 @@ export default class Editor extends Vue {
       display: flex;
       flex-flow: row-reverse;
       padding: 10px 15px;
+      height: 22px;
       align-items: center;
 
       & > span.ribbon-text {
