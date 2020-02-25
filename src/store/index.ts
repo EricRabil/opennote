@@ -34,7 +34,8 @@ export default new Vuex.Store({
       showLabels: true,
       showToolbox: true,
       hideEditorByDefaultOnMobile: true,
-      sawFirstRun: false
+      sawFirstRun: false,
+      defaultNoteName: NEW_NOTE_NAME
     }
   },
   mutations: {
@@ -52,7 +53,7 @@ export default new Vuex.Store({
       while (state.notes[id]) id = uuidv4();
       state.notes[id] = {
         data,
-        name: name || NEW_NOTE_NAME,
+        name: name || state.preferences.defaultNoteName,
         created: created || Date.now()
       };
       state.currentNote = id;

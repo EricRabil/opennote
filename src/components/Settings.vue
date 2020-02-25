@@ -93,6 +93,14 @@ export default class Settings extends Vue {
                     ],
                     update: (value: 'Menu' | 'Editor') => this.$store.commit('setPreference', { name: 'hideEditorByDefaultOnMobile', value: value === 'Editor' ? false : true }),
                     value: () => this.$store.state.preferences.hideEditorByDefaultOnMobile ? 'Menu' : 'Editor'
+                },
+                {
+                    id: 'defaultNoteName',
+                    name: 'Default Note Name',
+                    description: 'Change the default name of notes',
+                    type: 'string',
+                    update: value => this.$store.commit('setPreference', { name: 'defaultNoteName', value }),
+                    value: () => this.$store.state.preferences.defaultNoteName
                 }
             ]
         },
@@ -178,14 +186,15 @@ export default class Settings extends Vue {
     @media only screen and (max-height: 450px) {
         padding-left: 50px;
     }
+
+    width: 100%;
 }
 
 .settings-panel {
     display: grid;
-    grid-template-columns: 100px 260px;
+    grid-template-columns: 100px auto;
     grid-template-rows: 300px;
     grid-column-gap: 10px;
-    width: max-content;
     max-width: 440px;
 
     @media only screen and (max-width: 650px) {
@@ -307,6 +316,31 @@ export default class Settings extends Vue {
 
                     & input {
                         margin-right: 10px;
+                    }
+
+                    & ~ .input-desc {
+                        @extend %textAlt;
+                        padding: 0 10px 10px;
+                        font-size: 11px;
+                    }
+                }
+
+                &.input-string:not(.input-pick) {
+                    padding: 10px;
+                    display: flex;
+                    flex-flow: column;
+
+                    & .input-name {
+                        padding-bottom: 10px;
+                    }
+
+                    & input {
+                        @extend %border;
+                        @extend %text;
+                        @include bgSchemeResponsive("bg0");
+                        padding: 5px;
+                        border-radius: 5px;
+                        outline: none;
                     }
 
                     & ~ .input-desc {
