@@ -2,9 +2,8 @@
   <div id="app">
     <router-view v-if="!firstRun" />
     <transition name="fade">
-      <div class="modal-root" 
+      <div class="modal-root"
           v-if="modalOptions !== null"
-          @transitionend="modalAnimationDidEnd"
           ref="modalRoot">
           <div :class="['modal', ...(modalOptions.customClasses || [])]" ref="modal">
             <!-- Close Button -->
@@ -80,7 +79,6 @@ function mergeObject(thisArg: any, prop: string, obj: any) {
 export default class App extends Vue {
   tooltip: Tooltip = null as any;
   modalOptions: ModalOptions | null = null;
-  modalReady: boolean = false;
   onclick = (e: MouseEvent) => this.clickListener(e);
 
   $refs: {
@@ -132,13 +130,9 @@ export default class App extends Vue {
     document.removeEventListener("click", this.onclick);
   }
 
-  modalAnimationDidEnd(e: TransitionEvent) {
-    if (!this.modalOptions) return;
-    if (e.target !== this.$refs.modalRoot) return;
-    console.debug("modal transition did end", {
-      options: this.modalOptions
-    });
-    this.modalReady = true;
+  modalReady(): boolean {
+    if (!this.$refs.modalRoot) return false;
+    return !this.$refs.modalRoot.classList.contains('fade-enter-active');
   }
 
   clickListener(e: MouseEvent) {
@@ -146,7 +140,7 @@ export default class App extends Vue {
       this.$refs.modal &&
       (this.$refs.modal === e.target ||
         this.$refs.modal.contains(e.target as Node));
-    if (inside || !this.modalReady) return;
+    if (inside || !this.modalReady()) return;
     this.closeModal();
   }
 
@@ -163,7 +157,6 @@ export default class App extends Vue {
       options: this.modalOptions
     });
     this.modalOptions = null;
-    this.modalReady = false;
   }
 }
 </script>
