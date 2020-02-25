@@ -258,7 +258,7 @@ html, body, #app {
     border-radius: 5px;
     overflow: hidden;
     position: absolute;
-    max-width: 465px;
+    max-width: 500px;
 
     @mixin modalFullscreen {
       max-width: 100%;
