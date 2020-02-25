@@ -626,17 +626,9 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
             flex-flow: row-reverse;
             align-items: center;
             margin-right: 10px;
-
-            box-shadow: -10px 0px 3px 0px rgba(map-get($lightMap, "bg0"), 0.9);
             z-index: 10;
 
-            @media (prefers-color-scheme: dark) {
-                box-shadow: -10px 0px 3px 0px rgba(map-get($darkMap, "bg0"), 0.9);
-            }
-            
-            @media(prefers-color-scheme: light) {
-                box-shadow: -10px 0px 3px 0px rgba(map-get($lightMap, "bg0"), 0.9);
-            }
+            @include customPropSuffixedResponsive("box-shadow", -10px 0px 3px 0px, "box-shadow-color");
 
             @media print {
                 box-shadow: none;
