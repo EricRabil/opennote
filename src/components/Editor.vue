@@ -11,7 +11,7 @@
         </span>
       </span>
       <span class="note-name">
-        {{$store.getters.currentNoteName}}
+        {{name}}
       </span>
       <span class="controls-right">
         <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
@@ -103,6 +103,8 @@ export default class Editor extends Vue {
   unloadListener: Function;
   hasChanges: boolean = false;
 
+  name: string | null = null;
+
   overrides: {
     showRibbon: boolean | null;
     showLabels: boolean | null;
@@ -187,6 +189,15 @@ export default class Editor extends Vue {
       this.hasChanges = false;
       await this.renderData(this.cachedData);
     });
+
+    this.$store.subscribe(mutation => {
+      switch (mutation.type) {
+        case 'updateNote':
+          this.name = this.note.name;
+      }
+    });
+
+    this.name = this.note.name;
 
     this.$el.addEventListener('touchmove', () => this.touchMoving = true);
     this.$el.addEventListener('touchend', () => this.touchMoving = false);
