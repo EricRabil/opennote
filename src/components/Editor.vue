@@ -152,6 +152,8 @@ export default class Editor extends Vue {
     mountPoint: HTMLDivElement;
   };
 
+  touchMoving: boolean = false;
+
   created() {
       // if theres no note, create it before render
     if (
@@ -185,6 +187,9 @@ export default class Editor extends Vue {
       this.hasChanges = false;
       await this.renderData(this.cachedData);
     });
+
+    this.$el.addEventListener('touchmove', () => this.touchMoving = true);
+    this.$el.addEventListener('touchend', () => this.touchMoving = false);
 
     // autosaver (if changes only)
     this.interval = setInterval(() => {

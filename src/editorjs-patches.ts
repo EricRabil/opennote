@@ -656,7 +656,7 @@ function loadBlockManagerPatches(editor: EditorJS) {
 
 function loadUsabilityPatches(editor: EditorJS) {
     const core = (editor as any).core;
-    const { BlockSelection, BlockManager, Caret, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI } = core.moduleInstances;
+    const { BlockSelection, BlockManager, Caret, Toolbox, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI } = core.moduleInstances;
 
     hook(BlockSelection, 'handleCommandA', old => function(event: KeyboardEvent): void {
         /** allow default selection on native inputs */
@@ -679,6 +679,25 @@ function loadUsabilityPatches(editor: EditorJS) {
             Caret.setToBlock(block);
         }
         return old.call(this);
+    });
+
+    // ignore if touchMoving is true
+    hook(Toolbox, 'toolButtonActivate', old => function(...args: any[]) {
+        if ((editor as any).VueEditor) {
+            if ((editor as any).VueEditor.touchMoving) {
+                return;
+            }
+        }
+        return old.call(this, ...args);
+    });
+
+    hook(UI, 'documentClicked', old => function(...args: any[]) {
+        if ((editor as any).VueEditor) {
+            if ((editor as any).VueEditor.touchMoving) {
+                return;
+            }
+        }
+        return old.call(this, ...args);
     });
 
     hook(Toolbar, 'move', old => function(forceClose: boolean = true) {
