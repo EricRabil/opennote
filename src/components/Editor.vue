@@ -560,9 +560,11 @@ export default class Editor extends Vue {
         padding-right: 0;
       }
 
-      &.codex-editor--narrow .ce-toolbox {
+      .ce-toolbox {
         left: 34px;
+        right: 40px;
         background: none;
+        overflow-x: scroll;
       }
 
       .ce-toolbar__plus {
