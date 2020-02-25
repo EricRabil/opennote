@@ -552,6 +552,7 @@ export default class Editor extends Vue {
 
   .codex-editor {
     z-index: -5;
+    height: 100%;
 
     @media only screen and (max-width: 975px) {
       .ce-block {
@@ -576,7 +577,7 @@ export default class Editor extends Vue {
     }
 
     .codex-editor__redactor, .codex-editor__loader {
-      height: 100vh;
+      height: 100%;
     }
   }
 }
@@ -612,7 +613,6 @@ export default class Editor extends Vue {
 
   display: flex;
   flex-flow: column;
-  max-height: 100vh;
   width: stretch;
 
   padding-right: env(safe-area-inset-right);
