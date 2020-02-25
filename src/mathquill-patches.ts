@@ -10,6 +10,11 @@ interface MathQuillAPI {
                 latex: Function;
             }
         },
+        subscript: {
+            prototype: {
+                latex: Function;
+            }
+        },
         summation(): {
             __proto__: {
                 latex: Function
@@ -31,7 +36,7 @@ LatexCmds.integral.prototype.latex = function(this: any) {
       '^' + simplify(this.ends[R].latex());
 }
 
-LatexCmds.superscript.prototype.latex = function(this: any) {
+LatexCmds.superscript.prototype.latex = LatexCmds.subscript.prototype.latex = function(this: any) {
     function latex(prefix: string, block: {latex(): string}) {
         var l = block && block.latex();
         return block ? prefix + '{' + (l || ' ') + '}' : '';
