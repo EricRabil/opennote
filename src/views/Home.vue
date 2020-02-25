@@ -281,7 +281,10 @@ export default class Home extends Vue {
         name: files.filter(f => f.name === data.name).length === 1 ? data.name : `${data.name}${repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ''}`,
         text: data.text
       }
-    });
+    }).map(({name, text}) => ({
+      name: `${name}.onote`,
+      text
+    }));
     await _.zipFilesAndDownload('OpenNote Export.zip', serialized);
   }
 
