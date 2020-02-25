@@ -484,11 +484,6 @@ export default class MathQuillComponent extends Vue {
         let compiled;
         if (cachedResult) {
             compiled = cachedResult;
-            console.debug('using precompiled expression', {
-                latex: this.latex,
-                token: this.scopeToken,
-                compiled: cachedResult
-            });
         } else {
             const mathStr = await this.math();
             if (!mathStr) return this.result = null;
@@ -507,11 +502,6 @@ export default class MathQuillComponent extends Vue {
             result = compiled.evaluate(scope);
         } catch (e) {
             result = mathStr;
-            console.debug(`couldn't evaluate math, treating it as an expression`, {
-                scope,
-                expression: result,
-                fromLatex: this.latex
-            });
         } finally {
             if (typeof result !== 'function') this.resultFn = null;
             if (typeof result === 'function' || typeof result === 'undefined') {
