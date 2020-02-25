@@ -739,6 +739,23 @@ function loadUsabilityPatches(editor: EditorJS) {
         }
         old.call(this);
     });
+
+    hook(BlockManager, 'clearFocused', () => function(skipCurrentBlock: boolean = false) {
+        (this.blocks as any[]).forEach( (block, index) => {
+            if (skipCurrentBlock && index === this.currentBlockIndex) return;
+            block.focused = false
+        });
+    });
+
+    hook(Toolbar, 'move', old => function(...args: any[]) {
+        const currentBlock = BlockManager.currentBlock.holder;
+        if (!currentBlock) return;
+
+        BlockManager.clearFocused(true);
+        currentBlock.focused = true
+
+        old.call(this, ...args);
+    });
 }
 
 /**
