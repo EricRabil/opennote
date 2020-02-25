@@ -67,14 +67,22 @@ export default new Vuex.Store({
      */
     updateNote(state, { data, id, name }) {
       const note = (state.notes[id] || (state.notes[id] = {} as any));
-      note.data = data || note.data;
-      note.name = name || note.name || NEW_NOTE_NAME;
+      Vue.set(note, 'data', data || note.data);
+      Vue.set(note, 'name', name || note.name || NEW_NOTE_NAME);
     },
     setPreference(state, { name, value }) {
       state.preferences[name] = value;
     }
   },
   actions: {
+  },
+  getters: {
+    currentNote: state => {
+      return state.notes[state.currentNote];
+    },
+    currentNoteName: (state, getters) => {
+      return getters.currentNote.name;
+    }
   },
   modules: {
   },

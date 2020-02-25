@@ -11,7 +11,7 @@
         </span>
       </span>
       <span class="note-name">
-        {{note.name}}
+        {{$store.getters.currentNoteName}}
       </span>
       <span class="controls-right">
         <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
@@ -521,6 +521,7 @@ export default class Editor extends Vue {
 
 .editor-container {
   @extend %border1;
+  @include scrollbar();
   border-top: 0;
   border-bottom: 0;
   width: 100%;
