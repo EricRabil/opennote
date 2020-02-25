@@ -308,6 +308,9 @@ function loadToolPatches(editor: EditorJS) {
         if (!this._suggestions) {
             return false;
         }
+
+        event.preventDefault();
+        event.stopPropagation();
         
         this.selectSuggestion(this.suggestions[this.selectedSuggestion]);
 
