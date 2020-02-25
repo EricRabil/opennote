@@ -248,8 +248,10 @@ function loadToolPatches(editor: EditorJS) {
             return false;
         }
 
-        event.preventDefault();
-        event.stopPropagation();
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
 
         if (typeof this.selectedSuggestion === 'undefined') this.selectedSuggestion = 0;
         else this.selectedSuggestion++;
@@ -258,7 +260,7 @@ function loadToolPatches(editor: EditorJS) {
         if (!suggestion) suggestion = this.suggestions[this.selectedSuggestion = 0];
 
         if (oldSuggestion) (oldSuggestion as HTMLElement).classList.remove('active');
-        suggestion.classList.add('active');
+        if (suggestion) suggestion.classList.add('active');
 
         return true;
     }
@@ -307,8 +309,9 @@ function loadToolPatches(editor: EditorJS) {
         old.call(this, event);
 
         const {textContent} = this._element as HTMLElement;
-        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1) {
+        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1 || textContent === '/') {
             if (this._suggestions) {
+                console.debug('paragraph is tearing down suggestions');
                 this.teardownSuggestions();
             }
             return;
@@ -324,8 +327,6 @@ function loadToolPatches(editor: EditorJS) {
         const wantsCompletion = event.code === 'Tab';
 
         if (wantsCompletion) return;
-
-        const [ selected ] = possible;
 
         const suggestions = this.suggestions = possible.map(s => {
             const elm = document.createElement('span');
@@ -344,7 +345,9 @@ function loadToolPatches(editor: EditorJS) {
         suggestions.forEach(s => suggestionContainer.appendChild(s));
 
         document.body.appendChild(suggestionContainer);
-    })
+
+        this.onTab();
+    });
 
     Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function(e: KeyboardEvent) {
         const empty = this.block.holder.querySelector('textarea').value.length === 0
