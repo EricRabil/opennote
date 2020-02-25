@@ -539,6 +539,18 @@ export default class Editor extends Vue {
     @extend %bg3;
   }
 
+  &:only-child {
+    height: 100%;
+  }
+
+  &:nth-child(2) {
+    height: calc(100% - 45px);
+  }
+
+  &:nth-child(3) {
+    height: calc(100% - 90px);
+  }
+
   @media print {
     border: none !important;
     color: black !important;
