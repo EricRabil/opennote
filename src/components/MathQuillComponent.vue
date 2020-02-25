@@ -612,7 +612,7 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
     .mq-calc-root {
         @extend %bg0;
         display: grid;
-        grid-template-columns: minmax(0,1fr) min-content;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
         padding: 10px;
 
         @media print {
