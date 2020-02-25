@@ -27,7 +27,6 @@
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
-import * as mathjs from "mathjs";
 import * as utensils from "latex-utensils";
 
 import FractionSVG from "@/assets/frac.svg?inline";
@@ -39,12 +38,9 @@ import { SanitizerConfig } from '@editorjs/editorjs';
 type TypeWithGeneric<T> = Partial<T>;
 type extractGeneric<Type> = Type extends TypeWithGeneric<infer X> ? X : never
 
-let math: typeof import('mathjs');
-async function loadMath() {
-    const mathjs = await import('mathjs');
-    math = mathjs.create(mathjs.all, {}) as any;
-    math.import(await import('mathjs-simple-integral' as any), {});
-}
+const mathjs = require('mathjs');
+const math = mathjs.create(mathjs.all, {}) as any;
+math.import(require('mathjs-simple-integral' as any), {});
 
 declare const d3: any;
 
@@ -479,7 +475,6 @@ export default class MathQuillComponent extends Vue {
      * Calculates the result of this quill using the given scope
      */
     async calc(scope: any) {
-        if (!math) await loadMath();
         if (!this.latex) return;
 
         this.lastScope = Object.assign({}, scope);
@@ -547,7 +542,6 @@ export default class MathQuillComponent extends Vue {
     }
 
     async updateResultView(result: any) {
-        if (!math) await loadMath();
         switch (this.renderFormat) {
             case 'frac':
                 var frac = await this.fraction(result);
@@ -580,7 +574,6 @@ export default class MathQuillComponent extends Vue {
      * Returns a fraction representation
      */
     async fraction(result: string) {
-        if (!math) await loadMath();
         try {
             return (math.fraction(result) as any).toLatex();
         } catch {
