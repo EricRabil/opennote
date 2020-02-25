@@ -201,6 +201,8 @@ class Commands {
         let strContent = await flattenContentForEvaluation(content, context);
         const definite = subscript.content.length > 0 && superscript.content.length > 0;
 
+        if (strContent.endsWith('dx')) strContent = strContent.substring(0, strContent.length - 2);
+
         let result;
         if (definite) {
             result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
