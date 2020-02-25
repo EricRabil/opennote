@@ -335,7 +335,10 @@ export default class Editor extends Vue {
         delimiter: Delimiter,
         embed: Embed,
         inlineCode: InlineCode,
-        list: List,
+        list: {
+          class: List,
+          inlineToolbar: List
+        },
         marker: {
           class: Marker,
           shortcut: 'CMD+SHIFT+U',
