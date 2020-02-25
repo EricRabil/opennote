@@ -20,7 +20,7 @@ export namespace _ {
      * @param type MIME type
      */
     export function saveFile(data: any, name: string, type: string = 'text/plain') {
-        const blob = new Blob([data], {type});
+        const blob = new Blob([data], { type });
         const e = new MouseEvent('click', {
             bubbles: true,
             cancelable: true,
@@ -53,7 +53,7 @@ export namespace _ {
             input.type = 'file';
             input.accept = '.onote';
             input.multiple = true;
-            input.addEventListener('change', function(ev) {
+            input.addEventListener('change', function (ev) {
                 if (!this.files) return reject(new Error('missing files property'));
                 resolve(Promise.all(Array.from(this.files).map(file => {
                     return new Promise((resolve, reject) => {
@@ -65,7 +65,7 @@ export namespace _ {
                         }
                         const reader = new FileReader();
                         reader.readAsArrayBuffer(file);
-                        reader.addEventListener('load', function() {
+                        reader.addEventListener('load', function () {
                             resolve(this.result as ArrayBuffer);
                         });
                     }) as Promise<ArrayBuffer>;
@@ -90,13 +90,13 @@ export namespace _ {
     }
 
     export function filterObject<T>(obj: T, filter: (key: string, value: any) => boolean): T {
-        return Object.keys(obj).filter(k => filter(k, (obj as any)[k])).reduce((a,c) => {a[c] = (obj as any)[c]; return a;}, {} as any);
+        return Object.keys(obj).filter(k => filter(k, (obj as any)[k])).reduce((a, c) => { a[c] = (obj as any)[c]; return a; }, {} as any);
     }
 
-    export async function zipFilesAndDownload(zipName: string, files: Array<{name: string, text: string}>): Promise<void> {
+    export async function zipFilesAndDownload(zipName: string, files: Array<{ name: string, text: string }>): Promise<void> {
         const zip = new JSZip();
-        files.forEach(({name, text}) => zip.file(name, text));
-        const content = await zip.generateAsync({type: "blob"});
+        files.forEach(({ name, text }) => zip.file(name, text));
+        const content = await zip.generateAsync({ type: "blob" });
         await saver.saveAs(content, zipName);
     }
 
