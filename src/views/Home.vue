@@ -85,9 +85,9 @@
       </div>
     </div>
     <editor :show-burger="navCollapse" :exporter="download" :canDelete="canDelete" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
-    <vue-context v-for="(data, id) in list" :key="id" :ref="`contextMenu${id}`">
-      <li @click="download(id)">Export</li>
-      <li :class="['ctx-danger', canDelete ? '' : 'ctx-danger-disabled']" @click="delNote(id)">Delete</li>
+    <vue-context v-for="(data, idx) in list" :key="idx" :ref="`contextMenu${idx}`">
+      <li @click="download(data.id)">Export</li>
+      <li :class="['ctx-danger', canDelete ? '' : 'ctx-danger-disabled']" @click="delNote(data.id)">Delete</li>
     </vue-context>
   </div>
 </template>
