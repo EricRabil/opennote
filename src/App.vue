@@ -183,10 +183,11 @@ body {
   font-family: "Open Sans", sans-serif;
 }
 
-html, body, #app {
+html, body, #app, .home {
   overflow: hidden;
   width: 100vw;
   max-height: 100vh;
+  height: 100%;
   touch-action: manipulation;
 }
 
