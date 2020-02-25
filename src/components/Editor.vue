@@ -488,6 +488,7 @@ export default class Editor extends Vue {
   display: flex;
   flex-flow: row;
   margin: 0 2.5px;
+  line-height: 1em;
 
   & > .tool-suggestion {
     margin: 0 2.5px;
@@ -523,6 +524,15 @@ export default class Editor extends Vue {
       @extend %bgAlt2;
     }
   }
+}
+
+.ce-header {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.ce-paragraph {
+  box-sizing: border-box;
 }
 
 .editor-container {
@@ -682,6 +692,7 @@ export default class Editor extends Vue {
       &.drawer-closed .drawer-toggle::after {
         content: '\00bb';
       }
+      
       &:not(.drawer-closed) .drawer-toggle::after {
         content: '\00ab';
       }
