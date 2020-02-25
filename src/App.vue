@@ -55,6 +55,7 @@ import { VueConstructor } from "vue";
 import ElementHost from "@/components/ElementHost.vue";
 import Onboarding from './components/Onboarding.vue';
 import DecisionButtons from "@/components/DecisionButtons.vue";
+import _ from './util';
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -102,6 +103,20 @@ export default class App extends Vue {
     this.$root.$on("modal-patch", (options: Partial<ModalOptions>) => this.$emit("modal-patch", options));
 
     document.addEventListener("click", this.onclick);
+
+    this.$store.watch((state, getters) => getters.preferredColorScheme, (newValue: string, oldValue) => {
+      _.ensureDefaults();
+      switch (newValue) {
+        case 'light':
+        case 'dark':
+          _.setPreferredColorScheme(newValue);
+          break;
+        default:
+          _.resetPreferredColorScheme();
+      }
+    });
+
+    _.setPreferredColorScheme(this.$store.state.preferences.preferredColorScheme);
 
     if (!this.$store.state.preferences.sawFirstRun) {
       this.$root.$emit('modal-show', {
