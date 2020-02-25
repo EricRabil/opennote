@@ -532,7 +532,6 @@ export default class MathQuillComponent extends Vue {
         }
 
         this.result = result;
-        this.cacheCalc(this.latex!, result);
 
         return result;
     }
