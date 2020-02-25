@@ -526,7 +526,6 @@ function loadBlockEventPatches(editor: EditorJS) {
         const { BlockManager } = this.Editor;
         const { currentBlock } = BlockManager;
         const shouldHandoffEnterEvent = currentBlock.call('onEnter', event);
-        console.log(currentBlock.tool.onEnter);
         if (shouldHandoffEnterEvent) return;
         old.call(this, event);
     });
