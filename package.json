@@ -1,6 +1,6 @@
 {
   "name": "opennote",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "serve": "npx --max_old_space_size=4096 vue-cli-service serve",
