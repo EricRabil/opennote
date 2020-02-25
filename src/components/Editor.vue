@@ -40,7 +40,7 @@
             <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave" @click="toggleDrawer(key)"></span>
             <span
               :class="{'ribbon-item': true, active: sliderItemKey === active}"
-              :data-tooltip="showLabels ? '' : value.title"
+              :data-tooltip="showLabels ? '' : toolboxData[sliderItemKey].title"
               @mouseenter="mouseenter"
               @mouseleave="mouseleave"
               @click="switchTool(sliderItemKey)"
