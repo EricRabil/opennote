@@ -535,6 +535,10 @@ export default class Editor extends Vue {
   padding: 10px 0;
   overflow-y: scroll;
 
+  .ce-block--selected .ce-block__content {
+    @extend %bg3;
+  }
+
   @media print {
     border: none !important;
     color: black !important;
