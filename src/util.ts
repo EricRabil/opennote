@@ -99,6 +99,63 @@ export namespace _ {
         const content = await zip.generateAsync({type: "blob"});
         await saver.saveAs(content, zipName);
     }
+
+    let _mediaRules: MediaList[], originalMedia: string[];
+
+    function computeMediaRules() {
+        if (_mediaRules) return _mediaRules;
+        _mediaRules = Array.from(document.styleSheets).map((s) => {
+            try {
+                return Array.from((s as CSSStyleSheet).rules) as any as StyleSheet[];
+            } catch {
+                return null;
+            }
+        }).filter(s => !!s).map(s => s!.filter(r => (r as StyleSheet).media).map(r => r.media).filter(r => r.mediaText.includes("prefers-color-scheme"))).reduce((a, c) => a.concat(c), []);
+        originalMedia = _mediaRules.map(r => r.mediaText);
+        return _mediaRules;
+    }
+    
+    export function mediaRules() {
+        return _mediaRules || computeMediaRules();
+    }
+
+    export function ensureDefaults() {
+        if (!_mediaRules || !originalMedia) {
+            computeMediaRules();
+        }
+    }
+
+    export function resetPreferredColorScheme() {
+        mediaRules().forEach((rule, index) => {
+            rule.mediaText = originalMedia[index];
+        });
+    }
+
+    export function setPreferredColorScheme(mode: 'light' | 'dark') {
+        resetPreferredColorScheme();
+        mediaRules().forEach(rule => {
+            try {
+                switch (mode) {
+                    case "light":
+                        if (rule.mediaText.includes("light")) rule.deleteMedium("(prefers-color-scheme: light)");
+                        if (rule.mediaText.includes("dark")) rule.deleteMedium("(prefers-color-scheme: dark)");
+                        break;
+                    case "dark":
+                        if (rule.mediaText.includes("light") && !rule.mediaText.includes("dark")) {
+                            // dark code, fucking kill it
+                            rule.deleteMedium("(prefers-color-scheme: light)");
+                            rule.appendMedium("speechsexyt");
+                        }
+                        if (rule.mediaText.includes("dark") && !rule.mediaText.includes("light")) {
+                            rule.deleteMedium("(prefers-color-scheme: dark)");
+                        }
+                        break;
+                }
+            } catch (e) {
+                return;
+            }
+        });
+    }
 }
 
 export default _;

@@ -95,6 +95,28 @@ export default class Settings extends Vue {
                     value: () => this.$store.state.preferences.hideEditorByDefaultOnMobile ? 'Menu' : 'Editor'
                 },
                 {
+                    id: 'preferredColorScheme',
+                    name: 'Theme',
+                    description: 'Choose whether youi want light or dark mode, or inherit the system preference',
+                    type: 'string',
+                    options: [
+                        'Light',
+                        'Dark',
+                        'Inherit'
+                    ],
+                    update: (value: 'Light' | 'Dark' | 'Inherit') => this.$store.commit('setPreference', { name: 'preferredColorScheme', value: value.toLowerCase() }),
+                    value: () => {
+                        switch (this.$store.state.preferences.preferredColorScheme) {
+                            case 'light':
+                                return 'Light';
+                            case 'dark':
+                                return 'Dark';
+                            default:
+                                return 'Inherit';
+                        }
+                    }
+                },
+                {
                     id: 'defaultNoteName',
                     name: 'Default Note Name',
                     description: 'Change the default name of notes',

@@ -35,6 +35,7 @@ export default new Vuex.Store({
       showToolbox: true,
       hideEditorByDefaultOnMobile: true,
       sawFirstRun: false,
+      preferredColorScheme: null,
       defaultNoteName: NEW_NOTE_NAME
     }
   },
@@ -78,6 +79,9 @@ export default new Vuex.Store({
   actions: {
   },
   getters: {
+    preferredColorScheme: state => {
+      return state.preferences.preferredColorScheme;
+    },
     currentNote: state => {
       return state.notes[state.currentNote];
     },
