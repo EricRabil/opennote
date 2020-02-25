@@ -68,7 +68,7 @@
       </transition-group>
       <div class="title">
         <span class="note-controls-left">
-          <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="delNote(noteID)">
+          <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="delNote(currentNote)">
             <span class="label-text">Delete</span>
             <TrashSVG class="alt-icon" />
           </span>
