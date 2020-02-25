@@ -223,24 +223,37 @@ function loadToolPatches(editor: EditorJS) {
         if (!event.defaultPrevented) return;
         this.api.caret.setToBlock(this.api.blocks.getCurrentBlockIndex());
     });
-    
-    hook(KeyboardEvent.prototype, 'stopPropogation', old => function(...args: any[]) {
-        old.call(this, ...args);
-        this.propogationStopped = true;
-    });
 
     // Fixes checklist exit list bug because stupid
-    hook(CheckList.prototype, 'appendNewElement', old => function (event: KeyboardEvent) {
-        const currentNode = window.getSelection()!.anchorNode!;
-        const lastItem = this._elements.items[this._elements.items.length - 1].querySelector(`.${this.CSS.textField}`);
-        const lastItemText = lastItem.innerHTML.replace('<br>', ' ').trim();
-        if (hasAncestor(currentNode, lastItem) && !lastItemText) {
-            const lastChild: Element = this._elements.items[this._elements.items.length - 1].querySelector(`.${this.CSS.textField}`);
-            lastChild.parentElement!.remove();
-            (editor as any).core.moduleInstances.BlockManager.insert();
-            return;
+    hook(CheckList.prototype, 'appendNewElement', old => function(event: KeyboardEvent) {
+        const oldStopPropogation = event.stopPropagation;
+
+        let propogationStopped: boolean = false;
+
+        event.stopPropagation = function() {
+            propogationStopped = true;
+            oldStopPropogation.call(this);
         }
+
+        const insertNewBlock = (editor as any).core.moduleInstances.BlocksAPI.insertNewBlock;
+        let shouldInsert: boolean = false;
+        (editor as any).core.moduleInstances.BlocksAPI.insertNewBlock = () => shouldInsert = true;
+
         old.call(this, event);
+
+        (editor as any).core.moduleInstances.BlocksAPI.insertNewBlock = insertNewBlock;
+
+        setTimeout(() => {
+            if (!propogationStopped) return;
+
+            this._elements.items[this._elements.items.length - 1].remove();
+            this._elements.items.splice(this._elements.items.length - 1, 1);
+
+            if (shouldInsert) {
+                let needsFocus = this.Editor.moduleInstances.BlockManager.insert();
+                this.Editor.moduleInstances.Caret.setToBlock(needsFocus, this.Editor.moduleInstances.Caret.positions.END)
+            }
+        }, 0);
     });
 
     Paragraph.prototype.onTab = function(event: KeyboardEvent) {

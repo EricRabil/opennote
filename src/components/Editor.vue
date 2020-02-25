@@ -329,7 +329,7 @@ export default class Editor extends Vue {
         }, {
           tags: ['MQ-PASTE-DATA']
         }),
-        // checklist: Checklist,
+        checklist: Checklist,
         code: Code,
         raw: Raw,
         delimiter: Delimiter,
