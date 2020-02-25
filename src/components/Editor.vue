@@ -331,7 +331,7 @@ export default class Editor extends Vue {
         }),
         checklist: Checklist,
         code: Code,
-        raw: Raw,
+        // raw: Raw,
         delimiter: Delimiter,
         embed: Embed,
         inlineCode: InlineCode,
