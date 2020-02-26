@@ -4,8 +4,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/opennote/47c6bc07c6d11357a3dd.worker.js"
   },
   {
-    "revision": "7aa41b07fd827a3f9b19",
-    "url": "/opennote/css/app.4cdb199b.css"
+    "revision": "5e5ad51eab7fa4299957",
+    "url": "/opennote/css/app.e965996f.css"
   },
   {
     "revision": "96e8695db51e51c579b5",
@@ -32,12 +32,12 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/opennote/img/Symbola.96449b5b.svg"
   },
   {
-    "revision": "0d42ebbdccb4d70ea33f3ebd343cb62f",
+    "revision": "644ef7534e3ed73ac458d62ce15e8fef",
     "url": "/opennote/index.html"
   },
   {
-    "revision": "7aa41b07fd827a3f9b19",
-    "url": "/opennote/js/app.027e6644.js"
+    "revision": "5e5ad51eab7fa4299957",
+    "url": "/opennote/js/app.0edcb111.js"
   },
   {
     "revision": "271cfd32a7b1a3b0c95e",

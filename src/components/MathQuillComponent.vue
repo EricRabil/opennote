@@ -722,8 +722,13 @@ export default class MathQuillComponent extends Vue {
 
     const { xDomain, yDomain } = this.computedBounds!;
 
+    console.debug(`calculated bounds for function`, {
+      resultFn: this.resultFn,
+      xDomain,
+      yDomain
+    });
+
     try {
-      console.log(this.resultFn);
       this.chart = plot({
         target: this.$refs.graph,
         tip: {
@@ -897,6 +902,15 @@ export default class MathQuillComponent extends Vue {
     if (typeof result === "number") {
       result = this.mathJS.round(result, 10);
     }
+
+    console.debug('calculation complete', {
+      scope,
+      cachedResult,
+      compiled,
+      flags,
+      result,
+      resultFn: this.resultFn
+    });
 
     this.result = result;
 
