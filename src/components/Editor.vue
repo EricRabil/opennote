@@ -501,6 +501,7 @@ export default class Editor extends Vue {
   flex-flow: row;
   margin: 0 2.5px;
   line-height: 1em;
+  z-index: 1000;
 
   & > .tool-suggestion {
     margin: 0 2.5px;
@@ -545,7 +546,7 @@ export default class Editor extends Vue {
 
 .ce-paragraph {
   box-sizing: border-box;
-  line-height: 1em !important;
+  line-height: 1.4em !important;
   padding: 0.8em 0;
 }
 

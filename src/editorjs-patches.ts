@@ -362,7 +362,9 @@ function loadToolPatches(editor: EditorJS) {
 
         const getPxStyle = (style: string) => parseFloat((getComputedStyle(this._element) as any)[style].split('px')[0]);
 
-        suggestionContainer.style.top = this._element.getBoundingClientRect().top + getPxStyle('padding-top') + 'px';
+        const offset = (getPxStyle('lineHeight') - getPxStyle('fontSize')) / 2;
+
+        suggestionContainer.style.top = this._element.getBoundingClientRect().top + getPxStyle('padding-top') + offset + 'px';
         suggestions.forEach(s => suggestionContainer.appendChild(s));
 
         document.body.appendChild(suggestionContainer);
