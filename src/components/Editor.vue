@@ -579,8 +579,12 @@ export default class Editor extends Vue {
   }
 
   @media print {
-    border: none !important;
-    color: black !important;
+    &, .codex-editor, .codex-editor__redactor {
+      border: none !important;
+      height: unset;
+      overflow-y: visible;
+      width: 100vw !important;
+    }
   }
 
   .codex-editor--narrow .ce-toolbar__plus {
