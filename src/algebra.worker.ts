@@ -34,10 +34,12 @@ function group(nodes: Node[]): Group {
 }
 
 function isGroup(node: Node): node is Group {
+    if (!node) return false;
     return node.kind === "arg.group";
 }
 
 function isTextString(node: Node): node is TextString {
+    if (!node) return false;
     return node.kind === "text.string";
 }
 
@@ -78,12 +80,17 @@ async function condenseSiblings(siblings: utensils.latexParser.Node[], context: 
                 /**
                  * Flatten command call to a string
                  */
-                siblings[i] = {
-                    kind: "text.string",
-                    content: await command(item.args, siblings, i, context),
-                    ['wasCommand' as any]: true,
-                    location: fakeLocation
-                };
+                try {
+                    siblings[i] = {
+                        kind: "text.string",
+                        content: await command(item.args, siblings, i, context),
+                        ['wasCommand' as any]: true,
+                        location: fakeLocation
+                    };
+                } catch (e) {
+                    console.debug('failed to execute command!', e);
+                    siblings[i] = text('error');
+                }
                 break;
             case 'text.string':
                 if (!prev) continue;
@@ -166,7 +173,7 @@ function shouldDerive(numerator: string, denominator: string): { respectTo: stri
             const isShorthand = countDirective.split('').every(d => d === '\'');
             if (isShorthand) count = countDirective.length;
         }
-        return { respectTo: denominator.substring(1), count }
+        return { respectTo: denominator.substring(1), count: count || 1 }
     }
     return false;
 }
@@ -203,11 +210,16 @@ class Commands {
 
         if (strContent.endsWith('dx')) strContent = strContent.substring(0, strContent.length - 2);
 
+        const { __var__: variables } =  context;
+
+        strContent = nerdamer(strContent, variables).toString();
+
         let result;
         if (definite) {
             result = (nerdamer as any).defint(strContent, subscript.content, superscript.content).text()
         } else {
             result = (nerdamer as any).integrate(strContent).text();
+            context.__flags__.noVarSubInPostProcessing = true;
         }
         
         siblings.splice(index, siblings.length - 1);
@@ -283,9 +295,11 @@ class Commands {
 }
 
 onmessage = async function(event: MessageEvent) {
-    const { evaluate, functions, nonce } = event.data;
+    const { evaluate, functions, variables, nonce } = event.data;
+    const flags = {};
     postMessage({
         nonce,
-        result: await astToExpressionTree(evaluate, functions)
+        result: await astToExpressionTree(evaluate, Object.assign({}, functions, { __var__: variables, __flags__: flags })),
+        flags
     }, undefined as any);
 }

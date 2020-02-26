@@ -1,7 +1,11 @@
+import "mathquill/build/mathquill.css";
 import "./polyfills";
-import "mathquill/build/mathquill.js";
-import "./mathquill-patches";
+import "d3/d3.js";
 import Vue from 'vue';
+
+const jQuery = require('jquery');
+const $ = jQuery;
+(window as any).$ = $;
 
 const worker = require('./algebra.worker.ts');
 (window as any).AlgebraWorker = new worker();
@@ -11,6 +15,8 @@ import './registerServiceWorker'
 import router from './router'
 import store from './store'
 import _ from './util';
+
+Vue.use(require('vue-resize-observer'));
 
 Vue.config.productionTip = false;
 

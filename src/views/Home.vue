@@ -108,54 +108,6 @@ import TrashSVG from "@/assets/trash.svg?inline";
 import SettingsSVG from "@/assets/settings.svg?inline";
 import Settings from '../components/Settings.vue';
 
-function createRange(
-  node: Node,
-  chars: { count: number },
-  range?: Range
-): Range {
-  if (!range) {
-    range = document.createRange();
-    range.selectNode(node);
-    range.setStart(node, 0);
-  }
-
-  if (chars.count === 0) {
-    range.setEnd(node, chars.count);
-  } else if (node && chars.count > 0) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      if (node.textContent!.length < chars.count) {
-        chars.count -= node.textContent!.length;
-      } else {
-        range.setEnd(node, chars.count);
-        chars.count = 0;
-      }
-    } else {
-      for (var lp = 0; lp < node.childNodes.length; lp++) {
-        range = createRange(node.childNodes[lp], chars, range);
-
-        if (chars.count === 0) {
-          break;
-        }
-      }
-    }
-  }
-
-  return range;
-}
-
-function setCurrentCursorPosition(index: number, node: Node) {
-  if (index >= 0) {
-    const selection = window.getSelection()!;
-
-    const range = createRange(node, { count: index });
-
-    if (range) {
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-}
 
 /**
  * Host view for the editor and navigator view
@@ -303,11 +255,7 @@ export default class Home extends Vue {
   setTitle(event: InputEvent) {
     const target = event.target as HTMLElement;
 
-    let _range = document.getSelection()!.getRangeAt(0);
-    let range = _range.cloneRange();
-    range.selectNodeContents(target);
-    range.setEnd(_range.endContainer, _range.endOffset);
-    const pos = range.toString().length;
+    const pos = _.Dom.getCaretPosition(target);
 
     const name = target.innerText.split('\n').join(''),
       id = target.getAttribute("data-id")!;
@@ -320,7 +268,7 @@ export default class Home extends Vue {
     });
 
     this.$nextTick(() => {
-      setCurrentCursorPosition(pos, target);
+      _.Dom.setCurrentCursorPosition(pos, target);
     });
   }
 
@@ -543,7 +491,7 @@ export default class Home extends Vue {
 
     display: grid;
     grid-template-columns: 100%;
-    grid-template-rows: 45px 1fr 45px;
+    grid-template-rows: 45px calc(100% - 90px) 45px;
     max-height: stretch;
     overflow: hidden;
 

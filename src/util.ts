@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import saver from "file-saver";
+import * as mathjs from "mathjs";
 
 export namespace _ {
     interface DisplayableErrorOptions {
@@ -114,7 +115,7 @@ export namespace _ {
         originalMedia = _mediaRules.map(r => r.mediaText);
         return _mediaRules;
     }
-    
+
     export function mediaRules() {
         return _mediaRules || computeMediaRules();
     }
@@ -155,6 +156,131 @@ export namespace _ {
                 return;
             }
         });
+    }
+
+    export namespace Dom {
+        export function getCaretPosition(target: HTMLElement) {
+            let _range = document.getSelection()!.getRangeAt(0);
+            let range = _range.cloneRange();
+            range.selectNodeContents(target);
+            range.setEnd(_range.endContainer, _range.endOffset);
+            const pos = range.toString().length;
+            return pos;
+        }
+
+        function createRange(
+            node: Node,
+            chars: { count: number },
+            range?: Range
+        ): Range {
+            if (!range) {
+                range = document.createRange();
+                range.selectNode(node);
+                range.setStart(node, 0);
+            }
+
+            if (chars.count === 0) {
+                range.setEnd(node, chars.count);
+            } else if (node && chars.count > 0) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    if (node.textContent!.length < chars.count) {
+                        chars.count -= node.textContent!.length;
+                    } else {
+                        range.setEnd(node, chars.count);
+                        chars.count = 0;
+                    }
+                } else {
+                    for (var lp = 0; lp < node.childNodes.length; lp++) {
+                        range = createRange(node.childNodes[lp], chars, range);
+
+                        if (chars.count === 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return range;
+        }
+
+        export function setCurrentCursorPosition(index: number, node: Node) {
+            if (index >= 0) {
+                const selection = window.getSelection()!;
+
+                const range = createRange(node, { count: index });
+
+                if (range) {
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        }
+    }
+
+    export namespace MathKit {
+        const inputFunctions = ['sin', 'cos', 'tan', 'sec', 'cot', 'csc'];
+        const outputFunctions = ['asin', 'acos', 'atan', 'atan2', 'acot', 'acsc', 'asec'];
+
+        function patchFunctions(math: mathjs.MathJsStatic, functions: string[], state: () => string, mutator: (fn: (x: number) => number) => (x: number) => number) {
+            return functions.reduce((acc: any, cur) => {
+                const original = math[cur as keyof typeof math];
+
+                const fnNumber = mutator(original);
+
+                acc[cur] = math.typed(cur, {
+                    'number': fnNumber,
+                    'Array | Matrix': x => math.map(x, fnNumber)
+                });
+
+                return acc;
+            }, {});
+        }
+
+        function patchInputFunctions(math: mathjs.MathJsStatic, state: () => TrigState) {
+            return patchFunctions(math, inputFunctions, state, fn => function (x: number) {
+                // convert from configured type of angles to radians
+                switch (state()) {
+                    case 'deg':
+                        return fn(x / 360 * 2 * Math.PI);
+                    case 'grad':
+                        return fn(x / 400 * 2 * Math.PI);
+                    default:
+                        return fn(x);
+                }
+            });
+        }
+
+        function patchOutputFunctions(math: mathjs.MathJsStatic, state: () => TrigState) {
+            return patchFunctions(math, outputFunctions, state, fn => function (x) {
+                const result = fn(x)
+
+                if (typeof result === 'number') {
+                    // convert to radians to configured type of angles
+                    switch (state()) {
+                        case 'deg': return result / 2 / Math.PI * 360
+                        case 'grad': return result / 2 / Math.PI * 400
+                        default: return result
+                    }
+                }
+
+                return result
+            });
+        }
+
+        /**
+         * Implements patched trig functions that are configurable for deg/grad/rad
+         * @param math mathjs instance
+         * @param state function that returns the current output statae
+         */
+        export function loadPatchedMathFunctions(math: mathjs.MathJsStatic, state: () => TrigState) {
+            const replacements = Object.assign({}, patchInputFunctions(math, state), patchOutputFunctions(math, state));
+            math.import(replacements, { override: true });
+
+            return math;
+        }
+
+        export type TrigState = 'deg' | 'grad' | 'rad';
     }
 }
 

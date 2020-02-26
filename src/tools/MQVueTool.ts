@@ -21,6 +21,7 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         isAtStart: () => boolean;
         isAtEnd: () => boolean;
         toPasteFragment: () => HTMLElement;
+        renderSettings: () => HTMLElement;
     
         get keyOverrides() {
             return ['up', 'down', 'left', 'right']
@@ -42,7 +43,8 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             this.component = new Component({
                 parent: this.Editor.editor.VueEditor,
                 propsData: {
-                    savedData: (this.config as any).data || {}
+                    savedData: (this.config as any).data || {},
+                    api: this.config.api
                 }
             });
             
@@ -100,7 +102,8 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             this.component.$on('setIsAtEnd', (isAtEnd: () => boolean) => this.isAtEnd = isAtEnd);
             this.component.$on('setSave', (save: (block: HTMLElement) => any) => this.save = save);
             this.component.$on('setSanitizer', (sanitize: SanitizerConfig) => this.sanitize = sanitize);
-            
+            this.component.$on('setRenderSettings', (render: () => HTMLElement) => this.renderSettings = render);
+
             // run this at the end
             this.component.$emit('preload');
 

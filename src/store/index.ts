@@ -36,7 +36,8 @@ export default new Vuex.Store({
       hideEditorByDefaultOnMobile: true,
       sawFirstRun: false,
       preferredColorScheme: null,
-      defaultNoteName: NEW_NOTE_NAME
+      defaultNoteName: NEW_NOTE_NAME,
+      defaultTrigState: 'rad'
     }
   },
   mutations: {

@@ -13,6 +13,7 @@ declare module "function-plot/lib/index.js" {
         color?: string;
         attr?: any;
         fn: string;
+        step?: number;
         scope: any;
     }
 

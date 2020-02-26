@@ -559,6 +559,7 @@ export default class Editor extends Vue {
   margin: 0 auto;
   padding: 10px 0;
   overflow-y: scroll;
+  z-index: 100;
 
   .ce-block--selected .ce-block__content {
     @extend %bg3;
@@ -653,6 +654,7 @@ export default class Editor extends Vue {
   display: flex;
   flex-flow: column;
   width: stretch;
+  z-index: 500;
 
   padding-right: env(safe-area-inset-right);
 
@@ -673,7 +675,7 @@ export default class Editor extends Vue {
     display: none !important;
   }
 
-  z-index: 5;
+  z-index: 50;
 
   user-select: none;
 
@@ -682,7 +684,7 @@ export default class Editor extends Vue {
     flex-flow: row;
     flex-wrap: wrap;
 
-    @media only screen and (max-width: 500px) {
+    @media only screen and (max-width: 975px) {
       overflow-x: scroll;
       overflow-y: hidden;
       flex-wrap: nowrap;

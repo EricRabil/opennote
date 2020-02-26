@@ -679,7 +679,7 @@ function loadBlockManagerPatches(editor: EditorJS) {
 
 function loadUsabilityPatches(editor: EditorJS) {
     const core = (editor as any).core;
-    const { BlockSelection, BlockManager, Caret, Toolbox, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI } = core.moduleInstances;
+    const { BlockSelection, BlockManager, Caret, Toolbox, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI, Tooltip: { lib: Tooltip } } = core.moduleInstances;
 
     hook(BlockSelection, 'handleCommandA', old => function(event: KeyboardEvent): void {
         /** allow default selection on native inputs */
@@ -713,6 +713,17 @@ function loadUsabilityPatches(editor: EditorJS) {
         }
         return old.call(this, ...args);
     });
+
+    function hasTouch() {
+        return 'ontouchstart' in document.documentElement
+               || navigator.maxTouchPoints > 0
+               || navigator.msMaxTouchPoints > 0;
+    }
+
+    hook(Tooltip, 'show', old => function(...args: any[]) {
+        if (hasTouch()) return;
+        old.call(this, ...args);
+    })
 
     hook(UI, 'documentClicked', old => function(...args: any[]) {
         if ((editor as any).VueEditor) {
