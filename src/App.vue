@@ -191,6 +191,12 @@ html, body, #app, .home {
   touch-action: manipulation;
 }
 
+html,
+body {
+  position: fixed;
+  overflow: hidden;
+}
+
 .cdx-input.cdx-warning__message {
   display: none;
 }

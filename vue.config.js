@@ -14,7 +14,7 @@ module.exports = {
         }
       }
     },
-    publicPath: '/opennote/',
+    // publicPath: '/opennote/',
     parallel: true,
     chainWebpack: config => {
       config.module.rules.delete('eslint');
