@@ -217,6 +217,8 @@ function loadClipboardPatches(editor: EditorJS) {
  * Patches bugs in tools to make them work properly/in an expected behavior
  */
 function loadToolPatches(editor: EditorJS) {
+    const { UI } = (editor as any).core.moduleInstances;
+    const { Editor } = UI;
     // properly gets out of list because the plugin is fucking stupid
     hook(List.prototype, 'getOutofList', old => function (event: KeyboardEvent) {
         old.call(this, event);
@@ -279,15 +281,16 @@ function loadToolPatches(editor: EditorJS) {
     }
 
     Paragraph.prototype.teardownSuggestions = function() {
+        console.log('tearing down suggestions');
         if (this._suggestions) (this._suggestions as HTMLElement).remove();
         delete this._suggestions;
         delete this.suggestions;
         delete this.selectedSuggestion;
+        currentSuggested = null;
     }
 
     Paragraph.prototype.focused = function(newVal: boolean) {
         if (!newVal && this._suggestions) {
-            console.log('tearing down suggestions');
             this.teardownSuggestions();
         }
     }
@@ -321,28 +324,35 @@ function loadToolPatches(editor: EditorJS) {
         this.teardownSuggestions();
     }
 
-    hook(Paragraph.prototype, 'onKeyUp', old => function(event: KeyboardEvent) {
-        old.call(this, event);
+    let currentSuggested: any;
 
-        const {textContent} = this._element as HTMLElement;
-        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1 || textContent === '/') {
-            if (this._suggestions) {
-                console.debug('paragraph is tearing down suggestions');
-                this.teardownSuggestions();
-            }
-            return;
+    Editor.Listeners.on(window, 'resize', () => {
+        if (currentSuggested) {
+            currentSuggested.redrawSuggestions();
         }
+    });
+
+    const wrapper = UI.nodes.wrapper;
+    const parent = wrapper.parentElement;
+    parent.scrollTop = parent.scrollHeight;
+
+    Editor.Listeners.on(parent, 'scroll', () => {
+        requestAnimationFrame(function() {
+            if (currentSuggested) {
+                currentSuggested.redrawSuggestions();
+            }
+        })
+    })
+
+    Paragraph.prototype.redrawSuggestions = function() {
+        const {textContent} = this._element as HTMLElement;
+
         const [ command ] = textContent!.substring(1).split(' ');
         const tools = Object.keys((editor as any).core.moduleInstances.Tools.blockTools);
         const possible = tools.filter(t => t.startsWith(command)).sort((a, b) => a.length - b.length);
         const match = possible.find(t => t === command);
 
         if (possible.length === tools.length) return;
-        
-        const wantsExec = event.code === 'Enter';
-        const wantsCompletion = event.code === 'Tab';
-
-        if (wantsCompletion) return;
 
         const suggestions = this.suggestions = possible.map(s => {
             const elm = document.createElement('span');
@@ -368,6 +378,27 @@ function loadToolPatches(editor: EditorJS) {
         suggestions.forEach(s => suggestionContainer.appendChild(s));
 
         document.body.appendChild(suggestionContainer);
+    }
+
+    hook(Paragraph.prototype, 'onKeyUp', old => function(event: KeyboardEvent) {
+        old.call(this, event);
+
+        const wantsCompletion = event.code === 'Tab';
+
+        if (wantsCompletion) return;
+
+        const {textContent} = this._element as HTMLElement;
+        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1 || textContent === '/') {
+            if (this._suggestions) {
+                console.debug('paragraph is tearing down suggestions');
+                this.teardownSuggestions();
+            }
+            return;
+        }
+
+        currentSuggested = this;
+
+        this.redrawSuggestions();
 
         this.onTab();
     });
