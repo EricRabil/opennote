@@ -422,6 +422,10 @@ export default class MathQuillComponent extends Vue {
       });
     });
 
+    this.$on('rendered', (el: HTMLElement) => {
+      this.$el.parentElement!.classList.add('codex-mq-holder');
+    })
+
     this.$watch("renderFormat", () => {
       if (!this.result) return;
       this.updateResultView(this.result);
@@ -977,12 +981,15 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
 </script>
 
 <style lang="scss">
+.codex-mq-holder {
+  padding: 10px 0;
+}
+
 .codex-mq-root {
   display: flex;
   flex-flow: column;
   justify-content: center;
   transition: border 0.5s linear;
-  margin: 10px 0;
   border-radius: 5px;
   overflow: hidden;
 

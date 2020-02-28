@@ -127,6 +127,7 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
     
         rendered() {
             this.root.replaceWith(this.component.$el);
+            this.component.$emit('rendered', this.root);
         }
 
         onPaste(e: PasteEvent) {
