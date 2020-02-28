@@ -515,6 +515,21 @@ function loadBlockEventPatches(editor: EditorJS) {
         });
     });
 
+    // sticky to bottom when overflowing!
+    hook(BlockManager._blocks.__proto__, 'insertToDOM', old => function(...args: any[]) {
+        old.call(this, ...args);
+
+        const [ block ] = args;
+        const index = this.indexOf(block);
+        if ((this.length - 3 - index) < 3) {
+            console.log(' lets eat');
+            const wrapper = UI.nodes.wrapper;
+            const parent = wrapper.parentElement;
+            parent.scrollTop = parent.scrollHeight;
+        }
+    });
+
+
     /**
      * Allows tool to override arrow keys
      */
