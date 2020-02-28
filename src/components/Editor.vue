@@ -623,6 +623,7 @@ export default class Editor extends Vue {
 
     .codex-editor__redactor, .codex-editor__loader {
       height: 100%;
+      padding-bottom: 0 !important;
     }
   }
 }
