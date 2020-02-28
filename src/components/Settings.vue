@@ -4,6 +4,9 @@
             <span :class="['pane-item', activePane === index ? 'active' : '']" v-for="(pane, index) of panes" :key="index" @click="activePane = index">
                 {{pane.name}}
             </span>
+            <span class="pane-item" @click="openSourcePage">
+                Source Code
+            </span>
         </div>
         <div v-if="activePane > -1" :class="['pane', activePane > -1 ? 'col-primary' : '']">
             <h2 class="pane-title">{{pane.name}}</h2>
@@ -129,9 +132,24 @@ export default class Settings extends Vue {
         {
             id: 'credits',
             name: 'Credits',
-            description: 'Thanks everyone!'
+            description: `
+            OpenNote would not be possible without some amazing open-source libraries. Check them out!
+            <a target="_blank" href="https://github.com/codex-team/editor.js" class="credit">editorjs</a>
+            <a target="_blank" href="https://github.com/davidedc/Algebrite" class="credit">algebrite</a>
+            <a target="_blank" href="https://github.com/d3/d3" class="credit">d3</a>
+            <a target="_blank" href="https://github.com/mauriciopoppe/function-plot" class="credit">function-plot</a>
+            <a target="_blank" href="https://github.com/tamuratak/latex-utensils" class="credit">latex-utensils</a>
+            <a target="_blank" href="https://github.com/josdejong/mathjs" class="credit">mathjs</a>
+            <a target="_blank" href="https://github.com/mathquill/mathquill" class="credit">mathquill</a>
+            <a target="_blank" href="https://github.com/jiggzson/nerdamer" class="credit">nerdamer</a>
+            <a target="_blank" href="https://github.com/vuejs/vue" class="credit">vue</a>
+            `
         }
     ]
+
+    openSourcePage() {
+        window.open('https://github.com/ericrabil/opennote', '_blank');
+    }
 
     created() {
         this.panes.forEach(pane => {
@@ -288,6 +306,13 @@ export default class Settings extends Vue {
             @extend %textAlt;
             font-size: 12px;
             margin-bottom: 5px;
+        }
+
+        .credit {
+            margin: 10px 0;
+            display: block;
+            font-size: 14px;
+            text-decoration: none;
         }
 
         .input-group {
