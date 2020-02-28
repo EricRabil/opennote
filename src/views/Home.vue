@@ -76,7 +76,6 @@
             <SettingsSVG />
           </span>
         </span>
-        <span class="note-title muted-title-version">{{version}}</span>
         <span class="note-controls-right">
           <span :class="['labels-control labels-control-btn']">
             <span class="label-text no-kill" @click="exportNotes">Export All</span>
@@ -364,7 +363,7 @@ export default class Home extends Vue {
 
   get nextNote() {
     const list = this.sortedList(this.notes);
-    return list[list.findIndex(note => note.id === this.currentNote) + 1];
+    return list[list.findIndex(note => note.id === this.currentNote) + 1] || list[list.findIndex(note => note.id === this.currentNote) - 1];
   }
 
   /**
