@@ -577,6 +577,7 @@ function loadBlockEventPatches(editor: EditorJS) {
     hook(BlockEvents, 'arrowRightAndDown', old => function (event: KeyboardEvent) {
         const { currentBlock } = this.Editor.BlockManager;
         const direction = event.keyCode === 40 ? 'down' : 'right';
+        if (this.Editor.BlockSettings.opened) return;
         if (currentBlock.tool && currentBlock.tool.keyOverrides && currentBlock.tool.keyOverrides.indexOf(direction) > 0) return;
         old.call(this, event);
     });
