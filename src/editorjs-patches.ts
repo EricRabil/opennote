@@ -825,6 +825,7 @@ function loadUsabilityPatches(editor: EditorJS) {
     hook(BlockManager, 'clearFocused', () => function(skipCurrentBlock: boolean = false) {
         (this.blocks as any[]).forEach( (block, index) => {
             if (skipCurrentBlock && index === this.currentBlockIndex) return;
+            if (!block) return;
             block.focused = false
         });
     });
@@ -834,7 +835,8 @@ function loadUsabilityPatches(editor: EditorJS) {
         if (!currentBlock) return;
 
         BlockManager.clearFocused(true);
-        currentBlock.focused = true
+        
+        if (currentBlock) currentBlock.focused = true
 
         old.call(this, ...args);
     });
