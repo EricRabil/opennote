@@ -62,6 +62,7 @@
         :xDomain="xDomain"
         :yDomain="yDomain"
       ></graph>
+      <GraphSVG ref="graphSVG" v-show="false" />
     <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latex"></mq-paste-data>
   </div>
 </template>
@@ -73,7 +74,7 @@ import * as utensils from "latex-utensils";
 import "mathquill/build/mathquill.js";
 import "@/mathquill-patches";
 
-import GraphSVG from "@/assets/graph.svg?data";
+import GraphSVG from "@/assets/graph.svg?inline";
 import FullscreenSVG from "@/assets/fullscreen.svg?inline";
 
 import { SanitizerConfig, API } from "@editorjs/editorjs";
@@ -92,11 +93,10 @@ const PASTE_DATA_TAG = "mq-paste-data";
 
 Vue.config.ignoredElements.push(PASTE_DATA_TAG);
 
-console.log(GraphSVG);
-
 @Component({
   components: {
     FullscreenSVG,
+    GraphSVG,
     Graph
   }
 })
@@ -138,6 +138,7 @@ export default class MathQuillComponent extends Vue {
     mqMount: HTMLDivElement;
     mqResult: HTMLSpanElement;
     graph: Graph;
+    graphSVG: SVGSVGElement;
   };
 
   mathField: MathQuill.MathField;
@@ -261,10 +262,13 @@ export default class MathQuillComponent extends Vue {
       this.$emit("setRenderSettings", () => {
         const holder = document.createElement("div");
 
-        const createButton = (...children: HTMLElement[]) => {
+        const createButton = (...children: Node[]) => {
           const button = document.createElement("span");
           button.classList.add(this.api.styles.settingsButton);
           button.classList.add("mq-trig-mode-control");
+
+          children.forEach(c => (c as HTMLElement).style.display = 'unset');
+
           button.append(...children);
 
           return button;
@@ -293,11 +297,8 @@ export default class MathQuillComponent extends Vue {
           .addEventListener("click", () => this.toggleRenderFormat());
         this.updateFracToggleButton();
 
-        const img = document.createElement("img");
-        img.src = GraphSVG;
-
         holder
-          .appendChild((this.graphControlButton = createButton(img)))
+          .appendChild((this.graphControlButton = createButton(this.$refs.graphSVG.cloneNode(true))))
           .addEventListener("click", () => this.toggleGraph());
         this.updateGraphToggleButton();
 
@@ -809,6 +810,32 @@ export default class MathQuillComponent extends Vue {
 
     &:hover {
       background: none !important;
+    }
+  }
+}
+
+.ce-toolbar {
+  z-index: 10;
+}
+
+.ce-settings {
+  @extend %bgAlt1;
+  @extend %text;
+  @extend %border;
+  box-shadow: 0 3px 15px 6px rgba(13,20,33,.13);
+
+  svg {
+    @extend %fill;
+  }
+
+  .cdx-settings-button, .ce-settings__button {
+    @extend %text;
+    &:hover {
+      @extend %bgAlt2;
+    }
+
+    &.cdx-settings-button--active {
+      color: #388ae5;
     }
   }
 }
