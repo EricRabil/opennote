@@ -12,3 +12,8 @@ declare module '*.svg?inline' {
   import Vue from 'vue';
   export default Vue;
 }
+
+declare module '*.svg?data' {
+  const bitch: string;
+  export default bitch;
+}
