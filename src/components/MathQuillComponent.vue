@@ -1,5 +1,8 @@
 <template>
-  <div :class="{'codex-mq-root': true, 'codex-mq-focused': isFocused, 'codex-mq-popout': bigPopout}" v-resize="handleResize">
+  <div
+    :class="{'codex-mq-root': true, 'codex-mq-focused': isFocused, 'codex-mq-popout': bigPopout}"
+    v-resize="handleResize"
+  >
     <div class="mq-calc-root">
       <div
         :class="{'mq-editable-field': true, 'mq-math-mode': true}"
@@ -10,26 +13,20 @@
       <span class="mq-result-view" ref="mqResult" v-show="result !== null"></span>
     </div>
     <div class="mq-result-bar text-right mq-result-error" v-show="error !== null">{{error}}</div>
-    <template v-show="error === null">
-      <div :class="{'mq-result-bar': true}" v-show="result !== null && resultFn === null">
-        <FractionSVG @click="toggleRenderFormat()" v-if="renderFormat === 'dec'" />
-        <DecimalSVG @click="toggleRenderFormat()" v-else />
-      </div>
-      <div :class="{'mq-result-bar': true}" v-if="resultFn !== null">
-        <GraphSVG @click="toggleGraph()" />
-        <div class="graph-controls" v-if="showGraph && !graphFailed">
+      <div :class="{'mq-result-bar': true}" v-if="resultFn !== null && showGraph && !graphFailed">
+        <div class="graph-controls">
           <span class="graph-control-range" style="--variable: 'x';">
             <span
               class="graph-control-input"
               contenteditable="true"
               @input="domainOverrideChanged('x', 0, $event)"
-              :data-placeholder="+defaultXBounds[0].toFixed(3)"
+              :data-placeholder="+GRAPH_DEFAULTS.x[0].toFixed(3)"
             >{{xDomain[0] || ''}}</span>
             <span
               class="graph-control-input"
               contenteditable="true"
               @input="domainOverrideChanged('x', 1, $event)"
-              :data-placeholder="+defaultXBounds[1].toFixed(3)"
+              :data-placeholder="+GRAPH_DEFAULTS.x[1].toFixed(3)"
             >{{xDomain[1] || ''}}</span>
           </span>
           <span class="graph-control-range" style="--variable: 'y';">
@@ -51,13 +48,20 @@
               class="graph-control-input"
               contenteditable="true"
               @input="stepOverrideChanged"
-              :data-placeholder="defaultStep"
+              :data-placeholder="GRAPH_DEFAULTS.step"
             >{{step || ''}}</span>
           </span>
         </div>
       </div>
-      <div ref="graph" class="graph-container" v-show="showGraph"></div>
-    </template>
+      <graph
+        ref="graph"
+        class="graph-container"
+        :visible="resultFn !== null && showGraph"
+        :fn="resultFn"
+        :step="step"
+        :xDomain="xDomain"
+        :yDomain="yDomain"
+      ></graph>
     <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latex"></mq-paste-data>
   </div>
 </template>
@@ -69,125 +73,31 @@ import * as utensils from "latex-utensils";
 import "mathquill/build/mathquill.js";
 import "@/mathquill-patches";
 
-import FractionSVG from "@/assets/frac.svg?inline";
-import DecimalSVG from "@/assets/decimal.svg?inline";
-import GraphSVG from "@/assets/graph.svg?inline";
+import GraphSVG from "@/assets/graph.svg?data";
 import FullscreenSVG from "@/assets/fullscreen.svg?inline";
 
 import { SanitizerConfig, API } from "@editorjs/editorjs";
 import _ from "../util";
 import { MathJsStatic } from "mathjs";
 
+import Graph, { GRAPH_DEFAULTS } from "@/components/Graph.vue";
+
 type TypeWithGeneric<T> = Partial<T>;
 type extractGeneric<Type> = Type extends TypeWithGeneric<infer X> ? X : never;
 
 const mathjs = require("mathjs");
-
-declare const d3: any;
-
-function attachProto(obj: any, proto: any) {
-  const objKeys = Object.keys(obj);
-  Object.keys(proto)
-    .filter(k => !objKeys.includes(k))
-    .forEach(key => {
-      obj[key] = proto[key];
-    });
-}
-
-let passiveSupported = false;
-
-try {
-  const options = {
-    get passive() {
-      // This function will be called when the browser
-      //   attempts to access the passive property.
-      passiveSupported = true;
-      return false;
-    }
-  };
-
-  window.addEventListener("test" as any, null!, options);
-  window.removeEventListener("test" as any, null!);
-} catch (err) {
-  passiveSupported = false;
-}
 
 const nerdamer = require("nerdamer");
 const PASTE_DATA_TAG = "mq-paste-data";
 
 Vue.config.ignoredElements.push(PASTE_DATA_TAG);
 
-function functionsFromContext(context: any): { [key: string]: string } {
-  return Object.values(context)
-    .filter(g => typeof g === "function")
-    .reduce((acc: any, c: any) => {
-      acc[c.syntax] = c.original.substring(c.syntax.length + 1);
-      return acc;
-    }, {}) as any;
-}
-
-function variablesFromContext(context: any): { [key: string]: number } {
-  return Object.keys(context)
-    .filter(g => typeof context[g] === "number")
-    .reduce((acc: any, c: any) => {
-      acc[c] = context[c];
-      return acc;
-    }, {});
-}
-
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-const pending: {
-  [nonce: string]: Function;
-} = {};
-
-function onmessage(event: MessageEvent) {
-  const { nonce, result, flags } = event.data;
-  const { [nonce]: resolve } = pending;
-  if (!resolve) {
-    console.debug(`unknown nonce from worker response`, {
-      event,
-      data: event.data,
-      nonce,
-      result,
-      pending
-    });
-    return;
-  }
-  resolve({ result, flags });
-}
-
-function runAlgebraOnWorker(content: any, context: any): Promise<{result: string, flags: {noVarSubInPostProcessing: boolean}}> {
-  const worker = (window as any).AlgebraWorker;
-  if (worker.onmessage === null) {
-    worker.onmessage = onmessage;
-  }
-  return new Promise((resolve, reject) => {
-    const functions = functionsFromContext(context);
-    const variables = variablesFromContext(context);
-    const nonce = uuidv4();
-    pending[nonce] = resolve;
-    worker.postMessage({
-      evaluate: content,
-      functions,
-      variables,
-      nonce
-    });
-  });
-}
+console.log(GraphSVG);
 
 @Component({
   components: {
-    FractionSVG,
-    DecimalSVG,
-    GraphSVG,
-    FullscreenSVG
+    FullscreenSVG,
+    Graph
   }
 })
 export default class MathQuillComponent extends Vue {
@@ -205,6 +115,8 @@ export default class MathQuillComponent extends Vue {
   settingsButtons: HTMLSpanElement[] = [];
   bigPopout: boolean = false;
 
+  GRAPH_DEFAULTS = GRAPH_DEFAULTS;
+
   @Prop()
   savedData: {
     latex: string | null;
@@ -219,84 +131,59 @@ export default class MathQuillComponent extends Vue {
   @Prop()
   api: API;
 
+  @Prop()
+  internal: any;
+
   $refs: {
     mqMount: HTMLDivElement;
     mqResult: HTMLSpanElement;
-    graph: HTMLDivElement;
+    graph: Graph;
   };
 
   mathField: MathQuill.MathField;
   resultView: MathQuill.StaticMath;
   mathJS: MathJsStatic;
-
-  flaggedForDeletion: {
-    [token: string]: number;
-  } = {};
-
-  static startGarbageWatcher(interval: number, lifetime: number) {
-    this.garbageTimer = setInterval(() => {
-      console.debug("🗑 time to take out the trash, bitches");
-      this.garbageClients.forEach(client => {
-        const scopeToken = client.scopeToken;
-        const tokens = Array.from(client.mathCache.keys())
-          .concat(Array.from(client.calcCache.keys()))
-          .filter((t, i, a) => a.indexOf(t) === i);
-        tokens.forEach(token => {
-          if (token === scopeToken) return;
-
-          if (typeof client.flaggedForDeletion[token] === "undefined")
-            client.flaggedForDeletion[token] = Date.now();
-          else if (Date.now() - client.flaggedForDeletion[token] > lifetime) {
-            const mathCache = client.mathCache.get(token);
-            const calcCache = client.calcCache.get(token);
-            console.debug("🗑 purging expired caches for component", {
-              mathCache: {
-                keys: mathCache && mathCache.keys(),
-                values: mathCache && mathCache.values()
-              },
-              calcCache: {
-                keys: calcCache && calcCache.keys(),
-                values: calcCache && calcCache.values()
-              },
-              token,
-              flaggedAt: client.flaggedForDeletion[token]
-            });
-            mathCache && mathCache.clear();
-            calcCache && calcCache.clear();
-            client.mathCache.delete(token);
-            client.calcCache.delete(token);
-          }
-        });
-      });
-    }, interval);
-  }
-
-  static stopGarbageWatcher() {
-    clearTimeout(this.garbageTimer);
-    delete this.garbageTimer;
-  }
-
-  private static garbageTimer: NodeJS.Timer;
-  private static garbageClients: MathQuillComponent[] = [];
-
-  private static registerWithGarbageMan(component: MathQuillComponent) {
-    if (this.garbageClients.includes(component)) return;
-    this.garbageClients.push(component);
-  }
-
-  private static deregisterWithGarbageMan(component: MathQuillComponent) {
-    if (!this.garbageClients.includes(component)) return;
-    this.garbageClients.splice(this.garbageClients.indexOf(component), 1);
-  }
+  fracToggleButton: HTMLElement;
+  graphControlButton: HTMLElement;
 
   oldWidth: number | null = null;
+
+  updateFracToggleButton() {
+    let innerText;
+    if (this.renderFormat === "dec") {
+      innerText = "&frac12;";
+    } else {
+      innerText = "1.23";
+    }
+
+    this.fracToggleButton.innerHTML = innerText;
+  }
+
+  updateGraphToggleButton() {
+    if (!this.graphControlButton) return;
+
+    if (!this.canToggleGraph) {
+      this.graphControlButton.classList.toggle("disabled", true);
+      return;
+    }
+    this.graphControlButton.classList.toggle("disabled", !this.resultFn);
+    // this.graphControlButton.classList.toggle('graph-disabled', this.showGraph);
+  }
+
+  get canToggleGraph() {
+    return (
+      !!this.resultFn &&
+      ((this.resultFn as any) as { syntax: string }).syntax.split(",")
+        .length === 1
+    );
+  }
 
   handleResize(args: any) {
     if (this.oldWidth !== null && args.width === this.oldWidth) return;
     this.oldWidth = args.width;
     console.log(args.height);
     if (this.showGraph) {
-      this.updateGraph();
+      this.$refs.graph.$emit("resize");
     }
   }
 
@@ -312,7 +199,6 @@ export default class MathQuillComponent extends Vue {
 
   mounted() {
     var ready: boolean = false;
-    MathQuillComponent.registerWithGarbageMan(this);
     this.mathField = new MathQuill.MathField(this.$refs.mqMount, {
       handlers: {
         edit: field => {
@@ -375,11 +261,17 @@ export default class MathQuillComponent extends Vue {
       this.$emit("setRenderSettings", () => {
         const holder = document.createElement("div");
 
-        ["deg", "rad", "grad"].forEach(mode => {
-          const selector = document.createElement("span");
+        const createButton = (...children: HTMLElement[]) => {
+          const button = document.createElement("span");
+          button.classList.add(this.api.styles.settingsButton);
+          button.classList.add("mq-trig-mode-control");
+          button.append(...children);
 
-          selector.classList.add(this.api.styles.settingsButton);
-          selector.classList.add("mq-trig-mode-control");
+          return button;
+        };
+
+        ["deg", "rad", "grad"].forEach(mode => {
+          const selector = createButton();
 
           if (this.trigStateWithOverrides === mode) {
             selector.classList.add(this.api.styles.settingsButtonActive);
@@ -389,13 +281,25 @@ export default class MathQuillComponent extends Vue {
           selector.dataset.mode = mode;
 
           selector.addEventListener("click", () => {
-            console.log("clakc");
             this.trigState = mode as _.MathKit.TrigState;
           });
 
           holder.appendChild(selector);
           this.settingsButtons.push(selector);
         });
+
+        holder
+          .appendChild((this.fracToggleButton = createButton()))
+          .addEventListener("click", () => this.toggleRenderFormat());
+        this.updateFracToggleButton();
+
+        const img = document.createElement("img");
+        img.src = GraphSVG;
+
+        holder
+          .appendChild((this.graphControlButton = createButton(img)))
+          .addEventListener("click", () => this.toggleGraph());
+        this.updateGraphToggleButton();
 
         return holder;
       });
@@ -408,6 +312,11 @@ export default class MathQuillComponent extends Vue {
     );
     this.$on("moved", () => this.updateQuills());
     this.$on("reflow", () => this.reflow());
+
+    this.$refs.graph.$on(
+      "fail-state-change",
+      (failed: boolean) => (this.graphFailed = failed)
+    );
 
     this.$on("parsePaste", (e: CustomEvent) => {
       const data: HTMLElement = e.detail.data;
@@ -422,31 +331,22 @@ export default class MathQuillComponent extends Vue {
       });
     });
 
-    this.$on('rendered', (el: HTMLElement) => {
-      this.$el.parentElement!.classList.add('codex-mq-holder');
-    })
+    this.$on("rendered", (el: HTMLElement) => {
+      this.$el.parentElement!.classList.add("codex-mq-holder");
+    });
 
     this.$watch("renderFormat", () => {
       if (!this.result) return;
       this.updateResultView(this.result);
+      this.updateFracToggleButton();
     });
 
     this.$watch("result", result => {
       this.updateResultView(result);
     });
 
-    this.$watch("resultFn", resultFn => {
-      if (!resultFn) return this.removeGraph();
-      if (!this.showGraph) return;
-      this.updateGraph();
-    });
-
-    this.$watch("showGraph", (showGraph: boolean) => {
-      if (showGraph) {
-        this.updateGraph();
-      } else {
-        this.removeGraph();
-      }
+    this.$watch("resultFn", fn => {
+      this.updateGraphToggleButton();
     });
 
     this.$watch("trigState", async mode => {
@@ -456,26 +356,13 @@ export default class MathQuillComponent extends Vue {
           button.dataset.mode === mode
         );
       });
+
       await this.updateQuills();
     });
 
     this.$once("ready", () => {
       ready = true;
     });
-
-    this.xDomain;
-    this.yDomain;
-    this.step;
-
-    this.$watch("xDomain", () => this.updateGraph());
-    this.$watch("yDomain", () => this.updateGraph());
-    this.$watch("step", () => this.updateGraph());
-  }
-
-  destroyed() {
-    this.calcCache.clear();
-    this.mathCache.clear();
-    MathQuillComponent.deregisterWithGarbageMan(this);
   }
 
   updated() {
@@ -504,42 +391,6 @@ export default class MathQuillComponent extends Vue {
     } catch {
       return false;
     }
-  }
-
-  mathCache: Map<string, Map<string, { result: string, flags: any }>> = new Map();
-
-  get scopeToken() {
-    return JSON.stringify(
-      Object.assign({}, this.lastScope, functionsFromContext(this.lastScope))
-    );
-  }
-
-  private resolveCachedLatex(latex: string) {
-    const token = this.scopeToken;
-    if (!this.mathCache.has(token)) this.mathCache.set(token, new Map());
-    return this.mathCache.get(token)!.get(latex);
-  }
-
-  private cacheLatex(latex: string, expression: { result: string, flags: any}): void {
-    const token = this.scopeToken;
-    if (!this.mathCache.has(token)) this.mathCache.set(token, new Map());
-    this.mathCache.get(token)!.set(latex, expression);
-  }
-
-  /**
-   * Converts latex to math and returns it
-   */
-  async math() {
-    if (!this.latex) return { flags: {}, result: null };
-    var expression = this.resolveCachedLatex(this.latex);
-    var parsed;
-    if (!expression) {
-      parsed = utensils.latexParser.parse(this.latex);
-      const response = await runAlgebraOnWorker(parsed.content, this.lastScope);
-      this.cacheLatex(this.latex, response);
-      return response;
-    }
-    return expression;
   }
 
   /**
@@ -572,96 +423,12 @@ export default class MathQuillComponent extends Vue {
     }
   }
 
-  removeGraph() {
-    if (!this.chart) return;
-
-    this.chart.root.remove();
-    this.chart = null;
-  }
-
-  get defaultXBounds(): [number, number] {
-    return [-10, 10];
-  }
-
-  get defaultStep(): number {
-    return 1;
-  }
-
   /**
    * User-set overrides, can be NaN in any configuration
    */
   xDomain: [number, number] = [NaN, NaN];
   yDomain: [number, number] = [NaN, NaN];
   step: number = NaN;
-
-  /**
-   * Determines the minimum and maximum value of the function given the bounds
-   */
-  minMaxOfFn(xMin: number, xMax: number): [number, number] {
-    if (!this.resultFn) return [NaN, NaN];
-
-    let values: number[] = [];
-
-    for (let i = xMin; i < xMax; i += this.stepWithOverride) {
-      values.push(this.resultFn(i));
-    }
-
-    values = values.sort((a, b) => a - b);
-
-    const range = [values[0], values[values.length - 1]];
-    
-    return range as [number, number];
-  }
-
-  get xBoundsWithOverrides() {
-    const range = this.xDomain
-      .map(i => (typeof i === "number" ? i : NaN))
-      .map((i, idx) => (isNaN(i) ? this.defaultXBounds[idx] : i)) as [
-      number,
-      number
-    ];
-
-    if (range.length < 2 || (range[0] === range[1])) return [-10, 10] as [number, number];
-
-    return range;
-  }
-
-  get yBoundsWithOverrides() {
-    if (!this.resultFn) return null;
-    let yDomain = this.yDomain.map(i => (typeof i === "number" ? i : NaN));
-    if (yDomain.some(i => isNaN(i))) {
-      const bounds = this.minMaxOfFn(...this.xBoundsWithOverrides);
-      yDomain = yDomain.map((i, idx) => (isNaN(i) ? bounds[idx] : i)) as [
-        number,
-        number
-      ];
-    }
-    
-    yDomain.sort((a, b) => a - b);
-
-    if (yDomain.length < 2 || (yDomain[0] === yDomain[1])) return this.minMaxOfFn(...this.xBoundsWithOverrides);
-
-    return yDomain;
-  }
-
-  get stepWithOverride() {
-    return this.step || this.defaultStep;
-  }
-
-  /**
-   * Recalculates the bounds of the graph
-   */
-  get computedBounds() {
-    if (!this.resultFn) return null;
-
-    const xDomain = this.xBoundsWithOverrides;
-    const yDomain = this.yBoundsWithOverrides!;
-
-    return {
-      xDomain,
-      yDomain
-    };
-  }
 
   /**
    * Called when a domain override field is modified by the user
@@ -675,15 +442,23 @@ export default class MathQuillComponent extends Vue {
     const keyPath = `${domain}Domain` as "xDomain" | "yDomain";
     const previousBound = this[keyPath][minMax];
 
-    if (!isNaN(override) && rawValue.trim().length > 0 && !rawValue.endsWith('.')) {
+    const setVal = (val: any) =>
+      this[`${domain}Domain` as "xDomain" | "yDomain"].splice(minMax, 1, val);
+
+    if (!override) {
+      setVal(NaN);
+      return;
+    }
+
+    if (
+      !isNaN(override) &&
+      rawValue.trim().length > 0 &&
+      !rawValue.endsWith(".")
+    ) {
       target.innerText = override.toString();
-      
+
       if (override !== previousBound) {
-        this[`${domain}Domain` as "xDomain" | "yDomain"].splice(
-          minMax,
-          1,
-          override
-        );
+        setVal(override);
       }
     }
 
@@ -699,17 +474,25 @@ export default class MathQuillComponent extends Vue {
     let override = parseFloat(rawValue);
     const lastStep = this.step;
 
-    const [low, high] = this.xBoundsWithOverrides;
+    const [low, high] = this.$refs.graph.xBoundsWithOverrides;
     let range = Math.abs(low - high);
 
     if ((low >= 0 && high < 0) || (low < 0 && high >= 0)) range += 1;
 
-    if (!isNaN(override) && rawValue.trim().length > 0 && override < range && override > 0 && !rawValue.endsWith('.')) {
+    if (
+      !isNaN(override) &&
+      rawValue.trim().length > 0 &&
+      override < range &&
+      override > 0 &&
+      !rawValue.endsWith(".")
+    ) {
       target.innerText = override.toString();
 
-      if ((override !== lastStep) && override > 0) {
+      if (override !== lastStep && override > 0) {
         this.step = override;
       }
+    } else {
+      this.step = NaN;
     }
 
     this.$nextTick(() => {
@@ -717,98 +500,8 @@ export default class MathQuillComponent extends Vue {
     });
   }
 
-  async updateGraph() {
-    if (!this.resultFn) return;
-    if (this.chart) this.removeGraph();
-    if (!this.showGraph) return;
-
-    const { default: plot } = await import("function-plot/lib/index.js");
-
-    const { xDomain, yDomain } = this.computedBounds!;
-
-    console.debug(`calculated bounds for function`, {
-      resultFn: this.resultFn,
-      xDomain,
-      yDomain
-    });
-
-    try {
-      this.chart = plot({
-        target: this.$refs.graph,
-        tip: {
-          xLine: true,
-          yLine: true,
-          renderer: (x, y) => `(${x.toFixed(3)}, ${y.toFixed(3)})`
-        },
-        data: [
-          {
-            fn: "fn",
-            step: this.stepWithOverride,
-            scope: {
-              fn: this.resultFn
-            },
-            nSamples: 1000,
-            sampler: "mathjs",
-            graphType: "polyline"
-          }
-        ],
-        grid: true,
-        xAxis: {
-          domain: xDomain
-        },
-        yAxis: {
-          domain: yDomain
-        },
-        width: this.$el.clientWidth,
-        height: +getComputedStyle(this.$refs.graph).height!.split('px')[0]
-      });
-    } catch (e) {
-      console.warn("failed to update graph", e);
-      this.graphFailed = true;
-      return;
-    }
-
-    this.graphFailed = false;
-
-    this.fixChart();
-  }
-
-  /**
-   * Fixes inconsistencies in the function-plot chart object
-   */
-  fixChart() {
-    if (!this.chart) return;
-    const options = this.chart.options;
-    const prototype = d3
-      .select(options.target)
-      .selectAll("svg")
-      .data([options]).__proto__;
-    attachProto(this.chart!.root, prototype);
-    attachProto(this.chart!.canvas, prototype);
-    Object.defineProperty(this.chart, "content", {
-      get() {
-        return this._content;
-      },
-      set(content) {
-        attachProto(content, prototype);
-        this._content = content;
-        return true;
-      }
-    });
-  }
-
-  calcCache: Map<string, Map<string, any>> = new Map();
-
-  private resolveCachedCalc(latex: string) {
-    const token = this.scopeToken;
-    if (!this.calcCache.has(token)) this.calcCache.set(token, new Map());
-    return this.calcCache.get(token)!.get(latex);
-  }
-
-  private cacheCalc(latex: string, result: any): void {
-    const token = this.scopeToken;
-    if (!this.calcCache.has(token)) this.calcCache.set(token, new Map());
-    this.calcCache.get(token)!.set(latex, result);
+  get yBoundsWithOverrides() {
+    return this.$refs.graph.yBoundsWithOverrides;
   }
 
   /**
@@ -824,113 +517,29 @@ export default class MathQuillComponent extends Vue {
     this.lastScope = Object.assign({}, scope);
     this.error = null;
 
-    let cachedResult = this.latex && this.resolveCachedCalc(this.latex);
-    let compiled;
-    if (cachedResult) {
-      compiled = cachedResult;
-    } else {
-      const { flags: parserFlags, result: mathStr } = await this.math();
-      if (!mathStr) return (this.result = null);
-      try {
-        compiled = this.mathJS.parse(mathStr).compile();
-      } catch (e) {
-        console.debug(`failed to parse result from algebra slave`, {
-          e,
-          mathStr,
-          scope,
-          latex: this.latex
-        });
-        compiled = "error";
-      }
-      this.cacheCalc(this.latex, compiled);
-      console.debug("compiled expression", {
-        latex: this.latex,
-        mathStr,
-        compiled
-      });
-    }
-
-    let result: any,
-      { flags, result: mathStr } = this.resolveCachedLatex(this.latex)!;
-
-    try {
-      if (flags.noVarSubInPostProcessing) {
-        result = mathStr;
-      } else {
-        result = compiled.evaluate(scope);
-      }
-    } catch (e) {
-      result = mathStr;
-    } finally {
-      if (typeof result === "string" && !flags.noVarSubInPostProcessing) {
-        try {
-          const parsed = this.mathJS.parse(result);
-          const symbols = parsed
-            .filter(n => n.isSymbolNode)
-            .map(n => n.toString())
-            .filter(n => !(this.mathJS as any)[n])
-            .filter((n,i,a) => a.indexOf(n) === i);
-          if (symbols.length === 1 && symbols[0] === 'x') {
-            let resultFn = this.mathJS.parse(`f(x)=${mathStr}`).compile().evaluate({});
-
-            try {
-              resultFn(0);
-            } catch (e) {
-              resultFn = null;
-            }
-
-            if (resultFn) {
-              this.resultFn = resultFn;
-            }
-          } else this.resultFn = null;
-        } catch { this.resultFn = null; }
-      } else if (
-        typeof result === "function" ||
-        typeof result === "undefined"
-      ) {
-        if (typeof result === "function") {
-          try {
-            result(0);
-          } catch (e) {
-            this.error = e.message;
-            result = null;
-          }
-          if (result) {
-            result["original"] = mathStr;
-          }
-          this.resultFn = result;
-        }
-      } else this.resultFn = null;
-    }
-
-    if (typeof result === "number") {
-      result = this.mathJS.round(result, 10);
-    }
-
-    console.debug('calculation complete', {
+    const { result, resultFn } = await _.MathKit.calculateWithScope(
+      this.latex,
       scope,
-      cachedResult,
-      compiled,
-      flags,
-      result,
-      resultFn: this.resultFn
-    });
+      this.mathJS
+    );
 
-    this.result = result;
+    this.resultFn = resultFn;
 
-    return result;
+    return (this.result = result);
   }
 
   toggleGraph() {
+    if (!this.canToggleGraph) return;
     this.showGraph = !this.showGraph;
   }
 
-  async updateResultView(result: any) {
+  updateResultView(result: any) {
     switch (this.renderFormat) {
       case "frac":
-        var frac = await this.fraction(result);
+        var frac = _.MathKit.toFracLatex(result);
         if (frac) {
           this.resultView.latex(frac);
+          this.reflow();
           break;
         }
       case "dec":
@@ -947,21 +556,12 @@ export default class MathQuillComponent extends Vue {
             result,
             latex: this.latex
           });
-          result = "error";
+          result = null;
+          break;
         }
         this.resultView.latex(result);
+        this.reflow();
         break;
-    }
-  }
-
-  /**
-   * Returns a fraction representation
-   */
-  async fraction(result: string) {
-    try {
-      return (this.mathJS.fraction(result) as any).toLatex();
-    } catch {
-      return null;
     }
   }
 
@@ -976,8 +576,6 @@ export default class MathQuillComponent extends Vue {
     return new Promise(resolve => this.$emit("get:components", resolve));
   }
 }
-
-MathQuillComponent.startGarbageWatcher(15000, 30000);
 </script>
 
 <style lang="scss">
@@ -1017,11 +615,16 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
   .mq-calc-root {
     @extend %bg0;
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 3fr) min-content;
     padding: 10px;
 
     @media print {
       @include schemeResponsive("border-bottom", "border");
+    }
+
+    .mq-math-mode {
+      display: inline-flex;
+      align-items: center;
     }
 
     & > .mq-result-view {
@@ -1090,7 +693,7 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
 
     & > .mq-root-block {
       overflow: scroll;
-      display: unset;
+      display: block;
     }
   }
 
@@ -1113,6 +716,7 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
       flex-flow: row;
       margin-left: auto;
       padding-right: 10px;
+      padding-left: 10px;
       padding-bottom: 6px;
       margin-right: 5px;
       flex-wrap: nowrap;
@@ -1193,5 +797,19 @@ MathQuillComponent.startGarbageWatcher(15000, 30000);
 .mq-trig-mode-control {
   font-size: 12px;
   justify-content: center;
+  align-items: center;
+
+  & > img {
+    height: 75%;
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      background: none !important;
+    }
+  }
 }
 </style>

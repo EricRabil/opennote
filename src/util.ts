@@ -1,6 +1,11 @@
 import JSZip from "jszip";
 import saver from "file-saver";
 import * as mathjs from "mathjs";
+import plot from "function-plot/lib/index.js";
+import { latexParser } from 'latex-utensils';
+
+declare const d3: any;
+type Chart = ReturnType<typeof plot>;
 
 export namespace _ {
     interface DisplayableErrorOptions {
@@ -166,6 +171,92 @@ export namespace _ {
         });
     }
 
+    export namespace Graph {
+        interface DomainConfiguration {
+            xDomain: [number, number],
+            yDomain: [number, number]
+        }
+
+        /**
+         * Creates a standard Graph instance
+         */
+        export function createGraph(element: HTMLElement, step: number, { xDomain, yDomain }: DomainConfiguration, fn: Function, { width, height }: { width: number, height: number } = { width: NaN, height: NaN }) {
+            return applyChartFixes(plot({
+                target: element,
+                tip: {
+                    xLine: true,
+                    yLine: true,
+                    renderer: (x, y) => `(${x.toFixed(3)}, ${y.toFixed(3)})`
+                },
+                data: [
+                    {
+                        fn: "fn",
+                        step,
+                        scope: {
+                            fn
+                        },
+                        nSamples: 1000,
+                        sampler: "mathjs",
+                        graphType: "polyline"
+                    }
+                ],
+                grid: true,
+                xAxis: {
+                    domain: xDomain
+                },
+                yAxis: {
+                    domain: yDomain
+                },
+                width,
+                height
+            }));
+        }
+
+
+        /**
+         * Adds strangely missing prototype functions to d3 objects
+         */
+        function applyChartFixes(chart: Chart) {
+            const options = chart.options;
+            const prototype = d3
+                .select(options.target)
+                .selectAll("svg")
+                .data([options]).__proto__;
+
+            _.Inheritance.attachProto(chart.root, prototype);
+            _.Inheritance.attachProto(chart.canvas, prototype);
+
+            Object.defineProperty(chart, "content", {
+                get() {
+                    return this._content;
+                },
+                set(content) {
+                    _.Inheritance.attachProto(content, prototype);
+                    this._content = content;
+                    return true;
+                }
+            });
+
+            return chart;
+        }
+    }
+
+    export namespace Inheritance {
+        /**
+         * Merges a prototype with an object
+         * @param obj object
+         * @param proto prototype to merge
+         */
+        export function attachProto(obj: any, proto: any) {
+            const objKeys = Object.keys(obj);
+            Object.keys(proto)
+                .filter(k => !objKeys.includes(k))
+                .forEach(key => {
+                    obj[key] = proto[key];
+                });
+        }
+    }
+
     export namespace Dom {
         export function getCaretPosition(target: HTMLElement) {
             let _range = document.getSelection()!.getRangeAt(0);
@@ -276,6 +367,131 @@ export namespace _ {
             });
         }
 
+        const pending: {
+            [nonce: string]: Function;
+        } = {};
+
+        function onmessage(event: MessageEvent) {
+            const { nonce, result, flags } = event.data;
+            const { [nonce]: resolve } = pending;
+            if (!resolve) {
+                console.debug(`unknown nonce from worker response`, {
+                    event,
+                    data: event.data,
+                    nonce,
+                    result,
+                    pending
+                });
+                return;
+            }
+            resolve({ result, flags });
+        }
+
+        function runAlgebraOnWorker(content: any, context: any): Promise<{ result: string, flags: { noVarSubInPostProcessing: boolean } }> {
+            const worker = (window as any).AlgebraWorker;
+            if (worker.onmessage === null) {
+                worker.onmessage = onmessage;
+            }
+            return new Promise((resolve) => {
+                const functions = _.MathKit.functionsFromContext(context);
+                const variables = _.MathKit.variablesFromContext(context);
+                const nonce = _.uuidv4();
+                pending[nonce] = resolve;
+                worker.postMessage({
+                    evaluate: content,
+                    functions,
+                    variables,
+                    nonce
+                });
+            });
+        }
+
+        function extractSymbolsFromMathString(str: string, mathJS: mathjs.MathJsStatic) {
+            const parsed = mathJS.parse(str);
+            return parsed
+                .filter(n => n.isSymbolNode)
+                .map(n => n.toString())
+                .filter(n => !(mathJS as any)[n])
+                .filter((n, i, a) => a.indexOf(n) === i);
+        }
+
+        export function calculateMathFromLatex(latex: string, scope: any) {
+            const { content } = latexParser.parse(latex);
+            return runAlgebraOnWorker(content, scope);
+        }
+
+        export async function calculateWithScope(latex: string, scope: any, mathJS: mathjs.MathJsStatic) {
+            let retVal: { result: string | null, resultFn: Function | null } = {
+                result: null,
+                resultFn: null
+            }
+
+            const { flags: parserFlags, result: mathStr } = await calculateMathFromLatex(latex, scope);
+            let compiled;
+            if (!mathStr) return retVal;
+
+            try {
+                compiled = mathJS.parse(mathStr).compile();
+            } catch (e) {
+                console.debug(`failed to parse result from algebra slave`, {
+                    e,
+                    mathStr,
+                    scope,
+                    latex
+                });
+                return retVal;
+            }
+
+            console.debug("compiled expression", {
+                latex,
+                mathStr,
+                compiled
+            });
+
+            let result = mathStr;
+
+            if (!parserFlags.noVarSubInPostProcessing) {
+                try {
+                    result = compiled.evaluate(scope);
+                } catch (e) {
+                    result = mathStr;
+                }
+            }
+
+            // try to create a function from this IF THERES ONLY ONE VARIABLE
+            if (typeof result === "string") {
+                const symbols = extractSymbolsFromMathString(result, mathJS);
+                if (symbols.length === 1) {
+                    const [ symbol ] = symbols;
+                    const template = `f(${symbol})=${result}`;
+                    let fn: Function | null = mathJS.parse(template).compile().evaluate({});
+
+                    try {
+                        fn!(0);
+                    } catch {
+                        fn = null;
+                    }
+
+                    if (fn) {
+                        retVal.resultFn = fn;
+                    }
+                }
+            }
+            // append original string to functions in context
+            else if (typeof result === "function") {
+                (result as any)["original"] = mathStr;
+                retVal.resultFn = result;
+            }
+            // round results to 10th decimal
+            else if (typeof result === "number") {
+                result = mathJS.round(result,10);
+            }
+
+            if (typeof result !== "function") retVal.result = result;
+
+            return retVal;
+        }
+
         /**
          * Implements patched trig functions that are configurable for deg/grad/rad
          * @param math mathjs instance
@@ -286,6 +502,68 @@ export namespace _ {
             math.import(replacements, { override: true });
 
             return math;
+        }
+
+        /**
+         * Determines the minimum and maximum value of the function given the bounds
+         */
+        export function minMaxOfFn(fn: Function, step: number, xMin: number, xMax: number): [number, number] {
+            if (!fn) return [NaN, NaN];
+
+            let values: number[] = [];
+
+            let result;
+            for (let i = xMin; i < xMax; i += step) {
+                try {
+                    result = fn(i);
+                } catch(e) {
+                    result = NaN;
+                }
+                values.push(result);
+            }
+
+            values = values.sort((a, b) => a - b);
+
+            const range = [values[0], values[values.length - 1]];
+
+            return range as [number, number];
+        }
+
+        /**
+         * Returns a fraction representation
+         */
+        export function toFracLatex(math: string) {
+            try {
+                return (mathjs.fraction(math) as any).toLatex();
+            } catch {
+                return null;
+            }
+        }
+
+        /**
+         * Extracts functions from the context, returning a JSON object
+         * @param context mathjs context
+         */
+        export function functionsFromContext(context: any): { [key: string]: string } {
+            return Object.values(context)
+                .filter(g => typeof g === "function")
+                .reduce((acc: any, c: any) => {
+                    acc[c.syntax] = c.original.substring(c.syntax.length + 1);
+                    return acc;
+                }, {}) as any;
+        }
+
+        /**
+         * Extracts variables from the context, returning a JSON object
+         * @param context mathjs context
+         */
+        export function variablesFromContext(context: any): { [key: string]: number } {
+            return Object.keys(context)
+                .filter(g => typeof context[g] === "number")
+                .reduce((acc: any, c: any) => {
+                    acc[c] = context[c];
+                    return acc;
+                }, {});
         }
 
         export type TrigState = 'deg' | 'grad' | 'rad';

@@ -44,7 +44,8 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
                 parent: this.Editor.editor.VueEditor,
                 propsData: {
                     savedData: (this.config as any).data || {},
-                    api: this.config.api
+                    api: this.config.api,
+                    internal: this.Editor
                 }
             });
             
@@ -69,10 +70,12 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             });
     
             this.component.$on('navigateNext', () => {
+                if (this.settingsOpened) return;
                 this.Editor.moduleInstances.Caret.navigateNext(true);
             });
     
             this.component.$on('navigatePrevious', () => {
+                if (this.settingsOpened) return;
                 this.Editor.moduleInstances.Caret.navigatePrevious(true);
             });
     
@@ -81,6 +84,7 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             });
     
             this.component.$on('downOutOf', () => {
+                if (this.settingsOpened) return;
                 if (this.blockIndex === this.Editor.moduleInstances.BlockManager.blocks.length - 1) return;
                 this.Editor.moduleInstances.Caret.navigateNext(true);
                 const { currentBlock, currentBlockIndex, blocks } = this.Editor.moduleInstances.BlockManager;
@@ -92,6 +96,7 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             });
     
             this.component.$on('upOutOf', () => {
+                if (this.settingsOpened) return;
                 if (this.blockIndex === 0) return;
                 this.Editor.moduleInstances.Caret.navigatePrevious(true);
             });
@@ -151,6 +156,11 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
          */
         get blockIndex() {
             return this.Editor.moduleInstances.BlockManager.blocks.indexOf(this.block);
+        }
+
+
+        get settingsOpened(): boolean {
+            return this.Editor.moduleInstances.BlockSettings.opened;
         }
     }
 }
