@@ -17,3 +17,8 @@ declare module '*.svg?data' {
   const bitch: string;
   export default bitch;
 }
+
+declare module '*.svg?sprite' {
+  const bitch: any;
+  export default bitch;
+}
