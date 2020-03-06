@@ -46,7 +46,7 @@ pipeline {
       }
       steps {
         unstash 'dist.tar.gz'
-        sh 'tar -xzf dist.tar.gz'
+        sh 'tar -xzf dist.tar.gz -C /var/onote/client'
       }
     }
   }
