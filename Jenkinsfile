@@ -1,11 +1,9 @@
 pipeline {
   agent {
-    docker {
-      image 'node'
+    node {
+      label 'master'
+      customWorkspace '/var/onote/client'
     }
-  }
-  environment {
-    HOME= '.'
   }
 
   stages {
@@ -33,20 +31,7 @@ pipeline {
     stage('Artifacts') {
       steps {
         sh 'tar -czf dist.tar.gz ./dist'
-        stash 'dist.tar.gz'
         archiveArtifacts artifacts: 'dist.tar.gz', fingerprint: true
-      }
-    }
-    stage('Deploy') {
-      agent {
-        node {
-          label 'master'
-          customWorkspace '/var/onote/client'
-        }
-      }
-      steps {
-        unstash 'dist.tar.gz'
-        sh 'tar -xzf dist.tar.gz -C /var/onote/client'
       }
     }
   }
