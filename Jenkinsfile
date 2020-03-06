@@ -37,17 +37,16 @@ pipeline {
         archiveArtifacts artifacts: 'dist.tar.gz', fingerprint: true
       }
     }
-    stage('Docker Image') {
+    stage('Deploy!') {
       agent {
-        docker {
-          image 'nginx:alpine'
-          args '-p 8081:80'
+        node {
+          label 'opennote-client'
+          customWorkspace '/var/onote/client'
         }
       }
       steps {
-        sh 'docker -v'
         unstash 'dist.tar.gz'
-        sh 'tar -xzf dist.tar.gz -C /usr/share/nginx/html'
+        sh 'tar -xzf dist.tar.gz'
       }
     }
   }
