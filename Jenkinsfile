@@ -4,6 +4,9 @@ pipeline {
       image 'node'
     }
   }
+  environment {
+    HOME= '.'
+  }
 
   stages {
     stage('Clone Sources') {
