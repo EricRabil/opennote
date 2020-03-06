@@ -337,7 +337,7 @@ export default class Editor extends Vue {
 
     this.editor = new EditorJS({
       holder: this.$refs.mountPoint,
-      tools: {
+      tools: this.addConditionalTools({
         math: toolForVueComponent(MathQuillComponent, {
             title: 'Math',
             icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -374,14 +374,8 @@ export default class Editor extends Vue {
         },
         image: SimpleImage,
         table: Table,
-        warning: Warning,
-        link: this.backend ? {
-          class: Link,
-          config: {
-            endpoint: `${this.backend}/api/v1/link/metadata`
-          }
-        } : undefined as any
-      },
+        warning: Warning
+      }),
       data,
       logLevel: "VERBOSE" as any,
       ['blockElements' as any]: ['mq-paste-data'],
@@ -400,6 +394,19 @@ export default class Editor extends Vue {
       if (!block) return;
       this.active = block.name;
     };
+  }
+
+  addConditionalTools<T>(tools: T): T {
+    if (this.backend) {
+      // add link tool
+      (tools as any).link = {
+        class: Link,
+        config: {
+          endpoint: `${this.backend}/api/v1/link/metadata`
+        }
+      }
+    }
+    return tools;
   }
 
   /**
