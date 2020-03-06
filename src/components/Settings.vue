@@ -130,6 +130,21 @@ export default class Settings extends Vue {
             ]
         },
         {
+            id: 'internal',
+            name: 'Internal',
+            description: 'Warning! Danger lies ahead.',
+            fields: [
+                {
+                    id: 'backend',
+                    name: 'Backend URL',
+                    description: 'Changes may not take effect until after a restart.',
+                    type: 'string',
+                    update: value => this.$store.commit('setPreference', { name: 'backend', value }),
+                    value: () => this.$store.state.preferences.backend
+                }
+            ]
+        },
+        {
             id: 'credits',
             name: 'Credits',
             description: `

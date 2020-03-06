@@ -31,7 +31,8 @@ export default new Vuex.Store({
       sawFirstRun: false,
       preferredColorScheme: null,
       defaultNoteName: NEW_NOTE_NAME,
-      defaultTrigState: 'rad'
+      defaultTrigState: 'rad',
+      backend: null
     }
   },
   mutations: {
@@ -96,6 +97,9 @@ export default new Vuex.Store({
   getters: {
     preferredColorScheme: state => {
       return state.preferences.preferredColorScheme;
+    },
+    backend: state => {
+      return state.preferences.backend;
     },
     currentNote: state => {
       return state.notes[state.currentNote];

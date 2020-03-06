@@ -16,7 +16,9 @@ $lightMap: (
     "red": $redLight,
     "redAlt": darken($redLight, 10),
     "redAlt1": darken($redLight, 14),
+    "redAlt2": lighten($redLight, 14),
     "redBad": darken($redLight, 28),
+    "redBad1": darken($redLight, 22),
     "blue": $blueLight,
     "blueAlt": darken($blueLight, 10),
     "blueAlt1": darken($blueLight, 14),
@@ -59,7 +61,9 @@ $darkMap: (
     "red": $redDark,
     "redAlt": lighten($redDark, 8),
     "redAlt1": lighten($redDark, 16),
+    "redAlt2": lighten($redDark, 32),
     "redBad": darken($redDark, 8),
+    "redBad1": darken($redDark, 16),
     "blue": $blueDark,
     "highlight-color": rgba(245,235,111,0.69),
     "blueAlt": lighten($blueDark, 8),
@@ -123,6 +127,10 @@ $darkMap: (
 
 @mixin customPropSuffixedResponsive($prop, $prefix, $key, $default: 0) {
     @include schemeResponsive($prop, $key, $default, $prefix);
+}
+
+@mixin borderSchemeResponsive($key, $default: 0) {
+    @include customPropSuffixedResponsive("border", 1px solid, $key, $default);
 }
 
 @mixin scrollbar() {

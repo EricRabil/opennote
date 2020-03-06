@@ -84,6 +84,7 @@ const Raw = require("@editorjs/raw");
 const SimpleImage = require("@editorjs/simple-image");
 const Table = require("@editorjs/table");
 const Warning = require("@editorjs/warning");
+const Link = require("@editorjs/link");
 
 /**
  * Wrapper around Codex, manages all communication with it.
@@ -249,6 +250,10 @@ export default class Editor extends Vue {
     return Object.values(this.toolDrawers).reduce((a,c) => a.concat(c), []);
   }
 
+  get backend(): string | null {
+    return this.$store.state.preferences.backend;
+  }
+
   /**
    * Returns note data of the currently selected note
    */
@@ -369,7 +374,13 @@ export default class Editor extends Vue {
         },
         image: SimpleImage,
         table: Table,
-        warning: Warning
+        warning: Warning,
+        link: this.backend ? {
+          class: Link,
+          config: {
+            endpoint: `${this.backend}/api/v1/link/metadata`
+          }
+        } : undefined as any
       },
       data,
       logLevel: "VERBOSE" as any,
@@ -756,6 +767,44 @@ export default class Editor extends Vue {
         line-height: 0;
       }
     }
+  }
+}
+
+.link-tool__input {
+  @extend %bg0;
+  @extend %border1;
+  padding-left: 12px;
+}
+
+.link-tool__input-holder {
+  .link-tool__progress {
+    @extend %bg2;
+  }
+}
+
+.link-tool__input-holder--error {
+  .link-tool__input {
+    @include bgSchemeResponsive("redBad1");
+    @include borderSchemeResponsive("redAlt");
+    @include textSchemeResponsive("redAlt2");
+    background-image: none;
+  }
+}
+
+.link-tool__content {
+  @extend %bgAlt7;
+  @extend %border1;
+  // @extend %text;
+  .link-tool__title {
+    @extend %text;
+  }
+
+  .link-tool__description {
+    @extend %text;
+  }
+
+  .link-tool__anchor {
+
   }
 }
 </style>
