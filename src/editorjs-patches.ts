@@ -5,6 +5,8 @@ const janitor = require("html-janitor");
 const Code = require('@editorjs/code');
 const Raw = require('@editorjs/raw');
 const Paragraph = require('@editorjs/paragraph');
+const Table = require('@editorjs/table');
+const Link = require('@editorjs/link');
 
 function hook(lib: any, meth: string, replacement: (old: Function) => (this: any, ...args: any[]) => any) {
     const oldMeth = lib[meth] || (() => void 0);
@@ -34,13 +36,20 @@ function hookSet(lib: any, prop: string, replacement: (old: Function) => (this: 
     });
 }
 
+function addhttp(url: string) {
+    if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+        url = "http://" + url;
+    }
+    return url;
+}
+
 /**
  * Loads patches to be applied to the EditorJS clipboard system, allows complex tools to easily serialize/deserialize
  * @param editor editorjs instance
  */
 function loadClipboardPatches(editor: EditorJS) {
     const core = (editor as any).core;
-    const { Dom: { constructor: Dom } , Sanitizer, Paste, BlockSelection, } = (editor as any).core.moduleInstances;
+    const { Dom: { constructor: Dom }, Sanitizer, Paste, BlockSelection, } = (editor as any).core.moduleInstances;
 
     /**
      * Patched janitor generator, accounts for overrides from EditorJS
@@ -96,7 +105,7 @@ function loadClipboardPatches(editor: EditorJS) {
     /**
      * If the node is special, never treat it as empty
      */
-    hook(Dom, 'isEmpty', old => function(node: Node): boolean {
+    hook(Dom, 'isEmpty', old => function (node: Node): boolean {
         if (core.configuration.specialElements.includes(node.nodeName.toLowerCase())) {
             return false;
         }
@@ -206,7 +215,7 @@ function loadClipboardPatches(editor: EditorJS) {
         copyTextToClipboard(fakeClipboard.innerHTML);
     });
 
-    hookGet(Dom, 'blockElements', old => function() {
+    hookGet(Dom, 'blockElements', old => function () {
         const elements = old.call(this);
         core.configuration.specialElements.forEach((e: string) => elements.push(e.toLowerCase()));
         return elements;
@@ -226,13 +235,18 @@ function loadToolPatches(editor: EditorJS) {
         this.api.caret.setToBlock(this.api.blocks.getCurrentBlockIndex());
     });
 
+    hook(Link.prototype, 'showLinkPreview', old => function(...args: any[]) {
+        old.call(this, ...args);
+        this.nodes.linkContent.setAttribute('href', addhttp(this.data.link));
+    });
+
     // Fixes checklist exit list bug because stupid
-    hook(CheckList.prototype, 'appendNewElement', old => function(event: KeyboardEvent) {
+    hook(CheckList.prototype, 'appendNewElement', old => function (event: KeyboardEvent) {
         const oldStopPropogation = event.stopPropagation;
 
         let propogationStopped: boolean = false;
 
-        event.stopPropagation = function() {
+        event.stopPropagation = function () {
             propogationStopped = true;
             oldStopPropogation.call(this);
         }
@@ -258,7 +272,7 @@ function loadToolPatches(editor: EditorJS) {
         }, 0);
     });
 
-    Paragraph.prototype.onTab = function(event: KeyboardEvent) {
+    Paragraph.prototype.onTab = function (event: KeyboardEvent) {
         if (!this._suggestions) {
             return false;
         }
@@ -280,7 +294,7 @@ function loadToolPatches(editor: EditorJS) {
         return true;
     }
 
-    Paragraph.prototype.teardownSuggestions = function() {
+    Paragraph.prototype.teardownSuggestions = function () {
         console.log('tearing down suggestions');
         if (this._suggestions) (this._suggestions as HTMLElement).remove();
         delete this._suggestions;
@@ -289,13 +303,13 @@ function loadToolPatches(editor: EditorJS) {
         currentSuggested = null;
     }
 
-    Paragraph.prototype.focused = function(newVal: boolean) {
+    Paragraph.prototype.focused = function (newVal: boolean) {
         if (!newVal && this._suggestions) {
             this.teardownSuggestions();
         }
     }
 
-    Paragraph.prototype.selectSuggestion = function(suggestion: HTMLElement) {
+    Paragraph.prototype.selectSuggestion = function (suggestion: HTMLElement) {
         const selected = suggestion.innerText;
 
         const block = (editor as any).core.moduleInstances.BlockManager.composeBlock(selected, {});
@@ -307,20 +321,20 @@ function loadToolPatches(editor: EditorJS) {
         this.teardownSuggestions();
     }
 
-    Paragraph.prototype.onEnter = function(event: KeyboardEvent) {
+    Paragraph.prototype.onEnter = function (event: KeyboardEvent) {
         if (!this._suggestions) {
             return false;
         }
 
         event.preventDefault();
         event.stopPropagation();
-        
+
         this.selectSuggestion(this.suggestions[this.selectedSuggestion]);
 
         return true;
     }
 
-    Paragraph.prototype.removed = function() {
+    Paragraph.prototype.removed = function () {
         this.teardownSuggestions();
     }
 
@@ -337,17 +351,17 @@ function loadToolPatches(editor: EditorJS) {
     parent.scrollTop = parent.scrollHeight;
 
     Editor.Listeners.on(parent, 'scroll', () => {
-        requestAnimationFrame(function() {
+        requestAnimationFrame(function () {
             if (currentSuggested) {
                 currentSuggested.redrawSuggestions();
             }
         })
     })
 
-    Paragraph.prototype.redrawSuggestions = function() {
-        const {textContent} = this._element as HTMLElement;
+    Paragraph.prototype.redrawSuggestions = function () {
+        const { textContent } = this._element as HTMLElement;
 
-        const [ command ] = textContent!.substring(1).split(' ');
+        const [command] = textContent!.substring(1).split(' ');
         const tools = Object.keys((editor as any).core.moduleInstances.Tools.blockTools);
         const possible = tools.filter(t => t.startsWith(command)).sort((a, b) => a.length - b.length);
         const match = possible.find(t => t === command);
@@ -380,14 +394,14 @@ function loadToolPatches(editor: EditorJS) {
         document.body.appendChild(suggestionContainer);
     }
 
-    hook(Paragraph.prototype, 'onKeyUp', old => function(event: KeyboardEvent) {
+    hook(Paragraph.prototype, 'onKeyUp', old => function (event: KeyboardEvent) {
         old.call(this, event);
 
         const wantsCompletion = event.code === 'Tab';
 
         if (wantsCompletion) return;
 
-        const {textContent} = this._element as HTMLElement;
+        const { textContent } = this._element as HTMLElement;
         if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1 || textContent === '/') {
             if (this._suggestions) {
                 console.debug('paragraph is tearing down suggestions');
@@ -403,7 +417,7 @@ function loadToolPatches(editor: EditorJS) {
         this.onTab();
     });
 
-    Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function(e: KeyboardEvent) {
+    Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function (e: KeyboardEvent) {
         const empty = this.block.holder.querySelector('textarea').value.length === 0
         if (empty) {
             const index = this.Editor.moduleInstances.BlockManager.currentBlockIndex;
@@ -417,6 +431,33 @@ function loadToolPatches(editor: EditorJS) {
             return true;
         }
         return false;
+    }
+
+    // Table Extensions
+
+    let { __proto__: _TableConstructor, _table: { __proto__: _Table } } = new Table({ data: { content: [] }, config: {}, api: { styles: {} } })._tableConstructor;
+
+    _Table.deleteRow = function (index: number = -1) {
+        this._numberOfRows--;
+        this._table.deleteRow(index);
+    }
+
+    _Table.deleteColumn = function (index: number = -1) {
+        this._numberOfColumns--;
+        /** Delete cell in each row */
+        const rows = this._table.columns;
+
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].deleteCell(index);
+        }
+    }
+
+    _TableConstructor._deleteRow = function (index: number = -1) {
+        this._table.deleteRow(index);
+    }
+
+    _TableConstructor._deleteColumn = function (index: number = -1) {
+        this._table.deleteColumn(index);
     }
 }
 
@@ -438,12 +479,12 @@ function loadBlockPatches(editor: EditorJS) {
         return old.call(this);
     });
 
-    hookSet(Block, 'focused', old => function(newVal) {
+    hookSet(Block, 'focused', old => function (newVal) {
         old.call(this, newVal);
         this.call('focused', newVal);
     });
 
-    hookSet(Block, 'selected', old => function(newVal) {
+    hookSet(Block, 'selected', old => function (newVal) {
         old.call(this, newVal);
         this.call('selected', newVal);
     });
@@ -491,10 +532,11 @@ function loadBlockEventPatches(editor: EditorJS) {
     const core = (editor as any).core;
     const { BlockEvents, BlockManager, Events, Caret, UI } = core.moduleInstances;
 
-    hook(BlockEvents, 'tabPressed', old => function(event: KeyboardEvent) {
-         /**
-         * Clear blocks selection by tab
-         */
+    hook(BlockEvents, 'tabPressed', old => function (event: KeyboardEvent) {
+        console.log('i have been touched...')
+        /**
+        * Clear blocks selection by tab
+        */
         this.Editor.BlockSelection.clearSelection(event);
 
         const { BlockManager } = this.Editor;
@@ -516,7 +558,7 @@ function loadBlockEventPatches(editor: EditorJS) {
     hook(BlockEvents, 'backspace', old => function (event: KeyboardEvent) {
         const currentBlock = BlockManager.currentBlock;
 
-        if (currentBlock.call('ignoreBackspace', event) === true) return;
+        if (currentBlock.call('ignoreBackspace', event) === true) return event.preventDefault();
 
         old.call(this, event);
     });
@@ -535,7 +577,7 @@ function loadBlockEventPatches(editor: EditorJS) {
         return false;
     }
 
-    hook(BlockManager, 'highlightCurrentNode', old => function() {
+    hook(BlockManager, 'highlightCurrentNode', old => function () {
         old.call(this);
         setTimeout(() => {
             const focusNode = window.getSelection()!.focusNode;
@@ -547,10 +589,10 @@ function loadBlockEventPatches(editor: EditorJS) {
     });
 
     // sticky to bottom when overflowing!
-    hook(BlockManager._blocks.__proto__, 'insertToDOM', old => function(...args: any[]) {
+    hook(BlockManager._blocks.__proto__, 'insertToDOM', old => function (...args: any[]) {
         old.call(this, ...args);
 
-        const [ block ] = args;
+        const [block] = args;
         const index = this.indexOf(block);
         if ((this.length - 3 - index) < 3) {
             console.log(' lets eat');
@@ -592,7 +634,7 @@ function loadBlockEventPatches(editor: EditorJS) {
         old.call(this, event);
     });
 
-    hook(BlockEvents, 'enter', old => function(event: KeyboardEvent) {
+    hook(BlockEvents, 'enter', old => function (event: KeyboardEvent) {
         const { BlockManager } = this.Editor;
         const { currentBlock } = BlockManager;
         const shouldHandoffEnterEvent = currentBlock.call('onEnter', event);
@@ -600,7 +642,7 @@ function loadBlockEventPatches(editor: EditorJS) {
         old.call(this, event);
     });
 
-    hook(UI, 'enterPressed', old => function(event: KeyboardEvent) {
+    hook(UI, 'enterPressed', old => function (event: KeyboardEvent) {
         const { BlockManager, BlockSelection, Caret } = this.Editor;
         const hasPointerToBlock = BlockManager.currentBlockIndex >= 0;
 
@@ -728,9 +770,9 @@ function loadBlockManagerPatches(editor: EditorJS) {
 
 function loadUsabilityPatches(editor: EditorJS) {
     const core = (editor as any).core;
-    const { BlockSelection, BlockManager, Caret, Toolbox, Dom: {constructor: $}, RectangleSelection, Selection, Toolbar, UI, Tooltip: { lib: Tooltip } } = core.moduleInstances;
+    const { BlockSelection, BlockManager, Caret, Toolbox, Dom: { constructor: $ }, RectangleSelection, Selection, Toolbar, UI, Tooltip: { lib: Tooltip } } = core.moduleInstances;
 
-    hook(BlockSelection, 'handleCommandA', old => function(event: KeyboardEvent): void {
+    hook(BlockSelection, 'handleCommandA', old => function (event: KeyboardEvent): void {
         /** allow default selection on native inputs */
         if ($.isNativeInput(event.target) && !this.readyToBlockSelection) {
             return old.call(this, event);
@@ -744,7 +786,7 @@ function loadUsabilityPatches(editor: EditorJS) {
         return old.call(this, event);
     });
 
-    hook(RectangleSelection, 'genInfoForMouseSelection', old => function() {
+    hook(RectangleSelection, 'genInfoForMouseSelection', old => function () {
         if (!this.Editor.BlockManager.lastBlock) {
             // insert new block to prevent errors and unexpected functionality
             const block = BlockManager.insert();
@@ -754,7 +796,7 @@ function loadUsabilityPatches(editor: EditorJS) {
     });
 
     // ignore if touchMoving is true
-    hook(Toolbox, 'toolButtonActivate', old => function(...args: any[]) {
+    hook(Toolbox, 'toolButtonActivate', old => function (...args: any[]) {
         if ((editor as any).VueEditor) {
             if ((editor as any).VueEditor.touchMoving) {
                 return;
@@ -765,16 +807,16 @@ function loadUsabilityPatches(editor: EditorJS) {
 
     function hasTouch() {
         return 'ontouchstart' in document.documentElement
-               || navigator.maxTouchPoints > 0
-               || navigator.msMaxTouchPoints > 0;
+            || navigator.maxTouchPoints > 0
+            || navigator.msMaxTouchPoints > 0;
     }
 
-    hook(Tooltip, 'show', old => function(...args: any[]) {
+    hook(Tooltip, 'show', old => function (...args: any[]) {
         if (hasTouch()) return;
         old.call(this, ...args);
     })
 
-    hook(UI, 'documentClicked', old => function(...args: any[]) {
+    hook(UI, 'documentClicked', old => function (...args: any[]) {
         if ((editor as any).VueEditor) {
             if ((editor as any).VueEditor.touchMoving) {
                 return;
@@ -783,7 +825,7 @@ function loadUsabilityPatches(editor: EditorJS) {
         return old.call(this, ...args);
     });
 
-    hook(Toolbar, 'move', old => function(forceClose: boolean = true) {
+    hook(Toolbar, 'move', old => function (forceClose: boolean = true) {
         if (forceClose) {
             /** Close Toolbox when we move toolbar */
             this.Editor.Toolbox.close();
@@ -791,7 +833,7 @@ function loadUsabilityPatches(editor: EditorJS) {
         }
 
         const currentBlock = this.Editor.BlockManager.currentBlock;
-        
+
         if (!currentBlock) {
             return;
         }
@@ -799,14 +841,14 @@ function loadUsabilityPatches(editor: EditorJS) {
         return old.call(this, forceClose);
     });
 
-    hook(UI, 'redactorClicked', old => function(event: MouseEvent) {
+    hook(UI, 'redactorClicked', old => function (event: MouseEvent) {
         const selection = window.getSelection();
 
         const collapsed = selection ? selection.isCollapsed : null;
         if (!collapsed) {
             return;
         }
-    
+
         if (!this.Editor.BlockManager.currentBlock) {
             const block = this.Editor.BlockManager.insert();
             Caret.setToBlock(block);
@@ -816,27 +858,27 @@ function loadUsabilityPatches(editor: EditorJS) {
         return old.call(this, event);
     })
 
-    hook(UI, 'removeLoader', old => function() {
+    hook(UI, 'removeLoader', old => function () {
         if ((editor as any).VueEditor) {
             return (editor as any).VueEditor.$once('ready', old.bind(this));
         }
         old.call(this);
     });
 
-    hook(BlockManager, 'clearFocused', () => function(skipCurrentBlock: boolean = false) {
-        (this.blocks as any[]).forEach( (block, index) => {
+    hook(BlockManager, 'clearFocused', () => function (skipCurrentBlock: boolean = false) {
+        (this.blocks as any[]).forEach((block, index) => {
             if (skipCurrentBlock && index === this.currentBlockIndex) return;
             if (!block) return;
             block.focused = false
         });
     });
 
-    hook(Toolbar, 'move', old => function(...args: any[]) {
+    hook(Toolbar, 'move', old => function (...args: any[]) {
         const currentBlock = BlockManager.currentBlock.holder;
         if (!currentBlock) return;
 
         BlockManager.clearFocused(true);
-        
+
         if (currentBlock) currentBlock.focused = true
 
         old.call(this, ...args);
@@ -850,7 +892,7 @@ function loadUsabilityPatches(editor: EditorJS) {
 export default async function patchEditorJS(editor: EditorJS) {
     (editor as any).core.editor = editor;
 
-    hook((editor as any).core, 'start', old => async function() {
+    hook((editor as any).core, 'start', old => async function () {
         await old.call(this).then(() => {
             loadClipboardPatches(editor);
             loadToolPatches(editor);
