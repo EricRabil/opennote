@@ -800,7 +800,7 @@ export default class MathQuillComponent extends Vue {
   justify-content: center;
   align-items: center;
 
-  & > img {
+  & svg {
     height: 75%;
   }
 
