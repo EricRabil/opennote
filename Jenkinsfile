@@ -37,10 +37,10 @@ pipeline {
         archiveArtifacts artifacts: 'dist.tar.gz', fingerprint: true
       }
     }
-    stage('Deploy!') {
+    stage('Deploy') {
       agent {
         node {
-          label 'opennote-client'
+          label 'master'
           customWorkspace '/var/onote/client'
         }
       }
