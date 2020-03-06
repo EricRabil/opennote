@@ -471,6 +471,7 @@ export default class Editor extends Vue {
 
     & .editor-burger {
       margin: 5px;
+      cursor: pointer;
     }
 
     &.controls-left {
