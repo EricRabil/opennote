@@ -69,6 +69,7 @@ import ToolSVG from "@/assets/tool.svg?inline";
 
 import patchEditorJS from "../editorjs-patches";
 import _ from '../util';
+import CalculatorTool from './CalculatorTool.vue';
 
 const Checklist = require("@editorjs/checklist");
 const Code = require("@editorjs/code");
