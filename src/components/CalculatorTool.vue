@@ -71,6 +71,7 @@ export default class CalculatorTool extends Vue {
   async mounted() {
     this.$on("preload", () => {
       this.$emit("setSave", () => this.serialized());
+      this.$emit("setIgnoreBackspace", () => !(this.current === 0 && !this.currentField.latex));
 
       this.$emit("ready");
     });
