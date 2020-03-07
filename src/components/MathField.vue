@@ -97,6 +97,7 @@ export default class MathField extends Vue {
     this.mathField = new MathQuill.MathField(this.$refs.mqMount, {
       handlers: {
         edit: field => {
+          if (this.latex === field.latex()) return;
           this.latex = field.latex();
           this.updateFields();
         },
