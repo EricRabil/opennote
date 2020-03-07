@@ -18,7 +18,7 @@
       ></math-field>
     </div>
     <div class="calculator-graph">
-      <graph :visible="true" :fn="functions"></graph>
+      <graph :visible="true" :fn="functions" :xDomain="[-10,10]" :yDomain="[-20,20]"></graph>
     </div>
   </div>
 </template>
