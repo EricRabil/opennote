@@ -3,7 +3,9 @@
     <div class="calculator-fields">
       <math-field
         v-for="(item, index) of items"
-        :key="`field-${item}`"
+        :key="`field-${index}`"
+        :value="item.value"
+        :renderFormat="item.renderFormat"
         @get:components="$event(mathFields())"
         @insert="insert(index)"
         @focused="current = index"
@@ -12,6 +14,7 @@
         @downOutOf="navigateNext"
         @navigateNext="navigateNext"
         @deleteOutOf="remove"
+        ref="fields"
       ></math-field>
     </div>
     <div class="calculator-graph"></div>
@@ -24,7 +27,13 @@ import MathField from "@/components/MathField.vue";
 import Graph from "@/components/Graph.vue";
 import { API } from "@editorjs/editorjs";
 
-interface SavedData {}
+type FieldData = ReturnType<MathField['serialized']>;
+
+interface SavedData {
+  fields: FieldData[];
+}
+
+const generateBlankFieldData: () => FieldData = () => ({value: "", renderFormat: "dec"});
 
 @Component({
   components: {
@@ -33,6 +42,12 @@ interface SavedData {}
   }
 })
 export default class CalculatorTool extends Vue {
+  $refs: {
+    fields: MathField[];
+  }
+
+  isMounted: boolean = false;
+
   @Prop()
   api: API;
 
@@ -42,11 +57,19 @@ export default class CalculatorTool extends Vue {
   @Prop()
   savedData: SavedData;
 
-  items: number[] = [0];
+  items: FieldData[] = [
+    {
+      value: "",
+      renderFormat: "dec"
+    }
+  ];
+
   current: number = 0;
 
-  mounted() {
+  async mounted() {
     this.$on("preload", () => {
+      this.$emit("setSave", () => this.serialized());
+
       this.$emit("ready");
     });
 
@@ -55,10 +78,25 @@ export default class CalculatorTool extends Vue {
         current
       });
     });
+
+    if (this.savedData && this.savedData.fields && this.savedData.fields.length > 0) {
+      this.items.splice(0);
+      this.items.push(...this.savedData.fields);
+    }
+
+    await this.$nextTick();
+
+    this.isMounted = true;
+  }
+
+  serialized(): SavedData {
+    return {
+      fields: this.mathFields().map(field => field.serialized())
+    }
   }
 
   async insert() {
-    this.items.splice(this.current + 1, 0, this.items.length);
+    this.items.splice(this.current + 1, 0, generateBlankFieldData());
     await this.$nextTick();
     this.navigateNext();
   }
@@ -102,7 +140,7 @@ export default class CalculatorTool extends Vue {
       }
       const difference = Math.abs((this.items.length - 1) - index);
       for (let i = 0; i < difference; i++) {
-        this.items.push(this.items.length);
+        this.items.push(generateBlankFieldData());
       }
       await this.$nextTick();
       return this.navigateTo(index);

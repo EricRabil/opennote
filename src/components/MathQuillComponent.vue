@@ -215,7 +215,7 @@ export default class MathQuillComponent extends Vue {
       this.$emit("setIsAtStart", () => this.$refs.mathField.atStart);
       this.$emit("setIsAtEnd", () => this.$refs.mathField.atEnd);
       this.$emit("setSave", () => ({
-        latex: this.$refs.mathField.serialized.value,
+        latex: this.$refs.mathField.serialized().value,
         renderFormat: this.renderFormat,
         showGraph: this.showGraph,
         xDomain: this.xDomain,

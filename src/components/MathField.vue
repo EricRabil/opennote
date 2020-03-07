@@ -252,7 +252,7 @@ export default class MathField extends Vue {
     this.$emit("unfocused");
   }
 
-  get serialized() {
+  serialized() {
     return {
       value: this.latex,
       renderFormat: this.renderFormat
@@ -294,7 +294,7 @@ export default class MathField extends Vue {
 .mq-calc-root {
   @extend %bg0;
   display: grid;
-  grid-template-columns: minmax(0, 3fr) min-content;
+  grid-template-columns: minmax(0, 3fr) minmax(min-content, 1fr);
   padding: 10px;
 
   @media print {
