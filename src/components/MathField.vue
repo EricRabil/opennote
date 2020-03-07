@@ -254,7 +254,8 @@ export default class MathField extends Vue {
 
   get serialized() {
     return {
-      value: this.latex
+      value: this.latex,
+      renderFormat: this.renderFormat
     };
   }
 
