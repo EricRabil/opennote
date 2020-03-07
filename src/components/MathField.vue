@@ -109,6 +109,7 @@ export default class MathField extends Vue {
             this.$emit("navigatePrevious");
           }
         },
+        deleteOutOf: () => this.$emit("deleteOutOf"),
         enter: field => {
           this.$emit("insert");
         }
