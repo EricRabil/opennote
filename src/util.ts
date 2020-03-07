@@ -180,7 +180,8 @@ export namespace _ {
         /**
          * Creates a standard Graph instance
          */
-        export function createGraph(element: HTMLElement, step: number, { xDomain, yDomain }: DomainConfiguration, fn: Function, { width, height }: { width: number, height: number } = { width: NaN, height: NaN }) {
+        export function createGraph(element: HTMLElement, step: number, { xDomain, yDomain }: DomainConfiguration, fn: Function | Function[], { width, height }: { width: number, height: number } = { width: NaN, height: NaN }) {
+            if (!Array.isArray(fn)) fn = [fn];
             return applyChartFixes(plot({
                 target: element,
                 tip: {
@@ -188,18 +189,16 @@ export namespace _ {
                     yLine: true,
                     renderer: (x, y) => `(${x.toFixed(3)}, ${y.toFixed(3)})`
                 },
-                data: [
-                    {
-                        fn: "fn",
-                        step,
-                        scope: {
-                            fn
-                        },
-                        nSamples: 1000,
-                        sampler: "mathjs",
-                        graphType: "polyline"
-                    }
-                ],
+                data: fn.map(fn => ({
+                    fn: "fn",
+                    step,
+                    scope: {
+                        fn
+                    },
+                    nSamples: 1000,
+                    sampler: "mathjs",
+                    graphType: "polyline"
+                })),
                 grid: true,
                 xAxis: {
                     domain: xDomain

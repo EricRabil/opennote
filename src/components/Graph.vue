@@ -34,7 +34,7 @@ export default class Graph extends Vue {
   step: number;
 
   @Prop()
-  fn: Function;
+  fn: Function | Function[];
 
   @Prop({ default: true })
   visible: boolean;
@@ -130,7 +130,12 @@ export default class Graph extends Vue {
    * Calculates the min/max y-values of the function given the current step and x-bounds
    */
   minMaxY() {
-    return _.MathKit.minMaxOfFn(this.fn, this.stepWithOverride, ...this.xBoundsWithOverrides);
+    let fn = this.fn;
+    if (!Array.isArray(fn)) fn = [fn];
+    const bounds = fn.map(fn => _.MathKit.minMaxOfFn(fn, this.stepWithOverride, ...this.xBoundsWithOverrides));
+    const [ lowerBound ] = bounds.map(([lower]) => lower).sort();
+    const [ upperBound ] = bounds.map(([,upper]) => upper).sort().reverse();
+    return [ lowerBound, upperBound ] as [number, number];
   }
 
   /**
