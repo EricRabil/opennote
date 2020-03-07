@@ -595,7 +595,6 @@ function loadBlockEventPatches(editor: EditorJS) {
         const [block] = args;
         const index = this.indexOf(block);
         if ((this.length - 3 - index) < 3) {
-            console.log(' lets eat');
             const wrapper = UI.nodes.wrapper;
             const parent = wrapper.parentElement;
             parent.scrollTop = parent.scrollHeight;
