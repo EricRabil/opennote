@@ -194,8 +194,6 @@ export default class MathQuillComponent extends Vue {
   }
 
   mounted() {
-    var ready: boolean = false;
-
     this.$refs.mathField.$on("get:components", (resolve: (c: any[]) => any) =>
       this.mathFields().then(resolve)
     );
@@ -276,8 +274,6 @@ export default class MathQuillComponent extends Vue {
 
         return holder;
       });
-
-      this.$emit("ready");
     });
 
     this.$on("updateFields", (resolve?: (value: void) => any) =>
@@ -323,10 +319,6 @@ export default class MathQuillComponent extends Vue {
           button.dataset.mode === mode
         );
       });
-    });
-
-    this.$once("ready", () => {
-      ready = true;
     });
   }
 
