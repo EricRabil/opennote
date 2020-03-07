@@ -86,6 +86,8 @@ export default class MathField extends Vue {
                                 .__ob__
                                 .constructor;
     (math as any).__ob__ = new Observer({});
+
+    delete (math as any).expression.docs;
     math.import(require("mathjs-simple-integral"), {});
     this.mathJS = math;
     _.MathKit.loadPatchedMathFunctions(math, () => this._trigState);
