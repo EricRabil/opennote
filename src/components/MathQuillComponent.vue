@@ -3,67 +3,65 @@
     :class="{'codex-mq-root': true, 'codex-mq-focused': isFocused, 'codex-mq-popout': bigPopout}"
     v-resize="handleResize"
   >
-    <div class="mq-calc-root">
-      <div
-        :class="{'mq-editable-field': true, 'mq-math-mode': true}"
-        ref="mqMount"
-        @focusin="focused"
-        @focusout="unfocused"
-      ></div>
-      <span class="mq-result-view" ref="mqResult" v-show="result !== null"></span>
-    </div>
-    <div class="mq-result-bar text-right mq-result-error" v-show="error !== null">{{error}}</div>
-      <div :class="{'mq-result-bar': true}" v-if="resultFn !== null && showGraph && !graphFailed">
-        <div class="graph-controls">
-          <span class="graph-control-range" style="--variable: 'x';">
-            <span
-              class="graph-control-input"
-              contenteditable="true"
-              @input="domainOverrideChanged('x', 0, $event)"
-              :data-placeholder="+GRAPH_DEFAULTS.x[0].toFixed(3)"
-            >{{xDomain[0] || ''}}</span>
-            <span
-              class="graph-control-input"
-              contenteditable="true"
-              @input="domainOverrideChanged('x', 1, $event)"
-              :data-placeholder="+GRAPH_DEFAULTS.x[1].toFixed(3)"
-            >{{xDomain[1] || ''}}</span>
-          </span>
-          <span class="graph-control-range" style="--variable: 'y';">
-            <span
-              class="graph-control-input"
-              contenteditable="true"
-              @input="domainOverrideChanged('y', 0, $event)"
-              :data-placeholder="+yBoundsWithOverrides[0].toFixed(3)"
-            >{{yDomain[0] || ''}}</span>
-            <span
-              class="graph-control-input"
-              contenteditable="true"
-              @input="domainOverrideChanged('y', 1, $event)"
-              :data-placeholder="+yBoundsWithOverrides[1].toFixed(3)"
-            >{{yDomain[1] || ''}}</span>
-          </span>
-          <span class="graph-control-number" style="--variable: 'step';">
-            <span
-              class="graph-control-input"
-              contenteditable="true"
-              @input="stepOverrideChanged"
-              :data-placeholder="GRAPH_DEFAULTS.step"
-            >{{step || ''}}</span>
-          </span>
-        </div>
+    <math-field
+      ref="mathField"
+      @focused="focused"
+      @unfocused="unfocused"
+      :value="savedData.latex"
+      :renderFormat="renderFormat"
+      :trigState="trigState"
+    ></math-field>
+    <div :class="{'mq-result-bar': true}" v-if="resultFn !== null && showGraph && !graphFailed">
+      <div class="graph-controls">
+        <span class="graph-control-range" style="--variable: 'x';">
+          <span
+            class="graph-control-input"
+            contenteditable="true"
+            @input="domainOverrideChanged('x', 0, $event)"
+            :data-placeholder="+GRAPH_DEFAULTS.x[0].toFixed(3)"
+          >{{xDomain[0] || ''}}</span>
+          <span
+            class="graph-control-input"
+            contenteditable="true"
+            @input="domainOverrideChanged('x', 1, $event)"
+            :data-placeholder="+GRAPH_DEFAULTS.x[1].toFixed(3)"
+          >{{xDomain[1] || ''}}</span>
+        </span>
+        <span class="graph-control-range" style="--variable: 'y';">
+          <span
+            class="graph-control-input"
+            contenteditable="true"
+            @input="domainOverrideChanged('y', 0, $event)"
+            :data-placeholder="+yBoundsWithOverrides[0].toFixed(3)"
+          >{{yDomain[0] || ''}}</span>
+          <span
+            class="graph-control-input"
+            contenteditable="true"
+            @input="domainOverrideChanged('y', 1, $event)"
+            :data-placeholder="+yBoundsWithOverrides[1].toFixed(3)"
+          >{{yDomain[1] || ''}}</span>
+        </span>
+        <span class="graph-control-number" style="--variable: 'step';">
+          <span
+            class="graph-control-input"
+            contenteditable="true"
+            @input="stepOverrideChanged"
+            :data-placeholder="GRAPH_DEFAULTS.step"
+          >{{step || ''}}</span>
+        </span>
       </div>
-      <graph
-        ref="graph"
-        class="graph-container"
-        :visible="resultFn !== null && showGraph"
-        :fn="resultFn"
-        :step="step"
-        :xDomain="xDomain"
-        :yDomain="yDomain"
-      ></graph>
-      <GraphSVG ref="graphSVG" v-show="false" />
-    <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latex"></mq-paste-data>
+    </div>
+    <graph
+      ref="graph"
+      class="graph-container"
+      :visible="resultFn !== null && showGraph"
+      :fn="resultFn"
+      :step="step"
+      :xDomain="xDomain"
+      :yDomain="yDomain"
+    ></graph>
+    <GraphSVG ref="graphSVG" v-show="false" />
+    <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latestLatex"></mq-paste-data>
   </div>
 </template>
 
@@ -82,6 +80,7 @@ import _ from "../util";
 import { MathJsStatic } from "mathjs";
 
 import Graph, { GRAPH_DEFAULTS } from "@/components/Graph.vue";
+import MathField, { RenderFormat } from "@/components/MathField.vue";
 
 type TypeWithGeneric<T> = Partial<T>;
 type extractGeneric<Type> = Type extends TypeWithGeneric<infer X> ? X : never;
@@ -97,19 +96,15 @@ Vue.config.ignoredElements.push(PASTE_DATA_TAG);
   components: {
     FullscreenSVG,
     GraphSVG,
-    Graph
+    Graph,
+    MathField
   }
 })
 export default class MathQuillComponent extends Vue {
-  renderFormat: "dec" | "frac" = "dec";
+  renderFormat: RenderFormat = "dec";
   isFocused: boolean = false;
-  latex: string | null = null;
-  lastScope: any = {};
-  resultFn: Function | null = null;
-  result: string | null = null;
   showGraph: boolean = false;
   chart: ReturnType<typeof import("function-plot/lib/index.js")> | null = null;
-  error: string | null = null;
   graphFailed: boolean = false;
   trigState: _.MathKit.TrigState | null = null;
   settingsButtons: HTMLSpanElement[] = [];
@@ -120,7 +115,7 @@ export default class MathQuillComponent extends Vue {
   @Prop()
   savedData: {
     latex: string | null;
-    renderFormat: "dec" | "frac";
+    renderFormat: RenderFormat;
     showGraph: boolean;
     xDomain: [number, number];
     yDomain: [number, number];
@@ -135,17 +130,16 @@ export default class MathQuillComponent extends Vue {
   internal: any;
 
   $refs: {
-    mqMount: HTMLDivElement;
-    mqResult: HTMLSpanElement;
     graph: Graph;
+    mathField: MathField;
     graphSVG: SVGSVGElement;
   };
 
-  mathField: MathQuill.MathField;
-  resultView: MathQuill.StaticMath;
-  mathJS: MathJsStatic;
   fracToggleButton: HTMLElement;
   graphControlButton: HTMLElement;
+
+  resultFn: Function | null = null;
+  latestLatex: string | null = null;
 
   oldWidth: number | null = null;
 
@@ -188,68 +182,42 @@ export default class MathQuillComponent extends Vue {
     }
   }
 
-  created() {
-    const math = (this.mathJS = mathjs.create(mathjs.all, {}) as any);
-    math.import(require("mathjs-simple-integral" as any), {});
-    _.MathKit.loadPatchedMathFunctions(math, () => this.trigStateWithOverrides);
-  }
-
   get trigStateWithOverrides() {
     return this.trigState || this.$store.state.preferences.defaultTrigState;
   }
 
-  mounted() {
-    var ready: boolean = false;
-    this.mathField = new MathQuill.MathField(this.$refs.mqMount, {
-      handlers: {
-        edit: field => {
-          this.latex = field.latex();
-          if (!ready) return;
-          this.updateQuills();
-        },
-        upOutOf: () => this.$emit("upOutOf"),
-        downOutOf: () => this.$emit("downOutOf"),
-        moveOutOf: (dir, field) => {
-          if (dir == "1") {
-            // move right
-            this.$emit("navigateNext");
-          } else {
-            // move left
-            this.$emit("navigatePrevious");
-          }
-        },
-        enter: field => {
-          this.$emit("insert");
-        }
-      },
-      autoCommands: "int pi sqrt sum"
-    });
-
-    this.resultView = new MathQuill.StaticMath(this.$refs.mqResult);
-
+  created() {
     Object.keys(this.savedData).forEach(key => {
+      if (key === "latex") return;
       Vue.set(this, key, (this.savedData as any)[key]);
     });
+  }
 
-    this.mathField.write(this.latex || "");
+  mounted() {
+    var ready: boolean = false;
+
+    this.$refs.mathField.$on("get:components", (resolve: (c: any[]) => any) =>
+      this.mathFields().then(resolve)
+    );
+
+    this.$refs.mathField.$on("upOutOf", () => this.$emit("upOutOf"));
+    this.$refs.mathField.$on("downOutOf", () => this.$emit("downOutOf"));
+    this.$refs.mathField.$on("navigateNext", () => this.$emit("navigateNext"));
+    this.$refs.mathField.$on("navigatePrevious", () =>
+      this.$emit("navigatePrevious")
+    );
+    this.$refs.mathField.$on("insert", () => this.$emit("insert"));
+
+    this.$refs.mathField.$on("update:result", (result: string | null) => this.latestLatex = result);
+    this.$refs.mathField.$on("update:resultFn", (resultFn: Function | null) => this.resultFn = resultFn);
 
     this.$on("preload", () => {
-      this.$emit("setIgnoreBackspace", () => (this.latex || "").length > 0);
-      this.$emit("setIsEmpty", () => (this.latex || "").length === 0);
-      this.$emit(
-        "setIsAtStart",
-        () =>
-          this.mqRootBlock.firstElementChild &&
-          this.mqRootBlock.firstElementChild.classList.contains("mq-cursor")
-      );
-      this.$emit(
-        "setIsAtEnd",
-        () =>
-          this.mqRootBlock.lastElementChild &&
-          this.mqRootBlock.lastElementChild.classList.contains("mq-cursor")
-      );
+      this.$emit("setIgnoreBackspace", () => !this.$refs.mathField.isEmpty);
+      this.$emit("setIsEmpty", () => this.$refs.mathField.isEmpty);
+      this.$emit("setIsAtStart", () => this.$refs.mathField.atStart);
+      this.$emit("setIsAtEnd", () => this.$refs.mathField.atEnd);
       this.$emit("setSave", () => ({
-        latex: this.latex,
+        latex: this.$refs.mathField.serialized.value,
         renderFormat: this.renderFormat,
         showGraph: this.showGraph,
         xDomain: this.xDomain,
@@ -267,7 +235,7 @@ export default class MathQuillComponent extends Vue {
           button.classList.add(this.api.styles.settingsButton);
           button.classList.add("mq-trig-mode-control");
 
-          children.forEach(c => (c as HTMLElement).style.display = 'unset');
+          children.forEach(c => ((c as HTMLElement).style.display = "unset"));
 
           button.append(...children);
 
@@ -298,7 +266,11 @@ export default class MathQuillComponent extends Vue {
         this.updateFracToggleButton();
 
         holder
-          .appendChild((this.graphControlButton = createButton(this.$refs.graphSVG.cloneNode(true))))
+          .appendChild(
+            (this.graphControlButton = createButton(
+              this.$refs.graphSVG.cloneNode(true)
+            ))
+          )
           .addEventListener("click", () => this.toggleGraph());
         this.updateGraphToggleButton();
 
@@ -308,10 +280,11 @@ export default class MathQuillComponent extends Vue {
       this.$emit("ready");
     });
 
-    this.$on("updateQuills", (resolve?: (value: void) => any) =>
-      this.updateQuills().then(resolve)
+    this.$on("updateFields", (resolve?: (value: void) => any) =>
+      this.$refs.mathField.updateFields().then(resolve)
     );
-    this.$on("moved", () => this.updateQuills());
+
+    this.$on("moved", () => this.$refs.mathField.updateFields());
     this.$on("reflow", () => this.reflow());
 
     this.$refs.graph.$on(
@@ -325,11 +298,10 @@ export default class MathQuillComponent extends Vue {
       const latex = data.getAttribute("latex");
       const showGraph = data.getAttribute("showGraph");
 
-      this.mathField.write(latex || "");
-      this.updateQuills().then(() => {
-        this.renderFormat = (renderFormat as any) || this.renderFormat;
-        this.showGraph = Boolean(showGraph);
-      });
+      this.$refs.mathField.$emit("set:latex", latex || "");
+
+      this.renderFormat = (renderFormat as any) || this.renderFormat;
+      this.showGraph = Boolean(showGraph);
     });
 
     this.$on("rendered", (el: HTMLElement) => {
@@ -337,13 +309,7 @@ export default class MathQuillComponent extends Vue {
     });
 
     this.$watch("renderFormat", () => {
-      if (!this.result) return;
-      this.updateResultView(this.result);
       this.updateFracToggleButton();
-    });
-
-    this.$watch("result", result => {
-      this.updateResultView(result);
     });
 
     this.$watch("resultFn", fn => {
@@ -357,8 +323,6 @@ export default class MathQuillComponent extends Vue {
           button.dataset.mode === mode
         );
       });
-
-      await this.updateQuills();
     });
 
     this.$once("ready", () => {
@@ -367,18 +331,11 @@ export default class MathQuillComponent extends Vue {
   }
 
   updated() {
-    if (this.resultView) {
-      this.resultView.reflow();
-    }
+    this.reflow();
   }
 
   reflow() {
-    this.resultView && this.resultView.reflow();
-    this.mathField && this.mathField.reflow();
-  }
-
-  get mqRootBlock(): HTMLSpanElement {
-    return this.$refs.mqMount.querySelector(".mq-root-block") as any;
+    this.$refs.mathField.$emit("reflow");
   }
 
   /**
@@ -410,18 +367,6 @@ export default class MathQuillComponent extends Vue {
     this.isFocused = false;
     if (this.isActive) return;
     this.$emit("showToolbar");
-  }
-
-  /**
-   * Updates quills in their DOM order
-   */
-  async updateQuills() {
-    nerdamer.clearVars();
-    const components = await this.components();
-    const scope = {};
-    for (let c of components) {
-      await c.calc(scope);
-    }
   }
 
   /**
@@ -505,65 +450,9 @@ export default class MathQuillComponent extends Vue {
     return this.$refs.graph.yBoundsWithOverrides;
   }
 
-  /**
-   * Calculates the result of this quill using the given scope
-   */
-  async calc(scope: any) {
-    if (!this.latex) {
-      // reset the component, its empty
-      this.result = this.resultFn = null;
-      return;
-    }
-
-    this.lastScope = Object.assign({}, scope);
-    this.error = null;
-
-    const { result, resultFn } = await _.MathKit.calculateWithScope(
-      this.latex,
-      scope,
-      this.mathJS
-    );
-
-    this.resultFn = resultFn;
-
-    return (this.result = result);
-  }
-
   toggleGraph() {
     if (!this.canToggleGraph) return;
     this.showGraph = !this.showGraph;
-  }
-
-  updateResultView(result: any) {
-    switch (this.renderFormat) {
-      case "frac":
-        var frac = _.MathKit.toFracLatex(result);
-        if (frac) {
-          this.resultView.latex(frac);
-          this.reflow();
-          break;
-        }
-      case "dec":
-      default:
-        try {
-          if (isNaN(result)) {
-            const oldResult = result;
-            result = nerdamer(oldResult).toTeX();
-          }
-          if (typeof result.toTeX === "function") result = result.toTeX();
-          if (typeof result.toTex === "function") result = result.toTex();
-        } catch (e) {
-          console.debug("failed to render result", e, {
-            result,
-            latex: this.latex
-          });
-          result = null;
-          break;
-        }
-        this.resultView.latex(result);
-        this.reflow();
-        break;
-    }
   }
 
   toggleRenderFormat() {
@@ -575,6 +464,13 @@ export default class MathQuillComponent extends Vue {
    */
   components(): Promise<MathQuillComponent[]> {
     return new Promise(resolve => this.$emit("get:components", resolve));
+  }
+
+  /**
+   * Gets all MathField children of components()
+   */
+  mathFields(): Promise<MathField[]> {
+    return this.components().then(c => c.map(c => c.$refs.mathField));
   }
 }
 </script>
@@ -611,91 +507,6 @@ export default class MathQuillComponent extends Vue {
 
   @media print {
     @include schemeResponsive("border", "border");
-  }
-
-  .mq-calc-root {
-    @extend %bg0;
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) min-content;
-    padding: 10px;
-
-    @media print {
-      @include schemeResponsive("border-bottom", "border");
-    }
-
-    .mq-math-mode {
-      display: inline-flex;
-      align-items: center;
-    }
-
-    & > .mq-result-view {
-      text-align: right;
-      display: flex;
-      flex-flow: row-reverse;
-      align-items: center;
-      margin-right: 10px;
-      z-index: 10;
-
-      @include customPropSuffixedResponsive(
-        "box-shadow",
-        -10px 0px 3px 0px,
-        "box-shadow-color"
-      );
-
-      @media print {
-        box-shadow: none;
-      }
-
-      & > .mq-root-block {
-        @include scrollbar();
-        width: min-content !important;
-        overflow-x: scroll;
-      }
-
-      &:not(.mq-math-mode) {
-        &::after {
-          margin-right: 5px;
-        }
-      }
-
-      &::after {
-        content: "= ";
-      }
-    }
-  }
-
-  .mq-editable-field {
-    @include scrollbar();
-
-    flex-grow: 1;
-    border: none;
-    overflow-x: scroll;
-    overflow-y: hidden;
-
-    .mq-sup,
-    .mq-sub,
-    .mq-sup-inner {
-      &.mq-empty {
-        @extend %borderAlt1;
-        background: none;
-        &::after {
-          font-size: 10px;
-        }
-      }
-    }
-
-    &.mq-focused {
-      box-shadow: none !important;
-    }
-
-    .mq-root-block .mq-cursor {
-      @extend %borderLeftAlt;
-    }
-
-    & > .mq-root-block {
-      overflow: scroll;
-      display: block;
-    }
   }
 
   svg.function-plot {
@@ -804,6 +615,21 @@ export default class MathQuillComponent extends Vue {
     height: 75%;
   }
 
+  &.strikethrough {
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: black;
+      transform: rotate(-7deg);
+    }
+  }
+
   &.disabled {
     cursor: not-allowed;
     opacity: 0.5;
@@ -822,13 +648,14 @@ export default class MathQuillComponent extends Vue {
   @extend %bgAlt1;
   @extend %text;
   @extend %border;
-  box-shadow: 0 3px 15px 6px rgba(13,20,33,.13);
+  box-shadow: 0 3px 15px 6px rgba(13, 20, 33, 0.13);
 
   svg {
     @extend %fill;
   }
 
-  .cdx-settings-button, .ce-settings__button {
+  .cdx-settings-button,
+  .ce-settings__button {
     @extend %text;
     &:hover {
       @extend %bgAlt2;

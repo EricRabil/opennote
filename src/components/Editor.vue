@@ -239,7 +239,9 @@ export default class Editor extends Vue {
       .editor as any).core.moduleInstances.BlockManager.blocks.find(
       (block: any) => block.name === "math"
     );
-    if (quill) await quill.tool.send('updateQuills');
+    if (quill) {
+      await quill.tool.send('updateFields');
+    }
   }
 
   get quills() {
