@@ -1,9 +1,42 @@
 import { BlockTool, BlockToolConstructable, PasteConfig, PasteEvent, SanitizerConfig } from '@editorjs/editorjs';
-import MathQuillComponent from '@/components/MathQuillComponent.vue';
 import { VueConstructor } from 'vue/types/umd';
 
 type FirstArgument<T> = T extends new (arg1: infer U, ...args: any[]) => any ? U : any;
 
+/**
+ * Implementing a Vue component that supports this API
+ * 
+ * This API is entirely structured around Vue events and props.
+ * 
+ * The following calls within your component are supported:
+ * 
+ * $emit
+ *  - ready = call this when your component is done initializing, after preload has completed
+ *  - insert = inserts a new block following the current block
+ *  - showToolbar = shows the toolbar
+ *  - hidePlusButton = hides the plus button
+ *  - showPlusButton = shows the plus button
+ *  - navigateNext = moves to the next block [low level]
+ *  - navigatePrevious = moves to the previous block [low level]
+ *  - "get:components"(resolve: (components: Vue[]) => any) = returns all vue components wrapped around this tool
+ *  - downOutOf = moves to the next block, with added functionality to ensure proper toolbar placement
+ *  - upOutOf = moves to the previous block, with added checks for editor functionality
+ *  - set* = these allow you to define certain EditorJS-defined properties on the tool wrapper
+ *      - setIgnoreBackspace(fn: () => boolean) = return true/false depending on if backspace should be ignored
+ *      - setIsEmpty(fn: () => boolean) = return whether component is empty
+ *      - setIsAtStart(fn: () => boolean) = return whether caret is at start of component
+ *      - setIsAtEnd(fn: () => boolean) = return whether caret is at end of component
+ *      - setSave(fn: () => any) = return serialized data for storage
+ *      - setSanitizer(config: SanitizerConfig) = set sanitizer config
+ *      - setRenderSettings(fn: () => HTMLElement) = set the function that renders the settings element
+ *  
+ * $on
+ *  - preload = called when component should initialize, following the EditorJS lifecycle
+ *  - parsePaste(ev: PasteEvent) = called when component was just pasted
+ *  - moved = called when the component was moved within the editor
+ *  - rendered = called when EditorJS has rendered the component
+ *  - [any] = The tool wrapper has a function called send(message: string, ...data: any[], resolve) which passes its arguments to the component in an $emit event. Please call resolve once handling is complete.
+ */
 export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToolConstructable['toolbox'], pasteConfig: PasteConfig = {}) {
     return class VueTool implements BlockTool {
         constructor(private config: FirstArgument<BlockToolConstructable>) {
