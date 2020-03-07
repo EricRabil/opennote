@@ -132,6 +132,12 @@ export default class CalculatorTool extends Vue {
   }
 
   async navigateTo(index: number, force: boolean = false): Promise<void> {
+    if (index === -1) {
+      // navigate previous (outer)
+      this.$emit('navigatePrevious');
+      return;
+    }
+
     const fields = this.mathFields();
     let next = fields[index];
     if (!next) {
