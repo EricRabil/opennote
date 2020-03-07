@@ -17,7 +17,9 @@
         ref="fields"
       ></math-field>
     </div>
-    <div class="calculator-graph"></div>
+    <div class="calculator-graph">
+      <graph :visible="true" :fn="functions"></graph>
+    </div>
   </div>
 </template>
 
@@ -117,6 +119,11 @@ export default class CalculatorTool extends Vue {
 
   focusCurrent() {
     this.currentField.mathField.focus();
+  }
+
+  get functions() {
+    if (!this.isMounted) return [];
+    return this.$refs.fields.map(field => field.resultFn).filter(fn => !!fn);
   }
 
   get currentField() {
