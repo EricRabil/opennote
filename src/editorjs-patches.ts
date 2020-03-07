@@ -608,7 +608,7 @@ function loadBlockEventPatches(editor: EditorJS) {
     hook(BlockEvents, 'arrowLeftAndUp', old => function (event: KeyboardEvent) {
         const { currentBlock } = this.Editor.BlockManager;
         const direction = event.keyCode === 38 ? 'up' : 'left';
-        if (currentBlock.tool && currentBlock.tool.keyOverrides && currentBlock.tool.keyOverrides.indexOf(direction) > 0) return;
+        if (currentBlock.tool && currentBlock.tool.keyOverrides && currentBlock.tool.keyOverrides.includes(direction)) return;
         old.call(this, event);
     });
 
