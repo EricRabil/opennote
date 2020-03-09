@@ -652,6 +652,9 @@ export default class MathQuillComponent extends Vue {
   @extend %border;
   box-shadow: 0 3px 15px 6px rgba(13, 20, 33, 0.13);
 
+  bottom: unset !important;
+  top: unset !important;
+
   svg {
     @extend %fill;
   }
