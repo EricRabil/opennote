@@ -31,6 +31,7 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 import MathField from "@/components/MathField.vue";
 import Graph from "@/components/Graph.vue";
 import { API } from "@editorjs/editorjs";
+import _ from '../util';
 
 type FieldData = ReturnType<MathField["serialized"]>;
 
@@ -197,6 +198,10 @@ export default class CalculatorTool extends Vue {
       }
       await this.$nextTick();
       return this.navigateTo(index);
+    }
+
+    if (!_.Dom.isElementVisibleRelativeToParent(next.$el as HTMLElement)) {
+      next.$el.scrollIntoView({ block: 'nearest' });
     }
     next.mathField.focus();
   }
