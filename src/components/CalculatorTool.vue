@@ -32,13 +32,16 @@ import MathField from "@/components/MathField.vue";
 import Graph from "@/components/Graph.vue";
 import { API } from "@editorjs/editorjs";
 
-type FieldData = ReturnType<MathField['serialized']>;
+type FieldData = ReturnType<MathField["serialized"]>;
 
 interface SavedData {
   fields: FieldData[];
 }
 
-const generateBlankFieldData: () => FieldData = () => ({value: "", renderFormat: "dec"});
+const generateBlankFieldData: () => FieldData = () => ({
+  value: "",
+  renderFormat: "dec"
+});
 
 @Component({
   components: {
@@ -96,7 +99,11 @@ export default class CalculatorTool extends Vue {
       });
     });
 
-    if (this.savedData && this.savedData.fields && this.savedData.fields.length > 0) {
+    if (
+      this.savedData &&
+      this.savedData.fields &&
+      this.savedData.fields.length > 0
+    ) {
       this.items.splice(0);
       this.items.push(...this.savedData.fields);
     }
@@ -111,17 +118,17 @@ export default class CalculatorTool extends Vue {
   serialized(): SavedData {
     return {
       fields: this.mathFields().map(field => field.serialized())
-    }
+    };
   }
 
-  async insert() {
-    this.items.splice(this.current + 1, 0, generateBlankFieldData());
+  async insert(atIndex: number = this.current) {
+    this.items.splice(atIndex + 1, 0, generateBlankFieldData());
     await this.$nextTick();
     this.navigateNext();
   }
 
-  async remove() {
-    this.items.splice(this.current, 1);
+  async remove(atIndex: number = this.current) {
+    this.items.splice(atIndex, 1);
     await this.$nextTick();
     this.navigatePrevious();
   }
@@ -175,7 +182,7 @@ export default class CalculatorTool extends Vue {
         );
         return;
       }
-      const difference = Math.abs((this.items.length - 1) - index);
+      const difference = Math.abs(this.items.length - 1 - index);
       for (let i = 0; i < difference; i++) {
         this.items.push(generateBlankFieldData());
       }
@@ -186,13 +193,15 @@ export default class CalculatorTool extends Vue {
   }
 
   mathFields(): MathField[] {
-    return this.$children.filter(c => c instanceof MathField).sort((a, b) => {
-      if (a === b) return 0;
-      if (a.$el.compareDocumentPosition(b.$el) & 2) {
-        return 1;
-      }
-      return -1;
-    }) as MathField[];
+    return this.$children
+      .filter(c => c instanceof MathField)
+      .sort((a, b) => {
+        if (a === b) return 0;
+        if (a.$el.compareDocumentPosition(b.$el) & 2) {
+          return 1;
+        }
+        return -1;
+      }) as MathField[];
   }
 }
 </script>

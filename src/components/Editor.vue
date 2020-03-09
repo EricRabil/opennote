@@ -2,22 +2,24 @@
   <div class="editor-view">
     <div class="editor-meta-view" v-if="note">
       <span class="controls-left">
-        <span v-if="showBurger" class="editor-burger" @click="$emit('burgerClick')">
-          &#9776;
-        </span>
+        <span v-if="showBurger" class="editor-burger" @click="$emit('burgerClick')">&#9776;</span>
         <span class="labels-control labels-control-btn" @click="exporter(noteID)">
           <span class="label-text">Export</span>
           <UploadSVG class="alt-icon icon-invert" />
         </span>
       </span>
-      <span class="note-name">
-        {{name}}
-      </span>
+      <span class="note-name">{{name}}</span>
       <span class="controls-right">
-        <span :class="{'labels-control': true, 'hiding-labels': !showRibbon}" @click="showRibbon = !showRibbon">
+        <span
+          :class="{'labels-control': true, 'hiding-labels': !showRibbon}"
+          @click="showRibbon = !showRibbon"
+        >
           <span class="label-text no-kill">Toolbar</span>
         </span>
-        <span :class="{'labels-control': true, 'hiding-labels': !showLabels}" @click="showLabels = !showLabels">
+        <span
+          :class="{'labels-control': true, 'hiding-labels': !showLabels}"
+          @click="showLabels = !showLabels"
+        >
           <span class="label-text no-kill">Labels</span>
         </span>
       </span>
@@ -36,8 +38,18 @@
             <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
             <span class="ribbon-icon" v-html="value.icon"></span>
           </span>
-          <span :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']" :key="`${key}-drawer`" v-if="key in toolDrawers">
-            <span class="drawer-toggle" :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`" @mouseenter="mouseenter" @mouseleave="mouseleave" @click="toggleDrawer(key)"></span>
+          <span
+            :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']"
+            :key="`${key}-drawer`"
+            v-if="key in toolDrawers"
+          >
+            <span
+              class="drawer-toggle"
+              :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`"
+              @mouseenter="mouseenter"
+              @mouseleave="mouseleave"
+              @click="toggleDrawer(key)"
+            ></span>
             <span
               :class="{'ribbon-item': true, active: sliderItemKey === active}"
               :data-tooltip="showLabels ? '' : toolboxData[sliderItemKey].title"
@@ -492,7 +504,8 @@ export default class Editor extends Vue {
     text-align: center;
   }
 
-  & > .controls-left, & > .controls-right {
+  & > .controls-left,
+  & > .controls-right {
     display: flex;
     flex-flow: row;
     align-items: center;
@@ -536,7 +549,8 @@ export default class Editor extends Vue {
     margin: 0 2.5px;
     transition: color 0.0625s linear;
 
-    &.active, &:hover {
+    &.active,
+    &:hover {
       @extend %textAlt2;
       cursor: pointer;
     }
@@ -561,7 +575,8 @@ export default class Editor extends Vue {
     }
   }
 
-  & .ce-inline-toolbar__dropdown, & .ce-inline-tool {
+  & .ce-inline-toolbar__dropdown,
+  & .ce-inline-tool {
     &:hover {
       @extend %bgAlt2;
     }
@@ -608,7 +623,9 @@ export default class Editor extends Vue {
   }
 
   @media print {
-    &, .codex-editor, .codex-editor__redactor {
+    &,
+    .codex-editor,
+    .codex-editor__redactor {
       border: none !important;
       height: unset;
       overflow-y: visible;
@@ -667,12 +684,12 @@ export default class Editor extends Vue {
       right: 10px;
     }
 
-  //   .editor-container .codex-editor .codex-editor__redactor {
-  //     .ce-block.ce-block--focused {
-  //       margin: 0;
-  //       padding: 0;
-  //     }
-  //   }
+    //   .editor-container .codex-editor .codex-editor__redactor {
+    //     .ce-block.ce-block--focused {
+    //       margin: 0;
+    //       padding: 0;
+    //     }
+    //   }
   }
 }
 
@@ -703,7 +720,7 @@ export default class Editor extends Vue {
   @extend %bg;
   @extend %text;
   @extend %fill;
-  
+
   @include schemeResponsive("box-shadow", "shadow-bottom");
 
   @media print {
@@ -741,11 +758,11 @@ export default class Editor extends Vue {
       }
 
       &.drawer-closed .drawer-toggle::after {
-        content: '\00bb';
+        content: "\00bb";
       }
-      
+
       &:not(.drawer-closed) .drawer-toggle::after {
-        content: '\00ab';
+        content: "\00ab";
       }
 
       &.drawer-closed .ribbon-item {
@@ -753,7 +770,8 @@ export default class Editor extends Vue {
       }
     }
 
-    & span.ribbon-item, & span.drawer-toggle {
+    & span.ribbon-item,
+    & span.drawer-toggle {
       &:hover {
         @extend %bg0;
         cursor: pointer;
@@ -821,7 +839,6 @@ export default class Editor extends Vue {
   }
 
   .link-tool__anchor {
-
   }
 }
 </style>
