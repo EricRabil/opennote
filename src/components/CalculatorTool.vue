@@ -192,10 +192,11 @@ export default class CalculatorTool extends Vue {
   @extend %bg0;
 
   display: grid;
-  grid-template-columns: 250px 1fr;
-  min-height: 300px;
+  grid-template-columns: 250px minmax(0, 1fr);
+  height: 360px;
   border-radius: 5px;
   overflow: hidden;
+  width: 100%;
 
   & > .calculator-fields {
     @extend %bg1;
