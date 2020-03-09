@@ -266,6 +266,31 @@ export namespace _ {
             return pos;
         }
 
+        /**
+         * https://stackoverflow.com/a/37285344
+         */
+        export function isElementVisibleRelativeToParent(element: HTMLElement, partial: boolean = false) {
+            const container = element.parentElement!;
+
+            //Get container properties
+            let cTop = container.scrollTop;
+            let cBottom = cTop + container.clientHeight;
+
+            //Get element properties
+            let eTop = element.offsetTop;
+            let eBottom = eTop + element.clientHeight;
+
+            //Check if in view    
+            let isTotal = (eTop >= cTop && eBottom <= cBottom);
+            let isPartial = partial && (
+                (eTop < cTop && eBottom > cTop) ||
+                (eBottom > cBottom && eTop < cBottom)
+            );
+
+            //Return outcome
+            return (isTotal || isPartial);
+        }
+
         export function isElementVisible(el: HTMLElement) {
             const rect = el.getBoundingClientRect();
             const { top: elemTop, bottom: elemBottom } = rect;
