@@ -1233,6 +1233,12 @@
         }
       }
     },
+    "@types/body-scroll-lock": {
+      "version": "2.6.1",
+      "resolved": "https://registry.npmjs.org/@types/body-scroll-lock/-/body-scroll-lock-2.6.1.tgz",
+      "integrity": "sha512-PPFm/2A6LfKmSpvMg58gHtSqwwMChbcKKGhSCRIhY4MyFzhY8moAN6HrTCpOeZQUqkFdTFfMqr7njeqGLKt72Q==",
+      "dev": true
+    },
     "@types/chai": {
       "version": "4.2.9",
       "resolved": "https://registry.npmjs.org/@types/chai/-/chai-4.2.9.tgz",
@@ -3219,6 +3225,11 @@
           "dev": true
         }
       }
+    },
+    "body-scroll-lock": {
+      "version": "2.6.4",
+      "resolved": "https://registry.npmjs.org/body-scroll-lock/-/body-scroll-lock-2.6.4.tgz",
+      "integrity": "sha512-NP08WsovlmxEoZP9pdlqrE+AhNaivlTrz9a0FF37BQsnOrpN48eNqivKkE7SYpM9N+YIPjsdVzfLAUQDBm6OQw=="
     },
     "bonjour": {
       "version": "3.5.0",

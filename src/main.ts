@@ -22,6 +22,18 @@ Vue.config.productionTip = false;
 
 window.MathQuill = MathQuill.getInterface(1);
 
+window.addEventListener(
+  "touchmove",
+  function(event) {
+      if (typeof (event as any).scale !== "number") return;
+      console.log(event);
+      if ((event as any).scale !== 1) {
+          event.preventDefault();
+      }
+  },
+  { passive: false }
+);
+
 new Vue({
   router,
   store,

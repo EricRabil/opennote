@@ -1,11 +1,12 @@
 <template>
-  <div ref="graph" v-show="visible">
+  <div class="graph-root" ref="graph" v-show="visible">
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
 import plot from "function-plot/lib/index.js";
+import * as bodyScrollLock from "body-scroll-lock";
 import _ from '../util';
 
 type Chart = ReturnType<typeof plot>;
@@ -121,6 +122,15 @@ export default class Graph extends Vue {
 
   mounted() {
     this.updateGraph();
+    bodyScrollLock.disableBodyScroll(this.$el, {
+      allowTouchMove: el => {
+        return !_.Dom.hasAncestor(el, this.$el);
+      }
+    });
+  }
+
+  beforeDestroy() {
+    bodyScrollLock.enableBodyScroll(this.$el);
   }
 
   /**
@@ -253,3 +263,9 @@ export default class Graph extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+.graph-root {
+  touch-action: none;
+}
+</style>
