@@ -83,7 +83,7 @@ export default class CalculatorTool extends Vue {
   async mounted() {
     this.$on("preload", () => {
       this.$emit("setSave", () => this.serialized());
-      this.$emit("setIgnoreBackspace", () => !(this.current === 0 && !this.currentField.latex));
+      this.$emit("setIgnoreBackspace", () => !this.isEmpty);
 
       this.$emit("ready");
     });
@@ -160,6 +160,10 @@ export default class CalculatorTool extends Vue {
 
   get currentField() {
     return this.mathFields()[this.current];
+  }
+
+  get isEmpty() {
+    return this.current === 0 && (!this.currentField.latex || this.currentField.latex.length === 0);
   }
 
   async navigateTo(index: number, force: boolean = false): Promise<void> {
