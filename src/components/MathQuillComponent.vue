@@ -176,13 +176,13 @@ export default class MathQuillComponent extends Vue {
     );
   }
 
+  lastWidth: number = NaN;
+
   handleResize(args: any) {
-    if (this.oldWidth !== null && args.width === this.oldWidth) return;
-    this.oldWidth = args.width;
-    console.log(args.height);
-    if (this.showGraph) {
-      this.$refs.graph.$emit("resize");
-    }
+    if (isNaN(this.lastWidth)) this.lastWidth = this.$el.clientWidth;
+    else if (this.lastWidth === this.$el.clientWidth) return;
+    else this.lastWidth = this.$el.clientWidth;
+    this.$refs.graph.updateGraph(true);
   }
 
   get trigStateWithOverrides() {
@@ -485,6 +485,10 @@ export default class MathQuillComponent extends Vue {
   transition: border 0.5s linear;
   border-radius: 5px;
   overflow: hidden;
+
+  .graph-container {
+    height: 350px;
+  }
 
   &.codex-mq-popout {
     height: 75vh;
