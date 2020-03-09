@@ -153,7 +153,7 @@ export default class CalculatorTool extends Vue {
     if (!this.lastWidth) this.lastWidth = this.$el.clientWidth;
     else if (this.lastWidth === this.$el.clientWidth) return;
     else this.lastWidth = this.$el.clientWidth;
-    this.$refs.graph.updateGraph();
+    this.$refs.graph.updateGraph(true);
   }
 
   get functions() {
