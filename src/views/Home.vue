@@ -446,7 +446,7 @@ export default class Home extends Vue {
 .home {
   overflow: hidden;
   display: grid;
-  grid-template-columns: 250px auto;
+  grid-template-columns: 250px minmax(0, 1fr);
   grid-template-rows: 100%;
   height: -webkit-fill-available;
 
