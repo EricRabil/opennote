@@ -78,7 +78,7 @@ export default class MathField extends Vue {
   @Prop({ default: null })
   trigState: _.MathKit.TrigState | null;
 
-  @Prop({ default: false })
+  @Prop({ default: true })
   isInitialReady: boolean;
 
   created() {
