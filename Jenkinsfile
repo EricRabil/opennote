@@ -25,7 +25,7 @@ pipeline {
     }
     stage('Build') {
       steps {
-        sh 'npm run build:dev'
+        sh 'VUE_APP_BUILD_NUMBER=${env.BUILD_NUMBER} npm run build:dev'
       }
     }
     stage('Artifacts') {

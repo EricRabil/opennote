@@ -45,6 +45,7 @@
           </div>
       </div>
     </transition>
+    <div class="build-number" v-if="buildNumber">#{{buildNumber}}</div>
   </div>
 </template>
 
@@ -89,6 +90,13 @@ export default class App extends Vue {
 
   get firstRun() {
     return !this.$store.state.preferences.sawFirstRun;
+  }
+
+  get buildNumber() {
+    if (process.env.NODE_ENV === 'development') {
+      return process.env.VUE_APP_BUILD_NUMBER || null;
+    }
+    return null;
   }
 
   mounted() {
@@ -395,5 +403,16 @@ body {
 [contenteditable]::before {
   content: "\200B" !important;
   display: inline-flex;
+}
+
+.build-number {
+  @extend %text;
+  @extend %bg3;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 2.5px 5px;
+  border-radius: 5px;
+  z-index: 99999999999;
 }
 </style>
