@@ -48,6 +48,9 @@ export default class Graph extends Vue {
   @Prop({ default: () => NaN })
   step: number;
 
+  @Prop({ default: NaN })
+  height: number;
+
   @Prop()
   fn: Function | Function[];
 
@@ -108,6 +111,7 @@ export default class Graph extends Vue {
     this.$watch('xDomain', () => this.updateGraph());
     this.$watch('yDomain', () => this.updateGraph());
     this.$watch('step', () => this.updateGraph());
+    this.$watch('height', () => this.updateGraph());
     this.$on(['resize', 'update'], () => this.updateGraph());
   }
 
@@ -150,7 +154,7 @@ export default class Graph extends Vue {
       const bounds = this.computedBounds;
       const step = this.stepWithOverride;
       const width = +getComputedStyle(this.$el.parentElement || this.$el).width!.split('px')[0];
-      const height = +getComputedStyle(graph).height!.split('px')[0];
+      const height = this.height || +getComputedStyle(graph.parentElement!).height!.split('px')[0];
       
       if (!bounds) return;
 

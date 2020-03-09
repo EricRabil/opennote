@@ -1,5 +1,5 @@
 <template>
-  <div class="calculator-root">
+  <div class="calculator-root" v-resize="handleResize">
     <div class="calculator-fields">
       <math-field
         v-for="(item, index) of items"
@@ -49,7 +49,9 @@ const generateBlankFieldData: () => FieldData = () => ({value: "", renderFormat:
 export default class CalculatorTool extends Vue {
   $refs: {
     fields: MathField[];
-  }
+    graph: Graph;
+    calcContainer: HTMLDivElement;
+  };
 
   isMounted: boolean = false;
   isRendered: boolean = false;
@@ -72,6 +74,7 @@ export default class CalculatorTool extends Vue {
   ];
 
   current: number = 0;
+  lastWidth: number = NaN;
 
   async mounted() {
     this.$on("preload", () => {
@@ -133,6 +136,13 @@ export default class CalculatorTool extends Vue {
 
   focusCurrent() {
     this.currentField.mathField.focus();
+  }
+
+  handleResize() {
+    if (!this.lastWidth) this.lastWidth = this.$el.clientWidth;
+    else if (this.lastWidth === this.$el.clientWidth) return;
+    else this.lastWidth = this.$el.clientWidth;
+    this.$refs.graph.updateGraph();
   }
 
   get functions() {
