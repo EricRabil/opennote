@@ -420,7 +420,8 @@ export namespace _ {
         }
 
         export async function calculateWithScope(latex: string, scope: any, mathJS: mathjs.MathJsStatic) {
-            let retVal: { result: string | null, resultFn: Function | null } = {
+        
+            let retVal: { result: string | null, resultFn: (Function & { original: string }) | null } = {
                 result: null,
                 resultFn: null
             }
@@ -472,7 +473,8 @@ export namespace _ {
                     }
 
                     if (fn) {
-                        retVal.resultFn = fn;
+                        (fn as any)["original"] = template;
+                        retVal.resultFn = fn as any;
                     }
                 }
             }
