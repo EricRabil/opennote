@@ -150,7 +150,7 @@ export default class CalculatorTool extends Vue {
   }
 
   handleResize() {
-    if (!this.lastWidth) this.lastWidth = this.$el.clientWidth;
+    if (isNaN(this.lastWidth)) this.lastWidth = this.$el.clientWidth;
     else if (this.lastWidth === this.$el.clientWidth) return;
     else this.lastWidth = this.$el.clientWidth;
     this.$refs.graph.updateGraph(true);
