@@ -266,6 +266,15 @@ export namespace _ {
             return pos;
         }
 
+        export function isElementVisible(el: HTMLElement) {
+            const rect = el.getBoundingClientRect();
+            const { top: elemTop, bottom: elemBottom } = rect;
+            console.log({ elemTop, elemBottom });
+            const isVisible = ((elemTop) >= 0) && ((elemBottom) <= window.innerHeight);
+
+            return isVisible;
+        }
+
         function createRange(
             node: Node,
             chars: { count: number },
