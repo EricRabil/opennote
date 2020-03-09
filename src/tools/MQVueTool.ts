@@ -104,12 +104,18 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
     
             this.component.$on('navigateNext', () => {
                 if (this.settingsOpened) return;
-                this.Editor.moduleInstances.Caret.navigateNext(true);
+                let { nextContentfulBlock } = this.Editor.moduleInstances.BlockManager;
+                if (!nextContentfulBlock) {
+                    nextContentfulBlock = this.Editor.moduleInstances.BlockManager.insert();
+                }
+                this.Editor.moduleInstances.Caret.setToBlock(nextContentfulBlock, this.Editor.moduleInstances.Caret.positions.START);
             });
     
             this.component.$on('navigatePrevious', () => {
                 if (this.settingsOpened) return;
-                this.Editor.moduleInstances.Caret.navigatePrevious(true);
+                const { previousContentfulBlock } = this.Editor.moduleInstances.BlockManager;
+                if (!previousContentfulBlock) return;
+                this.Editor.moduleInstances.Caret.setToBlock(previousContentfulBlock, this.Editor.moduleInstances.Caret.positions.END);
             });
     
             this.component.$on('get:components', (cb: (components: Vue[]) => any) => {
