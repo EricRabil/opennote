@@ -68,6 +68,9 @@ export default class Graph extends Vue {
   @Prop({ default: false })
   frozen: boolean;
 
+  @Prop({ default: false })
+  disableScroll: boolean;
+
   failed: boolean = false;
   chart: Chart | null;
 
@@ -118,15 +121,23 @@ export default class Graph extends Vue {
     this.$watch('step', () => this.updateGraph());
     this.$watch('height', () => this.updateGraph());
     this.$on(['resize', 'update'], () => this.updateGraph());
+
+    this.$watch('disableScroll', shouldDisable => {
+      if (shouldDisable) {
+        bodyScrollLock.disableBodyScroll(this.$el, {
+          allowTouchMove: el => {
+            const isTargetChildOfGraph = _.Dom.hasAncestor(el, this.$el);
+            return !isTargetChildOfGraph;
+          }
+        });
+      } else {
+        bodyScrollLock.enableBodyScroll(this.$el);
+      }
+    })
   }
 
   mounted() {
     this.updateGraph();
-    bodyScrollLock.disableBodyScroll(this.$el, {
-      allowTouchMove: el => {
-        return !_.Dom.hasAncestor(el, this.$el);
-      }
-    });
   }
 
   beforeDestroy() {

@@ -51,15 +51,17 @@
         </span>
       </div>
     </div>
-    <graph
-      ref="graph"
-      class="graph-container"
-      :visible="resultFn !== null && showGraph"
-      :fn="resultFn"
-      :step="step"
-      :xDomain="xDomain"
-      :yDomain="yDomain"
-    ></graph>
+    <div class="graph-container" v-show="resultFn !== null && showGraph">
+      <graph
+        ref="graph"
+        :visible="resultFn !== null && showGraph"
+        :fn="resultFn"
+        :step="step"
+        :xDomain="xDomain"
+        :yDomain="yDomain"
+        :disableScroll="shouldGraphDisableScroll"
+      ></graph>
+    </div>
     <GraphSVG ref="graphSVG" v-show="false" />
     <mq-paste-data :renderFormat="renderFormat" :showGraph="showGraph" :latex="latestLatex"></mq-paste-data>
   </div>
@@ -109,6 +111,7 @@ export default class MathQuillComponent extends Vue {
   trigState: _.MathKit.TrigState | null = null;
   settingsButtons: HTMLSpanElement[] = [];
   bigPopout: boolean = false;
+  shouldGraphDisableScroll: boolean = false;
 
   GRAPH_DEFAULTS = GRAPH_DEFAULTS;
 
@@ -224,6 +227,9 @@ export default class MathQuillComponent extends Vue {
         trigState: this.trigState
       }));
       this.$emit("setPasteConfig", { tags: [PASTE_DATA_TAG] });
+
+      this.$on('willSelect', () => this.shouldGraphDisableScroll = true);
+      this.$on('willUnselect', () => this.shouldGraphDisableScroll = false);
 
       this.$emit("setRenderSettings", () => {
         const holder = document.createElement("div");

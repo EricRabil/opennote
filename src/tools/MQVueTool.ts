@@ -72,6 +72,16 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         save(block: HTMLElement): object {
             return {};
         }
+
+        willSelect() {
+            if (!this.component) return;
+            this.component.$emit('willSelect');
+        }
+
+        willUnselect() {
+            if (!this.component) return;
+            this.component.$emit('willUnselect');
+        }
     
         render(): HTMLElement {
             this.component = new Component({

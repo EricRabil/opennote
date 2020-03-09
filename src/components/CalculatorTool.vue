@@ -22,7 +22,7 @@
       ></math-field>
     </div>
     <div class="calculator-graph" ref="calcContainer">
-      <graph :visible="isRendered" :fn="functions" :xDomain="[-10,10]" :yDomain="[-20,20]" :frozen="!isInitialReady" ref="graph"></graph>
+      <graph :visible="isRendered" :fn="functions" :xDomain="[-10,10]" :yDomain="[-20,20]" :frozen="!isInitialReady" :disableScroll="shouldGraphDisableScroll" ref="graph"></graph>
     </div>
   </div>
 </template>
@@ -62,6 +62,7 @@ export default class CalculatorTool extends Vue {
   isRendered: boolean = false;
   isInitialReady: boolean = false;
   recomputeCounter: number = 0;
+  shouldGraphDisableScroll: boolean = false;
 
   @Prop()
   api: API;
@@ -89,6 +90,9 @@ export default class CalculatorTool extends Vue {
 
       this.$emit("ready");
     });
+
+    this.$on('willSelect', () => this.shouldGraphDisableScroll = true);
+    this.$on('willUnselect', () => this.shouldGraphDisableScroll = false);
 
     this.$on("rendered", () => {
       setTimeout(() => {

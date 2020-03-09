@@ -507,6 +507,16 @@ function loadBlockPatches(editor: EditorJS) {
         this.tool.block = this;
         return old.call(this);
     });
+
+    hook(Block, 'willSelect', old => function() {
+        old.call(this);
+        this.call('willSelect');
+    });
+
+    hook(Block, 'willUnselect', old => function() {
+        old.call(this);
+        this.call('willUnselect');
+    })
 }
 
 /**
