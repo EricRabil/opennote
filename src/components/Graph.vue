@@ -18,7 +18,11 @@ export const GRAPH_DEFAULTS = {
   y: [-10, 10]
 }
 
-function arrayIsEqual<T>(arr1: T[], arr2: T[]): boolean {
+function arrayIsEqual<T>(arr1: T[] | null, arr2: T[] | null): boolean {
+  if (arr1 === null || arr2 === null) {
+    if (arr1 === arr2) return true;
+    return false;
+  }
   if (arr1.length !== arr2.length) return false;
   return arr1.every((item, idx) => arr2[idx] === item);
 }
@@ -37,7 +41,7 @@ export default class Graph extends Vue {
     graph: HTMLDivElement
   };
 
-  lastFn: string[] = [];
+  lastFn: string[] | null = null;
 
   @Prop({ default: () => [NaN, NaN]})
   xDomain: [number, number];
@@ -141,7 +145,7 @@ export default class Graph extends Vue {
     const originals: string[] = stripEmpty(ensureArray(this.fn).map(fn => (fn as any).original));
     if (arrayIsEqual(originals, this.lastFn)) return;
     if (this.frozen) return;
-    if (!this.fn || !this.visible) return;
+    if (!this.visible) return;
     if (this.chart) this.teardownGraph();
 
     console.log('updating with changes', JSON.stringify({ originals, last: this.lastFn }, undefined, 4));
