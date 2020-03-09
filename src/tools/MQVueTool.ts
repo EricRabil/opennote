@@ -12,6 +12,7 @@ type FirstArgument<T> = T extends new (arg1: infer U, ...args: any[]) => any ? U
  * 
  * $emit
  *  - ready = call this when your component is done initializing, after preload has completed
+ *  - destroy = destroys and removes the component
  *  - insert = inserts a new block following the current block
  *  - showToolbar = shows the toolbar
  *  - hidePlusButton = hides the plus button
@@ -88,6 +89,10 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
                 this.Editor.moduleInstances.Caret.setToBlock(this.Editor.moduleInstances.BlockManager.insert());
                 this.showToolbar();
                 this.Editor.moduleInstances.Toolbar.plusButton.show();
+            });
+
+            this.component.$on('destroy', () => {
+                this.Editor.moduleInstances.BlockManager.removeBlock(this.blockIndex);
             });
     
             this.component.$on('showToolbar', () => {
