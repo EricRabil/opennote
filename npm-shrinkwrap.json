@@ -989,7 +989,7 @@
       "integrity": "sha512-0G36vEvvb94g6nu/qs2rVjC/qjxLnY20OfOgxROKSOOXzS7xnkTij5raeIxRiYueeLL5fMrzrvtFH7wclfxF+g=="
     },
     "@editorjs/editorjs": {
-      "version": "github:EricRabil/editor.js#92dc4174e0799b95fded5b97f8431e2940844964",
+      "version": "github:EricRabil/editor.js#f3e277498514f6665497587d3b7f2ab2b565b3fb",
       "from": "github:EricRabil/editor.js#feature/open-api",
       "requires": {
         "codex-notifier": "^1.1.2",
