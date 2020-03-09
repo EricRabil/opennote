@@ -169,7 +169,8 @@ export default class CalculatorTool extends Vue {
     }
 
     const fields = this.mathFields();
-    let next = fields[index];
+    let next = fields[index], prev = fields[index - 1];
+
     if (!next) {
       if (!force) {
         console.debug(
@@ -182,6 +183,14 @@ export default class CalculatorTool extends Vue {
         );
         return;
       }
+
+      if (!prev.latex) {
+        this.$emit('navigateNext');
+        await this.$nextTick();
+        console.log('emit and escape!');
+        return;
+      }
+
       const difference = Math.abs(this.items.length - 1 - index);
       for (let i = 0; i < difference; i++) {
         this.items.push(generateBlankFieldData());
