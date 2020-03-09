@@ -129,7 +129,8 @@ export default class CalculatorTool extends Vue {
   }
 
   async remove(atIndex: number = this.current) {
-    this.items.splice(atIndex, 1);
+    if (this.items.length > 1) this.items.splice(atIndex, 1);
+    else this.$emit('destroy');
     await this.$nextTick();
     this.navigatePrevious();
   }
