@@ -142,6 +142,7 @@ export default class Graph extends Vue {
    * Rebuilds the graph
    */
   updateGraph() {
+    if (this.fn === null) return this.teardownGraph();
     const originals: string[] = stripEmpty(ensureArray(this.fn).map(fn => (fn as any).original));
     if (arrayIsEqual(originals, this.lastFn)) return;
     if (this.frozen) return;
