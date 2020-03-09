@@ -509,18 +509,6 @@ function loadBlockPatches(editor: EditorJS) {
     });
 }
 
-
-
-function hasAncestor(node: Node, ancestor: Node) {
-    let parent = node;
-    if (!parent) return false;
-    while (parent) {
-        if (parent.isEqualNode(ancestor)) return true;
-        parent = parent.parentNode!;
-    }
-    return false;
-}
-
 /**
  * Allows tools to override various events, and exposes keydown to the global event namespace
  * @param editor editor
@@ -578,7 +566,7 @@ function loadBlockEventPatches(editor: EditorJS) {
         old.call(this);
         setTimeout(() => {
             const focusNode = window.getSelection()!.focusNode;
-            const needsFocus = !ancestorHasClass(focusNode as HTMLElement, 'ce-block') || !hasAncestor(focusNode!, BlockManager.currentBlock.holder);
+            const needsFocus = !ancestorHasClass(focusNode as HTMLElement, 'ce-block') || !_.Dom.hasAncestor(focusNode!, BlockManager.currentBlock.holder);
             if (needsFocus) {
                 Caret.setToBlock(BlockManager.currentBlock, Caret.positions.END)
             }

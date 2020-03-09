@@ -266,6 +266,16 @@ export namespace _ {
             return pos;
         }
 
+        export function hasAncestor(node: Node, ancestor: Node) {
+            let parent = node;
+            if (!parent) return false;
+            while (parent) {
+                if (parent.isEqualNode(ancestor)) return true;
+                parent = parent.parentNode!;
+            }
+            return false;
+        }
+
         /**
          * https://stackoverflow.com/a/37285344
          */
