@@ -1,4 +1,5 @@
 import EditorJS, { EditorConfig, SanitizerConfig, PasteEvent } from "@editorjs/editorjs";
+import _ from './util';
 const List = require('@editorjs/list');
 const CheckList = require('@editorjs/checklist');
 const janitor = require("html-janitor");
@@ -346,10 +347,6 @@ function loadToolPatches(editor: EditorJS) {
         }
     });
 
-    const wrapper = UI.nodes.wrapper;
-    const parent = wrapper.parentElement;
-    parent.scrollTop = parent.scrollHeight;
-
     Editor.Listeners.on(parent, 'scroll', () => {
         requestAnimationFrame(function () {
             if (currentSuggested) {
@@ -591,14 +588,6 @@ function loadBlockEventPatches(editor: EditorJS) {
     // sticky to bottom when overflowing!
     hook(BlockManager._blocks.__proto__, 'insertToDOM', old => function (...args: any[]) {
         old.call(this, ...args);
-
-        const [block] = args;
-        const index = this.indexOf(block);
-        if ((this.length - 3 - index) < 3) {
-            const wrapper = UI.nodes.wrapper;
-            const parent = wrapper.parentElement;
-            parent.scrollTop = parent.scrollHeight;
-        }
     });
 
 
@@ -689,6 +678,13 @@ function loadCaretPatches(editor: EditorJS) {
     hook(Caret, 'set', old => function (...args: any[]) {
         old.call(this, ...args);
         Events.emit('caretChanged', ...args);
+
+        if (!args[0]) return;
+        let elm = (args[0] instanceof HTMLElement) ? args[0] : args[0].parentElement;
+        if (!elm) return;
+        if (!_.Dom.isElementVisible(elm)) {
+            elm.scrollIntoView();
+        }
     });
 
     /**
