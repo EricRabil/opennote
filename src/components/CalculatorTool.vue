@@ -6,6 +6,7 @@
         :key="`field-${index}`"
         :value="item.value"
         :renderFormat="item.renderFormat"
+        :isInitialReady="isInitialReady"
         @get:components="$event(mathFields())"
         @insert="insert(index)"
         @focused="current = index"
@@ -14,11 +15,13 @@
         @downOutOf="navigateNext"
         @navigateNext="navigateNext"
         @deleteOutOf="remove"
+        @recalc:start="isInitialReady = false"
+        @recalc:complete="isInitialReady = true"
         ref="fields"
       ></math-field>
     </div>
-    <div class="calculator-graph">
-      <graph :visible="true" :fn="functions" :xDomain="[-10,10]" :yDomain="[-20,20]"></graph>
+    <div class="calculator-graph" ref="calcContainer">
+      <graph :visible="isRendered" :fn="functions" :xDomain="[-10,10]" :yDomain="[-20,20]" :frozen="!isInitialReady" ref="graph"></graph>
     </div>
   </div>
 </template>
@@ -49,6 +52,8 @@ export default class CalculatorTool extends Vue {
   }
 
   isMounted: boolean = false;
+  isRendered: boolean = false;
+  isInitialReady: boolean = false;
 
   @Prop()
   api: API;
@@ -76,6 +81,12 @@ export default class CalculatorTool extends Vue {
       this.$emit("ready");
     });
 
+    this.$on("rendered", () => {
+      setTimeout(() => {
+        this.isRendered = true;
+      });
+    });
+
     this.$watch("current", current => {
       console.debug(`New math field selected in calculator`, {
         current
@@ -90,6 +101,8 @@ export default class CalculatorTool extends Vue {
     await this.$nextTick();
 
     this.isMounted = true;
+
+    setTimeout(() => this.mathFields()[0].updateFields(true), 10);
   }
 
   serialized(): SavedData {

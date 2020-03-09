@@ -18,11 +18,26 @@ export const GRAPH_DEFAULTS = {
   y: [-10, 10]
 }
 
+function arrayIsEqual<T>(arr1: T[], arr2: T[]): boolean {
+  if (arr1.length !== arr2.length) return false;
+  return arr1.every((item, idx) => arr2[idx] === item);
+}
+
+function ensureArray<T>(item: T | T[]): T[] {
+  return Array.isArray(item) ? item : [item];
+}
+
+function stripEmpty<T>(item: T[]): T[] {
+  return item.filter(i => !!i);
+}
+
 @Component
 export default class Graph extends Vue {
   $refs: {
     graph: HTMLDivElement
   };
+
+  lastFn: string[] = [];
 
   @Prop({ default: () => [NaN, NaN]})
   xDomain: [number, number];
@@ -38,6 +53,12 @@ export default class Graph extends Vue {
 
   @Prop({ default: true })
   visible: boolean;
+
+  @Prop({ default: true })
+  updateOnFnUpdate: boolean;
+
+  @Prop({ default: false })
+  frozen: boolean;
 
   failed: boolean = false;
   chart: Chart | null;
@@ -61,7 +82,20 @@ export default class Graph extends Vue {
       }
     });
 
+    this.$watch('frozen', isFrozen => {
+      if (!isFrozen) {
+        this.updateGraph();
+      }
+    })
+
+    this.$watch('updateOnFnUpdate', shouldUpdate => {
+      if (shouldUpdate && this.visible) {
+        this.updateGraph();
+      }
+    })
+
     this.$watch('fn', (fn, oFn) => {
+      if (!this.updateOnFnUpdate) return;
       if (!this.visible) return;
       if (fn) {
         this.updateGraph();
@@ -75,6 +109,10 @@ export default class Graph extends Vue {
     this.$watch('yDomain', () => this.updateGraph());
     this.$watch('step', () => this.updateGraph());
     this.$on(['resize', 'update'], () => this.updateGraph());
+  }
+
+  mounted() {
+    this.updateGraph();
   }
 
   /**
@@ -96,8 +134,15 @@ export default class Graph extends Vue {
    * Rebuilds the graph
    */
   updateGraph() {
+    const originals: string[] = stripEmpty(ensureArray(this.fn).map(fn => (fn as any).original));
+    if (arrayIsEqual(originals, this.lastFn)) return;
+    if (this.frozen) return;
     if (!this.fn || !this.visible) return;
     if (this.chart) this.teardownGraph();
+
+    console.log('updating with changes', JSON.stringify({ originals, last: this.lastFn }, undefined, 4));
+
+    this.lastFn = originals;
     this.failed = false;
 
     try {

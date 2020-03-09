@@ -51,6 +51,7 @@ export type RenderFormat = "dec" | "frac";
 @Component
 export default class MathField extends Vue {
   latex: string | null = null;
+  lastLatex: string | null = null;
   lastScope: any = {};
   resultFn: Function | null = null;
   result: string | number | null = null;
@@ -76,6 +77,9 @@ export default class MathField extends Vue {
 
   @Prop({ default: null })
   trigState: _.MathKit.TrigState | null;
+
+  @Prop({ default: false })
+  isInitialReady: boolean;
 
   created() {
     const math = mathjs.create(
@@ -122,9 +126,9 @@ export default class MathField extends Vue {
 
     this.resultView = new MathQuill.StaticMath(this.$refs.mqResult);
 
-    this.mathField.write(this.value);
+    this.mathField.latex(this.latex = this.value);
     this.$watch("value", newValue =>
-      this.mathField.write((this.latex = newValue))
+      this.mathField.latex((this.latex = newValue))
     );
     this.$watch("trigState", mode => this.updateFields());
     this.$watch("renderFormat", () => this.updateResultView());
@@ -153,11 +157,14 @@ export default class MathField extends Vue {
     this.mathField && this.mathField.reflow();
   }
 
-  async updateFields() {
+  async updateFields(force: boolean = false) {
     if (this.frozen) return;
+    if (!this.isInitialReady && !force) return;
 
     // tell the parent to lock all math fields (preventing them from infinitely updating)
     await this.setBusy(true);
+
+    this.$emit('recalc:start');
 
     nerdamer.clearVars();
     const components = await this.components();
@@ -170,11 +177,10 @@ export default class MathField extends Vue {
         console.debug(`Couldn't update MathField`, e);
       }
     }
+    
+    this.$emit('recalc:complete');
 
     // unlock the math fields
-    /**
-     * @tood is $nextTick necessary?
-     */
     await this.setBusy(false);
   }
 
@@ -184,9 +190,15 @@ export default class MathField extends Vue {
   async calc(scope: any) {
     if (!this.latex) {
       // reset the component, its empty
-      this.result = this.resultFn = null;
+      this.result = this.resultFn = this.lastLatex = null;
       return;
     }
+
+    if (this.latex === this.lastLatex) {
+      return;
+    }
+
+    this.lastLatex = this.latex;
 
     this.lastScope = Object.assign({}, scope);
 
