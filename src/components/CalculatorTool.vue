@@ -17,6 +17,7 @@
         @deleteOutOf="remove"
         @recalc:start="isInitialReady = false"
         @recalc:complete="isInitialReady = true"
+        @update:resultFn="recomputeCounter++"
         ref="fields"
       ></math-field>
     </div>
@@ -60,6 +61,7 @@ export default class CalculatorTool extends Vue {
   isMounted: boolean = false;
   isRendered: boolean = false;
   isInitialReady: boolean = false;
+  recomputeCounter: number = 0;
 
   @Prop()
   api: API;
@@ -156,6 +158,7 @@ export default class CalculatorTool extends Vue {
 
   get functions() {
     if (!this.isMounted) return [];
+    this.recomputeCounter;
     return this.$refs.fields.map(field => field.resultFn).filter(fn => !!fn);
   }
 
