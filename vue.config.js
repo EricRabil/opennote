@@ -14,6 +14,9 @@ module.exports = {
         }
       }
     },
+    devServer: {
+      host: 'fatty.net'
+    },
     // publicPath: '/opennote/',
     parallel: true,
     chainWebpack: config => {

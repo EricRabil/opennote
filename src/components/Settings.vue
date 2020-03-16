@@ -8,33 +8,20 @@
                 Source Code
             </span>
         </div>
-        <div v-if="activePane > -1" :class="['pane', activePane > -1 ? 'col-primary' : '']">
-            <h2 class="pane-title">{{pane.name}}</h2>
-            <p class="pane-desc" v-if="pane.description" v-html="pane.description"></p>
-            <form v-if="pane.fields">
-                <span class="input-group" v-for="(input, index) of pane.fields" :key="index">
-                    <span :class="['input-field', `input-${input.type}`, input.options ? 'input-pick' : '']">
-                        <template v-if="!input.options">
-                            <label :for="`${pane.id}:${input.id}`" class="input-name" >{{input.name}}</label>
-                            <input :id="`${pane.id}:${input.id}`" :type="input.type" v-model="controls[pane.id][input.id]">
-                        </template>
-                        <template v-else>
-                            <span class="input-pick-name">{{input.name}}</span>
-                            <template v-for="(choice, choiceIndex) of input.options">
-                                <input type="radio" :id="`${pane.id}:${input.id}:${choiceIndex}`" :value="choice" :key="`${pane.id}:${input.id}:${choice}:${choiceIndex}`" v-model="controls[pane.id][input.id]">
-                                <label :for="`${pane.id}:${input.id}:${choiceIndex}`" class="input-name" :key="`${pane.id}:${input.id}:${choice}:${choiceIndex}:label`">{{choice}}</label>
-                            </template>
-                        </template>
-                    </span>
-                    <span class="input-desc" v-if="input.description">{{input.description}}</span>
-                </span>
-            </form>
-        </div>
+        <template v-if="activePane > -1">
+            <component v-if="pane.component" :class="['pane', activePane > -1 ? 'col-primary' : '']" :is="pane.component"></component>
+            <div v-else-if="activePane > -1" :class="['pane', activePane > -1 ? 'col-primary' : '']">
+                <p class="pane-desc" v-if="pane.description" v-html="pane.description"></p>
+                <mutable-inputs v-if="pane.fields" :fields="pane.fields"></mutable-inputs>
+            </div>
+        </template>
     </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Prop } from "vue-property-decorator";
+import MutableInputs from "@/components/MutableInputs.vue";
+import AccountManager from './AccountManager.vue';
 
 interface Pane {
     id: string;
@@ -52,15 +39,16 @@ interface Pane {
     }>;
 }
 
-@Component
+@Component({
+    components: {
+        MutableInputs
+    }
+})
 export default class Settings extends Vue {
     activePane: number = 0;
 
-    controls: {
-        [pane: string]: {
-            [control: string]: any;
-        };
-    } = {};
+    @Prop()
+    jumpTo: string;
 
     panes: Pane[] = [
 
@@ -141,8 +129,21 @@ export default class Settings extends Vue {
                     type: 'string',
                     update: value => this.$store.commit('setPreference', { name: 'backend', value }),
                     value: () => this.$store.state.preferences.backend
+                },
+                {
+                    id: 'collaborate',
+                    name: 'Live Collaboration',
+                    description: 'Use the extremely buggy live collaboration feature.',
+                    type: 'checkbox',
+                    update: value => this.$store.commit('setPreference', { name: 'enableCollaborationMode', value }),
+                    value: () => this.$store.state.preferences.enableCollaborationMode
                 }
             ]
+        },
+        {
+            id: "account",
+            name: "Account",
+            component: AccountManager as any
         },
         {
             id: 'credits',
@@ -167,16 +168,6 @@ export default class Settings extends Vue {
     }
 
     created() {
-        this.panes.forEach(pane => {
-            Vue.set(this.controls, pane.id, pane.fields && pane.fields.reduce((a,c) => {
-                a[c.id] = c.value();
-                return a;
-            }, {} as any));
-            pane.fields && pane.fields.forEach(c => {
-                this.$watch(`controls.${pane.id}.${c.id}`, newVal => c.update(newVal));
-            });
-        });
-
         const header = document.createElement('div');
         header.classList.add('modal-header', 'settings-modal-header');
         
@@ -202,6 +193,10 @@ export default class Settings extends Vue {
             if (document.documentElement.clientWidth <= 500) return;
             this.activePane = 0;
         });
+
+        if (this.jumpTo) {
+            this.activePane = this.panes.findIndex(pane => pane.id === this.jumpTo) || 0;
+        }
     }
 
     get pane() {
@@ -221,49 +216,24 @@ export default class Settings extends Vue {
         & h1 {
             line-height: 1rem;
         }
-
-        & .settings-modal-nav-back {
-            cursor: pointer;
-            margin: 5px;
-            line-height: 1rem;
-            &::after {
-                content: '\00ab';
-            }
-
-            &.hidden {
-                display: none;
-            }
-        }
     }
 }
 
 .settings-modal {
-    @media only screen and (max-height: 450px) {
-        padding-left: 50px;
-    }
-
     width: 100%;
 }
 
 .settings-panel {
     display: grid;
-    grid-template-columns: 100px auto;
-    grid-template-rows: 300px;
-    grid-column-gap: 10px;
-    max-width: 440px;
+    grid-auto-rows: min-content calc(100vh - 200px);
 
-    @media only screen and (max-width: 650px) {
-        grid-template-columns: 100px auto;
-        width: unset;
-        max-width: unset;
+    @media only screen and (max-width: 650px), only screen and (max-height: 500px) {
+        max-height: calc(100vh - 100px) !important;
+        height: fit-content;
     }
 
-    @media only screen and (max-width: 500px) {
-        display: block;
-
-        & > :not(.col-primary) {
-            display: none !important;
-        }
+    .pane-switcher, .pane {
+        padding: 10px 40px;
     }
 
     h1, h2, h3, h4, h5, h6, p {
@@ -272,58 +242,63 @@ export default class Settings extends Vue {
     }
 
     .pane-switcher {
+        @extend %bgAlt1;
         display: flex;
-        flex-flow: column;
-        overflow-y: scroll;
-        flex-grow: 1;
+        flex-flow: row;
+        overflow-x: scroll;
 
         .pane-item {
             cursor: pointer;
-            text-align: center;
-            margin: 5px;
+            height: fit-content;
             padding: 5px;
+            text-align: center;
             border-radius: 5px;
             text-transform: uppercase;
             font-size: 11px;
             transition: background-color 0.0625s linear;
-
-            @media only screen and (max-width: 500px) {
-                @include bgSchemeResponsive("bgAlt8");
-            }
+            white-space: nowrap;
 
             &.active {
                 @extend %bgAlt2;
             }
 
+            $offset: -5px;
             &:first-child {
-                margin-top: 0;
+                margin-left: $offset;
             }
 
             &:last-child {
-                margin-bottom: 0;
+                margin-right: $offset;
+                padding-right: 40px;
             }
         }
     }
 
     .pane {
+        @extend %bg1;
         display: flex;
         flex-flow: column;
         overflow-y: scroll;
-        flex-grow: 1;
 
-        & > .pane-title {
+        @media screen and (max-height: 500px) {
+            // max-height: unset;
+            padding: 10px calc(100vw / 2 - 225px);
+        }
+
+        & > h2 {
             @include schemeResponsive("border-bottom", "borderAlt1");
             margin-bottom: 5px;
             padding-bottom: 5px;
         }
 
-        & > .pane-desc {
+        & > p {
             @extend %textAlt;
             font-size: 12px;
             margin-bottom: 5px;
         }
 
         .credit {
+            @extend %text;
             margin: 10px 0;
             display: block;
             font-size: 14px;
@@ -333,7 +308,7 @@ export default class Settings extends Vue {
         .input-group {
             display: flex;
             flex-flow: column;
-            @extend %bgAlt7;
+            @extend %bgAlt6;
             border-radius: 5px;
             margin: 5px 0;
 
@@ -399,7 +374,7 @@ export default class Settings extends Vue {
                     & input {
                         @extend %border;
                         @extend %text;
-                        @include bgSchemeResponsive("bg0");
+                        @include bgSchemeResponsive("bgAlt0");
                         padding: 5px;
                         border-radius: 5px;
                         outline: none;

@@ -26,10 +26,10 @@
             </div>
 
             <!-- Body -->
-            <div class="modal-body" v-if="typeof modalOptions.body === 'string'">
+            <div class="modal-body" v-if="typeof modalOptions.body === 'string'" style="padding: 20px 40px 10px">
               {{modalOptions.body}}
             </div>
-            <component class="modal-body" v-else :is="modalOptions.body" v-bind="modalOptions.bodyOptions"></component>
+            <component class="modal-body" v-else :is="modalOptions.body" v-bind="modalOptions.bodyOptions" @close="closeModal"></component>
 
             <!-- Footer -->
             <div
@@ -57,6 +57,7 @@ import ElementHost from "@/components/ElementHost.vue";
 import Onboarding from './components/Onboarding.vue';
 import DecisionButtons from "@/components/DecisionButtons.vue";
 import _ from './util';
+import Settings from './components/Settings.vue';
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -99,7 +100,7 @@ export default class App extends Vue {
     return null;
   }
 
-  mounted() {
+  async mounted() {
     this.$on("modal-show", (options: ModalOptions) => this.showModal(options));
     this.$on("modal-close", () => this.closeModal());
     this.$on("modal-patch", (options: Partial<ModalOptions>) => mergeObject(this, 'modalOptions', options));
@@ -143,6 +144,18 @@ export default class App extends Vue {
         closable: false
       } as ModalOptions);
     }
+
+    this.$store.dispatch("hydrate").then(() => this.$nextTick()).then(() => {
+      if (this.$store.state.dory.flashLoggedIn) {
+        this.$root.$emit('modal-show', {
+          header: 'Settings',
+          body: Settings,
+          bodyOptions: {
+            jumpTo: "account"
+          }
+        });
+      }
+    });
   }
 
   isNode(obj: any) {
@@ -284,10 +297,13 @@ body {
       flex-flow: column;
       justify-content: center;
 
+      & > .modal-body {
+        max-height: 300px;
+      }
+
       & > .modal-header {
         background: none !important;
         padding: 10px 40px !important;
-        margin-bottom: 0px !important;
       }
     }
 
@@ -295,7 +311,7 @@ body {
       @include modalFullscreen();
     }
 
-    @media only screen and (max-width: 650px), only screen and (max-height: 450px) {
+    @media only screen and (max-width: 650px), only screen and (max-height: 500px) {
       @include modalFullscreen();
     }
 
@@ -303,7 +319,6 @@ body {
       @extend %bgAlt2;
       display: flex;
       padding: 20px 40px;
-      margin-bottom: 10px;
       line-height: 1;
 
       & > .modal-close {
@@ -321,9 +336,9 @@ body {
       }
     }
 
-    & > .modal-body {
-      padding: 10px 40px;
-    }
+    // & > .modal-body {
+    //   padding: 10px 40px;
+    // }
 
     & > .modal-footer {
       margin: 10px 0;
@@ -335,11 +350,6 @@ body {
       right: 15px;
       top: 10px;
       cursor: pointer;
-
-      @media only screen and (max-height: 450px) {
-          right: 75px;
-          top: 25px;
-      }
     }
   }
 }

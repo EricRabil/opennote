@@ -174,28 +174,6 @@ function loadClipboardPatches(editor: EditorJS) {
     });
 
     /**
-     * Copies supplied text to the clipboard
-     * @param text text to copy
-     */
-    function copyTextToClipboard(text: string) {
-        const el = document.createElement('div');
-        el.className = 'codex-editor-clipboard';
-        el.innerText = text;
-
-        document.body.appendChild(el);
-
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNode(el);
-
-        window.getSelection()!.removeAllRanges();
-        selection!.addRange(range);
-
-        document.execCommand('copy');
-        document.body.removeChild(el);
-    }
-
-    /**
      * Ensures the correct sanitizer is used (which will take into account special elements)
      */
     hook(BlockSelection, 'copySelectedBlocks', old => function () {
@@ -213,7 +191,7 @@ function loadClipboardPatches(editor: EditorJS) {
             fakeClipboard.appendChild(fragment);
         });
 
-        copyTextToClipboard(fakeClipboard.innerHTML);
+        _.copyTextToClipboard(fakeClipboard.innerHTML);
     });
 
     hookGet(Dom, 'blockElements', old => function () {

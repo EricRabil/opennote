@@ -204,11 +204,14 @@ export default class Editor extends Vue {
       await this.renderData(this.cachedData);
     });
 
-    this.$store.subscribe(mutation => {
+    this.$store.subscribe(async mutation => {
       switch (mutation.type) {
         case 'updateNote':
         case 'setNote':
           this.name = this.note.name;
+          break;
+        case 'editorShouldReRender':
+          await this.renderData(mutation.payload, true);
       }
     });
 
@@ -243,10 +246,20 @@ export default class Editor extends Vue {
     this.$parent.$emit('ct-mouseleave', ev);
   }
 
-  async renderData(data: OutputData) {
+  async renderData(data: OutputData, preserveCaret: boolean = false) {
     data = data || this.cachedData;
+    let caretPosition: any = null;
+    if (preserveCaret) {
+      caretPosition = _.Dom.getCaretPosition(this.$el as HTMLElement);
+      console.log('preserving caret position at ', { caretPosition });
+    }
+
     if (!data || !data.blocks) return;
     await this.editor.render(data || this.cachedData);
+
+    if (preserveCaret) {
+      this.$nextTick(() => _.Dom.setCurrentCursorPosition(caretPosition!, this.$el as HTMLElement));
+    }
 
     const quill = (this
       .editor as any).core.moduleInstances.BlockManager.blocks.find(
@@ -301,10 +314,20 @@ export default class Editor extends Vue {
     if (!this.$store.state.notes[id]) return;
     if (!this.hasChanges) return;
 
+    const data = await this.editor.save();
+
     this.$store.commit("updateNote", {
-      data: await this.editor.save(),
+      data,
       id
     });
+
+    if (this.sdk) {
+      await this.sdk.editNote(id, { data });
+    }
+  }
+
+  get sdk() {
+    return this.$store.state.dory.sdk;
   }
 
   /**
@@ -424,7 +447,7 @@ export default class Editor extends Vue {
       (tools as any).link = {
         class: Link,
         config: {
-          endpoint: `${this.backend}/api/v1/link/metadata`
+          endpoint: `${this.backend}/api/v1/tools/link/metadata`
         }
       }
     }

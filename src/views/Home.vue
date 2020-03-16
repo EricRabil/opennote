@@ -10,18 +10,16 @@
             @mouseenter="mouseenter"
             @mouseleave="mouseleave"
             @click="navCollapse = !navCollapse"
-            >
-            &#9776;
-          </span>
-          <span class="control"
-          :data-tooltip="`Sort ${sortListAscending ? 'Descending' : 'Ascending'}`"
-          data-placement="right"
-          @mouseenter="mouseenter"
-          @mouseleave="mouseleave"
-          @click="sortListAscending = !sortListAscending"
-          v-html="sortListAscending ? '&#8595;' : '&#8593;'"
-          >
-          </span>
+          >&#9776;</span>
+          <span
+            class="control"
+            :data-tooltip="`Sort ${sortListAscending ? 'Descending' : 'Ascending'}`"
+            data-placement="right"
+            @mouseenter="mouseenter"
+            @mouseleave="mouseleave"
+            @click="sortListAscending = !sortListAscending"
+            v-html="sortListAscending ? '&#8595;' : '&#8593;'"
+          ></span>
         </span>
         <span class="note-title">Notes</span>
         <span class="note-controls">
@@ -48,7 +46,7 @@
         </span>
       </div>
       <transition-group name="list" mode="out-in" tag="div" class="navigator-contents">
-        <div
+        <!-- <div
           :class="{'navigator-item': true, active: id === currentNote}"
           :style="{display: !name ? 'none' : 'flex'}"
           @contextmenu.prevent="triggerContext($event, idx)"
@@ -64,15 +62,34 @@
             @input="setTitle"
           >{{name}}</span>
           <span class="item-timestamp">{{timestamp}}</span>
-        </div>
+        </div>-->
+        <note-selector
+          v-for="note in list"
+          :key="note.id"
+          :note="note"
+          :editable="true"
+          @contextmenu.prevent="triggerContext($event, note.id)"
+          @click="selectNote(note.id)"
+          :class="{active: note.id === currentNote}"
+        ></note-selector>
       </transition-group>
       <div class="title">
         <span class="note-controls-left">
-          <span :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']" @click="delNote(currentNote)">
+          <span
+            :class="['labels-control labels-control-btn labels-control-btn-danger', canDelete ? '' : 'labels-control-btn-disabled']"
+            @click="delNote(currentNote)"
+          >
             <span class="label-text">Delete</span>
             <TrashSVG class="alt-icon" />
           </span>
-          <span class="labels-control labels-control-btn" data-tooltip="Settings" data-placement="top" @mouseenter="mouseenter" @mouseleave="mouseleave" @click="showSettings()">
+          <span
+            class="labels-control labels-control-btn"
+            data-tooltip="Settings"
+            data-placement="top"
+            @mouseenter="mouseenter"
+            @mouseleave="mouseleave"
+            @click="showSettings()"
+          >
             <SettingsSVG />
           </span>
         </span>
@@ -83,10 +100,20 @@
         </span>
       </div>
     </div>
-    <editor :show-burger="navCollapse" :exporter="download" :canDelete="canDelete" :deleter="delNote" @burgerClick="navCollapse = !navCollapse"></editor>
-    <vue-context v-for="(data, idx) in list" :key="idx" :ref="`contextMenu${idx}`">
+    <editor
+      :show-burger="navCollapse"
+      :exporter="download"
+      :canDelete="canDelete"
+      :deleter="delNote"
+      @burgerClick="navCollapse = !navCollapse"
+    ></editor>
+    <vue-context v-for="(data, idx) in list" :key="idx" :ref="`contextMenu${data.id}`">
       <li @click="download(data.id)">Export</li>
-      <li :class="['ctx-danger', canDelete ? '' : 'ctx-danger-disabled']" @click="delNote(data.id)">Delete</li>
+      <li
+        :class="['ctx-danger', canDelete ? '' : 'ctx-danger-disabled']"
+        @click="delNote(data.id)"
+      >Delete</li>
+      <li v-if="sdk" :class="['ctx-primary']" @click="shareNote(data.id)">Share</li>
     </vue-context>
   </div>
 </template>
@@ -99,14 +126,15 @@ import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import UploadSVG from "@/assets/upload.svg?inline";
 import Editor from "@/components/Editor.vue";
-import { ModalOptions } from '../App.vue';
+import { ModalOptions } from "../App.vue";
 import DecisionButtons from "@/components/DecisionButtons.vue";
-import ConfirmationModal from '@/components/DecisionButtons.vue';
-import { Note } from '../store';
+import ConfirmationModal from "@/components/DecisionButtons.vue";
+import { Note } from "../store";
 import TrashSVG from "@/assets/trash.svg?inline";
 import SettingsSVG from "@/assets/settings.svg?inline";
-import Settings from '../components/Settings.vue';
-
+import Settings from "../components/Settings.vue";
+import ShareNote from "../components/ShareNote.vue";
+import NoteSelector from "@/components/NoteSelector.vue";
 
 /**
  * Host view for the editor and navigator view
@@ -117,49 +145,64 @@ import Settings from '../components/Settings.vue';
     UploadSVG,
     Editor,
     TrashSVG,
-    SettingsSVG
+    SettingsSVG,
+    NoteSelector
   }
 })
 export default class Home extends Vue {
-  list: Array<{id: string, name: string, timestamp: string}> = [];
+  list: ReturnType<typeof Home["prototype"]["sortedList"]> = [] as any;
 
   overrides: {
     navCollapse: boolean | null;
   } = {
     navCollapse: null
-  }
+  };
 
   get navCollapse() {
-    return this.overrides.navCollapse === null ? !this.$store.state.preferences.hideEditorByDefaultOnMobile : this.overrides.navCollapse;
+    return this.overrides.navCollapse === null
+      ? !this.$store.state.preferences.hideEditorByDefaultOnMobile
+      : this.overrides.navCollapse;
   }
 
   set navCollapse(c: boolean) {
     this.overrides.navCollapse = c;
   }
-  
+
   canDelete: boolean = false;
 
   sortListAscending: boolean = false;
 
-  mounted() {
+  async mounted() {
     this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
-        case 'setNote':
-        case 'newNote':
-        case 'delNote':
-        case 'updateNote':
+        case "setNote":
+        case "newNote":
+        case "delNote":
+        case "updateNote":
+        case "setNotes":
           this.list = this.sortedList(this.notes);
       }
     });
 
-    this.$watch('sortListAscending', () => {
+    if (this.$route.params.id && this.sdk) {
+      // import a note!
+      const note = await this.sdk.getNote(this.$route.params.id);
+      if (note) {
+        const { id, data, name, created } = note;
+        this.$store.commit("newNote", { id, data, name, created });
+        this.$store.commit("setNote", id);
+        this.$router.push("/");
+      }
+    }
+
+    this.$watch("sortListAscending", () => {
       this.list = this.sortedList(this.notes);
-    })
+    });
 
     document.addEventListener("mousedown", this.mouseDown);
 
-    this.$on('ct-mouseenter', (ev: MouseEvent) => this.mouseenter(ev));
-    this.$on('ct-mouseleave', (ev: MouseEvent) => this.mouseleave(ev));
+    this.$on("ct-mouseenter", (ev: MouseEvent) => this.mouseenter(ev));
+    this.$on("ct-mouseleave", (ev: MouseEvent) => this.mouseleave(ev));
 
     this.list = this.sortedList(this.notes);
   }
@@ -169,8 +212,8 @@ export default class Home extends Vue {
   }
 
   showSettings() {
-    this.$root.$emit('modal-show', {
-      header: 'Settings',
+    this.$root.$emit("modal-show", {
+      header: "Settings",
       body: Settings
     } as ModalOptions);
   }
@@ -221,22 +264,30 @@ export default class Home extends Vue {
 
   async exportNotes() {
     let repeats: {
-      [name: string]: number
+      [name: string]: number;
     } = {};
-    const serialized = Object.keys(this.notes).map(k => ({
-      name: this.notes[k].name,
-      text: JSON.stringify(this.notes[k])
-    })).map((data, idx, files) => {
-      if (!repeats[data.name]) repeats[data.name] = 0;
-      return {
-        name: files.filter(f => f.name === data.name).length === 1 ? data.name : `${data.name}${repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ''}`,
-        text: data.text
-      }
-    }).map(({name, text}) => ({
-      name: `${name}.onote`,
-      text
-    }));
-    await _.zipFilesAndDownload('OpenNote Export.zip', serialized);
+    const serialized = Object.keys(this.notes)
+      .map(k => ({
+        name: this.notes[k].name,
+        text: JSON.stringify(this.notes[k])
+      }))
+      .map((data, idx, files) => {
+        if (!repeats[data.name]) repeats[data.name] = 0;
+        return {
+          name:
+            files.filter(f => f.name === data.name).length === 1
+              ? data.name
+              : `${data.name}${
+                  repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ""
+                }`,
+          text: data.text
+        };
+      })
+      .map(({ name, text }) => ({
+        name: `${name}.onote`,
+        text
+      }));
+    await _.zipFilesAndDownload("OpenNote Export.zip", serialized);
   }
 
   /**
@@ -251,12 +302,12 @@ export default class Home extends Vue {
   /**
    * Sets the title and maintains cursor position
    */
-  setTitle(event: InputEvent) {
+  async setTitle(event: InputEvent) {
     const target = event.target as HTMLElement;
 
     const pos = _.Dom.getCaretPosition(target);
 
-    const name = target.innerText.split('\n').join(''),
+    const name = target.innerText.split("\n").join(""),
       id = target.getAttribute("data-id")!;
 
     target.innerText = name;
@@ -266,7 +317,12 @@ export default class Home extends Vue {
       name
     });
 
+    if (this.sdk) {
+      this.sdk.editNote(id, { name });
+    }
+
     this.$nextTick(() => {
+      console.log("doing the dash like stacey");
       _.Dom.setCurrentCursorPosition(pos, target);
     });
   }
@@ -276,6 +332,10 @@ export default class Home extends Vue {
    */
   get currentNote() {
     return this.$store.state.currentNote;
+  }
+
+  get sdk() {
+    return this.$store.state.dory.sdk;
   }
 
   /**
@@ -302,18 +362,21 @@ export default class Home extends Vue {
     // no tooltips on mobile, please. its fucking ugly
     if (document.body.clientWidth <= 500) return;
     const tip = (ev.target! as HTMLElement).getAttribute("data-tooltip");
-    const placement = (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
+    const placement =
+      (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
     if (!tip) return;
 
     const content = document.createTextNode(tip);
 
-    const observer = new MutationObserver((mutation) => {
-      content.textContent = (ev.target! as HTMLElement).getAttribute("data-tooltip");
+    const observer = new MutationObserver(mutation => {
+      content.textContent = (ev.target! as HTMLElement).getAttribute(
+        "data-tooltip"
+      );
     });
 
     observer.observe(ev.target as HTMLElement, {
       attributes: true,
-      attributeFilter: ['data-tooltip'],
+      attributeFilter: ["data-tooltip"],
       childList: false,
       characterData: false
     });
@@ -338,12 +401,30 @@ export default class Home extends Vue {
   }
 
   /**
+   * Trigger share note modal, allow option to overwrite shortcode, generate link
+   */
+  shareNote(id: string) {
+    this.$root.$emit("modal-show", {
+      header: "Share Note",
+      body: ShareNote,
+      bodyOptions: {
+        id
+      }
+    });
+  }
+
+  /**
    * Switches to a new note ID
    */
   selectNote(id: string) {
+    console.log(id);
     if (this.currentNote === id) return;
     this.$store.commit("setNote", id);
-    if (document.activeElement && document.activeElement.getAttribute('data-id') === id) return;
+    if (
+      document.activeElement &&
+      document.activeElement.getAttribute("data-id") === id
+    )
+      return;
     if (document.body.clientWidth <= 500 && !this.navCollapse) {
       this.navCollapse = true;
     }
@@ -353,7 +434,7 @@ export default class Home extends Vue {
    * inserts new note into store
    */
   newNote() {
-    this.$store.dispatch('newNote');
+    this.$store.dispatch("newNote");
   }
 
   get prevNote() {
@@ -363,7 +444,10 @@ export default class Home extends Vue {
 
   get nextNote() {
     const list = this.sortedList(this.notes);
-    return list[list.findIndex(note => note.id === this.currentNote) + 1] || list[list.findIndex(note => note.id === this.currentNote) - 1];
+    return (
+      list[list.findIndex(note => note.id === this.currentNote) + 1] ||
+      list[list.findIndex(note => note.id === this.currentNote) - 1]
+    );
   }
 
   /**
@@ -381,41 +465,48 @@ export default class Home extends Vue {
       return;
     }
 
-    this.$root.$emit('modal-show', {
-      header: 'Delete Note?',
-      body: 'Deleting a note is permanent, it cannot be restored unless you have a backup.',
+    this.$root.$emit("modal-show", {
+      header: "Delete Note?",
+      body:
+        "Deleting a note is permanent, it cannot be restored unless you have a backup.",
       footer: DecisionButtons,
       footerOptions: {
         cancel: () => {
-          this.$root.$emit('modal-close');
+          this.$root.$emit("modal-close");
         },
         confirm: () => {
           completion();
-          this.$root.$emit('modal-close');
+          this.$root.$emit("modal-close");
         },
-        confirmText: 'Delete Note',
-        cancelText: 'Keep Note',
-        confirmStyle: 'danger'
+        confirmText: "Delete Note",
+        cancelText: "Keep Note",
+        confirmStyle: "danger"
       }
     } as ModalOptions);
   }
 
   async importNote() {
     try {
-      const files = await _.getFilesAsString();
-      files.forEach(file => this.$store.dispatch('newNote', JSON.parse(file)));
+      const files = await _.getFilesAsString({
+        parseData: true,
+        accept: ".onote",
+        multiple: true
+      });
+      files.forEach(file => this.$store.dispatch("newNote", JSON.parse(file)));
     } catch (e) {
       if (e instanceof _.DisplayableError) {
-        const { options: { message, title } } = e;
-        await this.$root.$emit('modal-show', {
+        const {
+          options: { message, title }
+        } = e;
+        await this.$root.$emit("modal-show", {
           header: title,
           body: message,
           footer: DecisionButtons,
           footerOptions: {
             hasCancel: false,
-            confirm: () => this.$root.$emit('modal-close'),
-            confirmText: 'OK',
-            confirmStyle: 'primary'
+            confirm: () => this.$root.$emit("modal-close"),
+            confirmText: "OK",
+            confirmStyle: "primary"
           }
         } as ModalOptions);
       }
@@ -425,19 +516,18 @@ export default class Home extends Vue {
   /**
    * Reloads all notes into the navigator view
    */
-  sortedList(notes: this['notes']) {
+  sortedList(notes: this["notes"]) {
     this.canDelete = Object.keys(this.$store.state.notes).length > 1;
-    const flatNotes = Object.keys(this.notes).map(k => ({id: k, ...this.notes[k]}));
+    const flatNotes = Object.keys(this.notes).map(k => ({
+      id: k,
+      ...this.notes[k]
+    }));
 
     return flatNotes.sort((a, b) => {
-      const aTime = a.data && a.data.time || a.created;
-      const bTime = b.data && b.data.time || b.created;
-      return this.sortListAscending ? (aTime - bTime) : (bTime - aTime);
-    }).map(({id, name, created, data}) => ({
-      id,
-      name,
-      timestamp: moment(data && data.time || created).calendar()
-    }));
+      const aTime = (a.data && a.data.time) || a.created;
+      const bTime = (b.data && b.data.time) || b.created;
+      return this.sortListAscending ? aTime - bTime : bTime - aTime;
+    });
   }
 }
 </script>
@@ -452,7 +542,7 @@ export default class Home extends Vue {
 
   @media only screen and (max-width: 500px) {
     grid-template-columns: 100vw 0px;
-    
+
     &:not(.nav-collapse) {
       & > .editor-view {
         visibility: hidden;
@@ -521,52 +611,52 @@ export default class Home extends Vue {
         right: 10px;
       }
 
-        & .control {
-          display: inline-flex;
-          align-items: center;
-          margin: 5px;
-          &:hover {
-            cursor: pointer;
-          }
+      & .control {
+        display: inline-flex;
+        align-items: center;
+        margin: 5px;
+        &:hover {
+          cursor: pointer;
+        }
 
-          &:hover {
-            &:not(.disabled) {
-              &.control-danger {
-                svg {
-                  fill: #c74545;
-                }
-              }
-
-              &.control-primary {
-                svg {
-                  fill: #8e84f9;
-                }
-              }
-
-              &.control-success {
-                svg {
-                  fill: #5ad677;
-                }
-              }
-            }
-
-            &.disabled {
+        &:hover {
+          &:not(.disabled) {
+            &.control-danger {
               svg {
-                @extend %fill;
-                cursor: not-allowed;
+                fill: #c74545;
+              }
+            }
+
+            &.control-primary {
+              svg {
+                fill: #8e84f9;
+              }
+            }
+
+            &.control-success {
+              svg {
+                fill: #5ad677;
               }
             }
           }
 
-          &.control-invert {
-            transform: rotate(180deg);
-          }
-
-          svg {
-            @extend %fill;
-            transition: fill 0.125s linear;
+          &.disabled {
+            svg {
+              @extend %fill;
+              cursor: not-allowed;
+            }
           }
         }
+
+        &.control-invert {
+          transform: rotate(180deg);
+        }
+
+        svg {
+          @extend %fill;
+          transition: fill 0.125s linear;
+        }
+      }
 
       // absolute center with no regard to the other bitches
       & > .note-title {
@@ -583,7 +673,6 @@ export default class Home extends Vue {
 
         &.muted-title-version {
           font-size: 12px;
-
         }
       }
 
@@ -627,7 +716,7 @@ export default class Home extends Vue {
 
         & > .item-timestamp {
           @extend %textAlt;
-          
+
           text-transform: uppercase;
           font-size: 12px;
           text-align: right;
@@ -637,7 +726,8 @@ export default class Home extends Vue {
     }
   }
 
-  & > .navigator, &.nav-collapse > .editor-view {
+  & > .navigator,
+  &.nav-collapse > .editor-view {
     padding-left: env(safe-area-inset-left);
   }
 }
@@ -673,6 +763,15 @@ export default class Home extends Vue {
           cursor: not-allowed;
         }
       }
+
+      &.ctx-primary {
+        @extend %bgBlue;
+
+        &.ctx-primary-disabled {
+          @extend %bgBlueBad;
+          cursor: not-allowed;
+        }
+      }
     }
 
     &:active {
@@ -683,6 +782,14 @@ export default class Home extends Vue {
 
         &.ctx-danger-disabled {
           @extend %bgRedAlt;
+        }
+      }
+
+      &.ctx-primary {
+        @extend %bgBlueAlt;
+
+        &.ctx-primary-disabled {
+          @extend %bgBlueAlt;
         }
       }
     }

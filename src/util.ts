@@ -27,6 +27,13 @@ export namespace _ {
         });
     }
 
+    export function clearQueryString() {
+        const urlNoQuery = `${location.origin}${location.pathname}`;
+        const query = new URLSearchParams(location.search);
+        history.replaceState({path: urlNoQuery},'', urlNoQuery);
+        return query;
+    }
+
     /**
      * Programatically saves a file to the browser
      * @param data the data to save
@@ -58,42 +65,56 @@ export namespace _ {
         a.dispatchEvent(e);
     }
 
-    /**
-     * Prompts a user for a file and returns the raw data
-     */
-    export function getFiles(): Promise<ArrayBuffer[]> {
+    export interface TransferOptions {
+        accept: string;
+        multiple: boolean;
+        parseData: boolean;
+    }
+
+    export function readFiles(files: File[]): Promise<ArrayBuffer[]> {
+        return Promise.all(files.map(file => new Promise((resolve, reject) => {
+            if (!file.name.endsWith('.onote')) {
+                reject(new DisplayableError(`bad filename: ${file.name}`, {
+                    title: 'Unsupported File',
+                    message: `The file '${file.name}' is unsupported. Please upload .onote files only.`
+                }));
+            }
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.addEventListener('load', function () {
+                resolve(this.result as ArrayBuffer);
+            });
+        }) as any));
+    }
+
+    export function promptForFiles(options: Partial<TransferOptions>): Promise<ArrayBuffer[] | File[]> {
         return new Promise((resolve, reject) => {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.onote';
-            input.multiple = true;
-            input.addEventListener('change', function (ev) {
+            input.accept = options.accept!;
+            input.multiple = options.multiple!;
+            input.addEventListener('change', function(ev) {
                 if (!this.files) return reject(new Error('missing files property'));
-                resolve(Promise.all(Array.from(this.files).map(file => {
-                    return new Promise((resolve, reject) => {
-                        if (!file.name.endsWith('.onote')) {
-                            return reject(new DisplayableError(`bad filename: ${file.name}`, {
-                                title: 'Unsupported File',
-                                message: `The file '${file.name}' is unsupported. Please upload .onote files only.`
-                            }));
-                        }
-                        const reader = new FileReader();
-                        reader.readAsArrayBuffer(file);
-                        reader.addEventListener('load', function () {
-                            resolve(this.result as ArrayBuffer);
-                        });
-                    }) as Promise<ArrayBuffer>;
-                })));
+                const files = Array.from(this.files);
+                if (!options.parseData) return resolve(files);
+                readFiles(files).then(resolve);
             });
             input.click();
         });
     }
 
     /**
+     * Prompts a user for a file and returns the raw data
+     */
+    export function getFiles(options: Partial<Exclude<TransferOptions, "parseData">>): Promise<ArrayBuffer[]> {
+        return promptForFiles({...options, parseData: true}) as any;
+    }
+
+    /**
      * Prompts a user for a file and decodes it to a string
      */
-    export function getFilesAsString(): Promise<string[]> {
-        return getFiles().then(files => {
+    export function getFilesAsString(options: Partial<Exclude<TransferOptions, "parseData">>): Promise<string[]> {
+        return getFiles(options).then(files => {
             const decoder = new TextDecoder('utf-8');
             return files.map(file => decoder.decode(file));
         });
@@ -145,8 +166,9 @@ export namespace _ {
         });
     }
 
-    export function setPreferredColorScheme(mode: 'light' | 'dark') {
+    export function setPreferredColorScheme(mode: 'light' | 'dark' | null) {
         resetPreferredColorScheme();
+        if (!mode) return;
         mediaRules().forEach(rule => {
             try {
                 switch (mode) {
@@ -258,12 +280,16 @@ export namespace _ {
 
     export namespace Dom {
         export function getCaretPosition(target: HTMLElement) {
-            let _range = document.getSelection()!.getRangeAt(0);
-            let range = _range.cloneRange();
-            range.selectNodeContents(target);
-            range.setEnd(_range.endContainer, _range.endOffset);
-            const pos = range.toString().length;
-            return pos;
+            try {
+                let _range = document.getSelection()!.getRangeAt(0);
+                let range = _range.cloneRange();
+                range.selectNodeContents(target);
+                range.setEnd(_range.endContainer, _range.endOffset);
+                const pos = range.toString().length;
+                return pos;
+            } catch {
+                return 0;
+            }
         }
 
         export function hasAncestor(node: Node, ancestor: Node) {
@@ -304,7 +330,6 @@ export namespace _ {
         export function isElementVisible(el: HTMLElement) {
             const rect = el.getBoundingClientRect();
             const { top: elemTop, bottom: elemBottom } = rect;
-            console.log({ elemTop, elemBottom });
             const isVisible = ((elemTop) >= 0) && ((elemBottom) <= window.innerHeight);
 
             return isVisible;
@@ -349,6 +374,11 @@ export namespace _ {
             if (index >= 0) {
                 const selection = window.getSelection()!;
 
+                if (!node.parentNode) {
+                    console.warn('No parent node was set.');
+                    return;
+                }
+
                 const range = createRange(node, { count: index });
 
                 if (range) {
@@ -358,6 +388,28 @@ export namespace _ {
                 }
             }
         }
+    }
+
+    /**
+     * Copies supplied text to the clipboard
+     * @param text text to copy
+     */
+    export function copyTextToClipboard(text: string) {
+        const el = document.createElement('div');
+        el.className = 'codex-editor-clipboard';
+        el.innerText = text;
+
+        document.body.appendChild(el);
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNode(el);
+
+        window.getSelection()!.removeAllRanges();
+        selection!.addRange(range);
+
+        document.execCommand('copy');
+        document.body.removeChild(el);
     }
 
     export namespace MathKit {
@@ -464,7 +516,7 @@ export namespace _ {
         }
 
         export async function calculateWithScope(latex: string, scope: any, mathJS: mathjs.MathJsStatic) {
-        
+
             let retVal: { result: string | null, resultFn: (Function & { original: string }) | null } = {
                 result: null,
                 resultFn: null
@@ -506,7 +558,7 @@ export namespace _ {
             if (typeof result === "string") {
                 const symbols = extractSymbolsFromMathString(result, mathJS);
                 if (symbols.length === 1) {
-                    const [ symbol ] = symbols;
+                    const [symbol] = symbols;
                     const template = `f(${symbol})=${result}`;
                     let fn: Function | null = mathJS.parse(template).compile().evaluate({});
 
@@ -529,7 +581,7 @@ export namespace _ {
             }
             // round results to 10th decimal
             else if (typeof result === "number") {
-                result = mathJS.round(result,10);
+                result = mathJS.round(result, 10);
             }
 
             if (typeof result !== "function") retVal.result = result;
@@ -561,7 +613,7 @@ export namespace _ {
             for (let i = xMin; i < xMax; i += step) {
                 try {
                     result = fn(i);
-                } catch(e) {
+                } catch (e) {
                     result = NaN;
                 }
                 values.push(result);

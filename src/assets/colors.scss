@@ -37,6 +37,8 @@ $lightMap: (
     "border": 1px solid darken(white, 10),
     "borderAlt": 1px solid black,
     "border1": 1px solid darken(white, 20),
+    "border2": 1px solid darken(white, 30),
+    "border3": 1px solid darken(white, 40),
     "borderAlt1": 1px solid lighten(black, 40),
     "shadow-bottom": 0px 6px 15px 0px rgba(0, 0, 0, 0.25),
     "shadow-regular": 0px 0px 20px 5px rgba(0, 0, 0, 0.25),
@@ -82,6 +84,8 @@ $darkMap: (
     "border": 1px solid lighten(black, 10),
     "borderAlt": 1px solid white,
     "border1": 1px solid lighten(black, 20),
+    "border2": 1px solid lighten(black, 30),
+    "border3": 1px solid lighten(black, 40),
     "borderAlt1": 1px solid darken(white, 40),
     "shadow-bottom": 0px 6px 15px 0px rgb(6, 7, 12),
     "shadow-regular": 0px 0px 20px 5px rgba(3, 2, 2, 0.95),
@@ -288,6 +292,14 @@ $darkMap: (
 
 %border1 {
     @include schemeResponsive("border", "border1");
+}
+
+%border2 {
+    @include schemeResponsive("border", "border2");
+}
+
+%border3 {
+    @include schemeResponsive("border", "border3");
 }
 
 %borderRight {

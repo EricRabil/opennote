@@ -1,10 +1,10 @@
 <template>
     <div class="controls">
-        <div :class="['control', `control-${confirmStyle}`]" @click="confirm">
-            {{confirmText}}
-        </div>
-        <div v-if="hasCancel" class="control control-neutral" @click="cancel">
+        <div v-if="hasCancel" class="control control-neutral" @click="cancel()">
             {{cancelText}}
+        </div>
+        <div :class="['control', `control-${confirmStyle}`]" @click="confirm()">
+            {{confirmText}}
         </div>
     </div>
 </template>
@@ -13,7 +13,7 @@
 import { Component, Vue, Prop } from "vue-property-decorator";
 
 @Component
-export default class ConfirmationModal extends Vue {
+export default class DecisionButtons extends Vue {
     @Prop()
     cancel: () => any;
 
@@ -49,6 +49,7 @@ export default class ConfirmationModal extends Vue {
         font-size: 11px;
         flex-grow: 1;
         transition: background-color 0.0625s linear;
+        max-width: 175px;
 
         &:hover {
             @extend %bgAlt4;
