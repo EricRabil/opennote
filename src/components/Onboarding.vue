@@ -26,18 +26,26 @@ export default class Onboarding extends Vue {
 
 <style lang="scss">
 .onboarding-view {
-    h2, h3 {
-        margin: 0;
+    h2, h3, p {
         line-height: 1rem;
         font-weight: 300;
+        text-align: center;
     }
 
     h2 {
         font-size: 20px;
+        margin-bottom: 10px;
     }
 
     h3 {
+        margin-top: 10px;
         font-size: 18px;
+    }
+
+    ul {
+        margin: 10px;
+        text-align: center;
+        font-style: italic;
     }
 
     margin-bottom: 10px;
@@ -48,7 +56,13 @@ export default class Onboarding extends Vue {
         h1 {
             font-size: 30px !important;
             font-weight: bold !important;
+            text-align: center;
+            width: 100%;
         }
+    }
+
+    .modal-footer {
+        justify-content: center;
     }
 }
 </style>

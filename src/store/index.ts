@@ -87,16 +87,16 @@ export const Store = new Vuex.Store({
         name = `${name} (${nextNumber})`;
       }
 
-      state.notes[id] = {
+      // state.notes[id] = ;
+      Vue.set(state.notes, id, {
         data,
         name,
         created: created || Date.now()
-      };
+      });
     },
     delNote(state, id) {
       const ids = Object.keys(state.notes);
-      const index = ids.indexOf(id);
-      delete state.notes[id];
+      Vue.delete(state.notes, id);
     },
     /**
      * Updates a note, or inserts it if it was not present already
@@ -129,10 +129,8 @@ export const Store = new Vuex.Store({
     setNotes(state, notes) {
       Vue.set(state, 'notes', notes);
     },
-    editorShouldReRender(state, should) {
-      if (should) {
-        state.dory.reRenderCount++;
-      }
+    crud() {
+      
     }
   },
   actions: {
@@ -198,7 +196,42 @@ export const Store = new Vuex.Store({
     },
     token: state => {
       return state.token;
-    }
+    },
+    sortedNotes: state => {
+      const flatNotes = Object.keys(state.notes).map(k => ({
+        id: k,
+        ...state.notes[k]
+      }));
+  
+      return flatNotes.sort((a, b) => {
+        const aTime = (a.data && a.data.time) || a.created;
+        const bTime = (b.data && b.data.time) || b.created;
+        return bTime - aTime;
+      });
+    },
+    nextNote: (state, getters) => {
+      const list: Array<Note & {id: string}> = getters.sortedNotes;
+      return (
+        list[list.findIndex(note => note.id === state.currentNote) + 1] ||
+        list[list.findIndex(note => note.id === state.currentNote) - 1]
+      );
+    },
+    prevNote: (state, getters) => {
+      const list: Array<Note & {id: string}> = getters.sortedNotes;
+      return list[list.findIndex(note => note.id === state.currentNote) - 1];
+    },
+    shouldDelete: (state, getters) => {
+      return getters.sortedNotes.length > 1;
+    },
+    isAuthenticated: (state) => {
+      return !!state.dory.userModel;
+    },
+    authSDK: (state, getters) => {
+      return getters.isAuthenticated && state.dory.sdk;
+    },
+    sdk: state => state.dory.sdk,
+    socket: state => state.dory.socket,
+    permitCollaboration: state => !!state.preferences.enableCollaborationMode
   },
   modules: {
   },

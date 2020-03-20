@@ -73,7 +73,7 @@ export default class ShareNote extends Vue {
   }
 
   get sdk() {
-    return this.$store.state.dory.sdk;
+    return this.$store.getters.authSDK;
   }
 }
 </script>

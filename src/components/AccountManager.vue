@@ -15,16 +15,8 @@ import MyProfile from "@/components/MyProfile.vue";
   }
 })
 export default class AccountManager extends Vue {
-  async mounted() {
-
-  }
-
   get isLoggedIn() {
-    return this.$store.state.dory.userModel !== null;
-  }
-
-  get sdk() {
-    return this.$store.state.dory.sdk;
+    return this.$store.getters.isAuthenticated;
   }
 }
 </script>

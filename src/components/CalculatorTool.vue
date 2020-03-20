@@ -200,7 +200,6 @@ export default class CalculatorTool extends Vue {
       if (!prev.latex) {
         this.$emit('navigateNext');
         await this.$nextTick();
-        console.log('emit and escape!');
         return;
       }
 

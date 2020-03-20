@@ -1,4 +1,5 @@
 import EditorJS, { EditorConfig, SanitizerConfig, PasteEvent } from "@editorjs/editorjs";
+import CommandLine from "@/components/CommandLine.vue";
 import _ from './util';
 const List = require('@editorjs/list');
 const CheckList = require('@editorjs/checklist');
@@ -261,41 +262,46 @@ function loadToolPatches(editor: EditorJS) {
             event.stopPropagation();
         }
 
-        if (typeof this.selectedSuggestion === 'undefined') this.selectedSuggestion = 0;
-        else this.selectedSuggestion++;
-        const oldSuggestion = this.suggestions[this.selectedSuggestion - 1];
-        let suggestion = this.suggestions[this.selectedSuggestion];
-        if (!suggestion) suggestion = this.suggestions[this.selectedSuggestion = 0];
-
-        if (oldSuggestion) (oldSuggestion as HTMLElement).classList.remove('active');
-        if (suggestion) suggestion.classList.add('active');
+        this._suggestions.$emit('tab', event);
 
         return true;
+
+        // if (typeof this.selectedSuggestion === 'undefined') this.selectedSuggestion = 0;
+        // else this.selectedSuggestion++;
+        // const oldSuggestion = this.suggestions[this.selectedSuggestion - 1];
+        // let suggestion = this.suggestions[this.selectedSuggestion];
+        // if (!suggestion) suggestion = this.suggestions[this.selectedSuggestion = 0];
+
+        // if (oldSuggestion) (oldSuggestion as HTMLElement).classList.remove('active');
+        // if (suggestion) suggestion.classList.add('active');
+
+        // return true;
     }
 
     Paragraph.prototype.teardownSuggestions = function () {
         console.log('tearing down suggestions');
-        if (this._suggestions) (this._suggestions as HTMLElement).remove();
+        if (this._suggestions) this._suggestions.$emit('destroy');
         delete this._suggestions;
         delete this.suggestions;
         delete this.selectedSuggestion;
-        currentSuggested = null;
     }
 
-    Paragraph.prototype.focused = function (newVal: boolean) {
-        if (!newVal && this._suggestions) {
-            this.teardownSuggestions();
+    let timeout: any;
+    Paragraph.prototype.willUnselect = function () {
+        if (this._suggestions) {
+            this.teardownSuggestions()
         }
     }
 
-    Paragraph.prototype.selectSuggestion = function (suggestion: HTMLElement) {
-        const selected = suggestion.innerText;
+    Paragraph.prototype.focused = function(isFocused: boolean) {
+        if (!isFocused || !!this._suggestions) return;
+        const { textContent } = this._element as HTMLElement;
+        if (!textContent!.startsWith('/') || textContent!.substring(1).split(' ').length > 1 || textContent === '/') return;
+        this.redrawSuggestions();
+    }
 
-        const block = (editor as any).core.moduleInstances.BlockManager.composeBlock(selected, {});
-        const currentIndex = (editor as any).core.moduleInstances.BlockManager._blocks.indexOf(this.block);
-        (editor as any).core.moduleInstances.BlockManager._blocks.insert(currentIndex, block, true);
-
-        (editor as any).core.moduleInstances.Caret.setToBlock(block);
+    Paragraph.prototype.selectSuggestion = function (selected: string) {
+        (editor as any).VueEditor.$emit('shouldSwitchTool', selected);
 
         this.teardownSuggestions();
     }
@@ -308,30 +314,16 @@ function loadToolPatches(editor: EditorJS) {
         event.preventDefault();
         event.stopPropagation();
 
-        this.selectSuggestion(this.suggestions[this.selectedSuggestion]);
+        // pass enter event to the component
+        this._suggestions.$emit('enter');
 
         return true;
     }
 
     Paragraph.prototype.removed = function () {
+        // DIE DIE DIE
         this.teardownSuggestions();
     }
-
-    let currentSuggested: any;
-
-    Editor.Listeners.on(window, 'resize', () => {
-        if (currentSuggested) {
-            currentSuggested.redrawSuggestions();
-        }
-    });
-
-    Editor.Listeners.on(parent, 'scroll', () => {
-        requestAnimationFrame(function () {
-            if (currentSuggested) {
-                currentSuggested.redrawSuggestions();
-            }
-        })
-    })
 
     Paragraph.prototype.redrawSuggestions = function () {
         const { textContent } = this._element as HTMLElement;
@@ -339,34 +331,30 @@ function loadToolPatches(editor: EditorJS) {
         const [command] = textContent!.substring(1).split(' ');
         const tools = Object.keys((editor as any).core.moduleInstances.Tools.blockTools);
         const possible = tools.filter(t => t.startsWith(command)).sort((a, b) => a.length - b.length);
-        const match = possible.find(t => t === command);
 
+        // dont do suggestions if its literally all the tools
         if (possible.length === tools.length) return;
 
-        const suggestions = this.suggestions = possible.map(s => {
-            const elm = document.createElement('span');
-            elm.innerText = s;
-            elm.classList.add('tool-suggestion');
-            elm.addEventListener('click', () => this.selectSuggestion(elm));
-            return elm;
+
+        if (this._suggestions) {
+            // hehe hey girl do ur ting
+            this._suggestions.$emit('update', possible);
+            return;
+        }
+
+        // pass autocomplete logic to the vue component, i dont like doing high level UI in the patches.
+        const suggestionContainer = document.createElement('span');
+        const holder = document.querySelector('.editor-container')!;
+        holder.appendChild(suggestionContainer);
+        const commandLine = this._suggestions = new CommandLine({
+            parent: (editor as any).VueEditor,
+            propsData: {
+                initialPossible: possible,
+                basis: this._element
+            }
         });
-
-        if (this._suggestions) (this._suggestions as HTMLElement).remove();
-        const suggestionContainer = this._suggestions = document.createElement('span');
-        suggestionContainer.style.position = 'absolute';
-        suggestionContainer.classList.add('tool-suggestion-container');
-        const range = window.getSelection()!.getRangeAt(0).cloneRange();
-        range.collapse(true);
-        suggestionContainer.style.left = range.getClientRects()[0].left + 'px';
-
-        const getPxStyle = (style: string) => parseFloat((getComputedStyle(this._element) as any)[style].split('px')[0]);
-
-        const offset = (getPxStyle('lineHeight') - getPxStyle('fontSize')) / 2;
-
-        suggestionContainer.style.top = this._element.getBoundingClientRect().top + getPxStyle('padding-top') + offset + window.scrollY + 'px';
-        suggestions.forEach(s => suggestionContainer.appendChild(s));
-
-        document.body.appendChild(suggestionContainer);
+        commandLine.$mount(suggestionContainer);
+        commandLine.$on('select', (suggestion: string) => this.selectSuggestion(suggestion));
     }
 
     hook(Paragraph.prototype, 'onKeyUp', old => function (event: KeyboardEvent) {
@@ -385,11 +373,7 @@ function loadToolPatches(editor: EditorJS) {
             return;
         }
 
-        currentSuggested = this;
-
         this.redrawSuggestions();
-
-        this.onTab();
     });
 
     Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function (e: KeyboardEvent) {
@@ -506,7 +490,6 @@ function loadBlockEventPatches(editor: EditorJS) {
     const { BlockEvents, BlockManager, Events, Caret, UI } = core.moduleInstances;
 
     hook(BlockEvents, 'tabPressed', old => function (event: KeyboardEvent) {
-        console.log('i have been touched...')
         /**
         * Clear blocks selection by tab
         */

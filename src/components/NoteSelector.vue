@@ -42,13 +42,12 @@ export default class NoteSelector extends Vue {
     }
 
     this.$nextTick(() => {
-      console.log('doing the dash like stacey');
       _.Dom.setCurrentCursorPosition(pos, target);
     });
   }
 
   get sdk() {
-    return this.$store.state.dory.sdk;
+    return this.$store.getters.authSDK;
   }
 
   get name() {

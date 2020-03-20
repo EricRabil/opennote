@@ -13,6 +13,8 @@ export class ONoteSocket {
     [nonce: string]: Function;
   };
 
+  crudAccepter: (note: string, packet: any) => any;
+
   constructor(private _url: string | null = null, private _token: string | null = null) {
 
   }
@@ -119,12 +121,10 @@ export class ONoteSocket {
         // note subscribers did update
         console.log('Socket got subscriber update event', payload);
         break;
-      case "/update/note":
-        // note did update
-        // THIS DOESNT WORK DO NOT ENABLE IT
-        if (Store.state.preferences.enableCollaborationMode) {
-          Store.commit("updateNote", payload.data);
-          Store.commit("editorShouldReRender", payload.data.data);
+      case "/note/crud":
+        // note did update with crud
+        if (Store.state.preferences.enableCollaborationMode && this.crudAccepter) {
+          this.crudAccepter(payload.data!.note, payload.data!.packet);
         }
         break;
       case "/update/user":

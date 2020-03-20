@@ -193,6 +193,50 @@ export namespace _ {
         });
     }
 
+    export namespace Tooltips {
+        export function showTooltip(tooltipLib: any, ev: MouseEvent) {
+            const leftOffset = 0;
+
+            if (!tooltipLib) return;
+            // no tooltips on mobile, please. its fucking ugly
+            if (document.body.clientWidth <= 500) return;
+            const tip = (ev.target! as HTMLElement).getAttribute("data-tooltip");
+            const placement =
+            (ev.target! as HTMLElement).getAttribute("data-placement") || "bottom";
+            if (!tip) return;
+
+            const content = document.createTextNode(tip);
+
+            const observer = new MutationObserver(mutation => {
+            content.textContent = (ev.target! as HTMLElement).getAttribute(
+                "data-tooltip"
+            );
+            });
+
+            observer.observe(ev.target as HTMLElement, {
+            attributes: true,
+            attributeFilter: ["data-tooltip"],
+            childList: false,
+            characterData: false
+            });
+
+            tooltipLib.show(ev.target as HTMLElement, content, { placement });
+            const tooltipContainers = Array.from(
+            document.querySelectorAll(".ct.ct--bottom")
+            ) as HTMLElement[];
+            tooltipContainers.forEach(tooltipContainer => {
+            tooltipContainer.style.left = `${(parseInt(
+                tooltipContainer.style.left!.split("px")[0]
+            ) || 0) + leftOffset}px`;
+            });
+        }
+
+        export function hideTooltip(tooltipLib: any, ev: MouseEvent) {
+            if (!tooltipLib) return;
+            tooltipLib.hide();
+        }
+    }
+
     export namespace Graph {
         interface DomainConfiguration {
             xDomain: [number, number],

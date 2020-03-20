@@ -103,7 +103,6 @@ export default class MathField extends Vue {
         edit: field => {
           if (this.latex === field.latex()) return;
           this.latex = field.latex();
-          this.updateFields();
         },
         upOutOf: () => this.$emit("upOutOf"),
         downOutOf: () => this.$emit("downOutOf"),
@@ -133,6 +132,9 @@ export default class MathField extends Vue {
     this.$watch("trigState", mode => this.updateFields());
     this.$watch("renderFormat", () => this.updateResultView());
     this.$watch("result", () => this.updateResultView());
+    this.$watch("latex", () => {
+      this.updateFields();
+    });
 
     this.$watch("result", (result, oldResult) => {
       if (result == oldResult) return;
@@ -145,6 +147,8 @@ export default class MathField extends Vue {
 
     this.$on("reflow", () => this.reflow());
     this.$on("set:latex", (latex: string | null) => this.latex = latex);
+    // sets latex, reactively
+    this.$on("setr:latex", (latex: string | null) => this.mathField.latex(latex!));
   }
 
   async setBusy(busy: boolean) {
@@ -194,9 +198,9 @@ export default class MathField extends Vue {
       return;
     }
 
-    if (this.latex === this.lastLatex) {
-      return;
-    }
+    // if (this.latex === this.lastLatex) {
+    //   return;
+    // }
 
     this.lastLatex = this.latex;
 

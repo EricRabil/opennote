@@ -50,6 +50,7 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         component: Vue;
         pendingPasteEvent: PasteEvent | null = null;
         sanitize: SanitizerConfig;
+        enableToolbarAPI: boolean = false;
         ignoreBackspace: () => boolean;
         isEmpty: () => boolean;
         isAtStart: () => boolean;
@@ -108,6 +109,8 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             this.component.$on('showToolbar', () => {
                 this.showToolbar();
             });
+
+            this.component.$on('enableToolbarAPI', () => this.enableToolbarAPI = true);
     
             this.component.$on('hidePlusButton', () => {
                 this.Editor.moduleInstances.Toolbar.plusButton.hide();
@@ -194,7 +197,12 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
             this.component.$emit('parsePaste', e);
         }
     
+        /**
+         * This is not useful and errors a lot because its misused.
+         * @deprecated
+         */
         showToolbar() {
+            if (!this.enableToolbarAPI) return;
             this.Editor.moduleInstances.Toolbar.open();
             this.Editor.moduleInstances.BlockManager.highlightCurrentNode();
         }

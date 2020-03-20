@@ -15,7 +15,8 @@ module.exports = {
       }
     },
     devServer: {
-      host: 'fatty.net'
+      host: 'fatty.net',
+      disableHostCheck: true
     },
     // publicPath: '/opennote/',
     parallel: true,

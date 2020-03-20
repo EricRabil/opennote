@@ -58,6 +58,7 @@ import Onboarding from './components/Onboarding.vue';
 import DecisionButtons from "@/components/DecisionButtons.vue";
 import _ from './util';
 import Settings from './components/Settings.vue';
+import ShareNote from './components/ShareNote.vue';
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -110,6 +111,13 @@ export default class App extends Vue {
     );
     this.$root.$on("modal-close", () => this.$emit("modal-close"));
     this.$root.$on("modal-patch", (options: Partial<ModalOptions>) => this.$emit("modal-patch", options));
+    this.$root.$on('delNote', (id: string) => this.triggerDeleteNoteFlow(id));
+    this.$root.$on('exportNotes', () => this.exportNotes());
+    this.$root.$on('importNote', () => this.importNote());
+    this.$root.$on('downloadNote', (id: string) => this.download(id));
+    this.$root.$on('shareNote', (id: string) => this.triggerShareNoteFlow(id));
+    this.$root.$on('showSettings', () => this.showSettings());
+    this.$root.$on('newNote', () => this.$store.dispatch('newNote'));
 
     document.addEventListener("click", this.onclick);
 
@@ -193,6 +201,121 @@ export default class App extends Vue {
       options: this.modalOptions
     });
     this.modalOptions = null;
+  }
+
+  /**
+   * Trigger share note modal, allow option to overwrite shortcode, generate link
+   */
+  triggerShareNoteFlow(id: string) {
+    this.$root.$emit("modal-show", {
+      header: "Share Note",
+      body: ShareNote,
+      bodyOptions: {
+        id
+      }
+    });
+  }
+
+  triggerDeleteNoteFlow(id: string, jumpTo: string = this.$store.getters.nextNote) {
+    if (!this.$store.getters.shouldDelete) return;
+    const completion = () => {
+      this.$store.commit("delNote", id);
+      this.$store.commit("setNote", jumpTo);
+    };
+    
+    if (!this.$store.state.notes[id].data || this.$store.state.notes[id].data.blocks.length === 0) {
+      completion();
+      return;
+    }
+
+    this.$root.$emit("modal-show", {
+      header: "Delete Note?",
+      body:
+        "Deleting a note is permanent, it cannot be restored unless you have a backup.",
+      footer: DecisionButtons,
+      footerOptions: {
+        cancel: () => {
+          this.$root.$emit("modal-close");
+        },
+        confirm: () => {
+          completion();
+          this.$root.$emit("modal-close");
+        },
+        confirmText: "Delete Note",
+        cancelText: "Keep Note",
+        confirmStyle: "danger"
+      }
+    } as ModalOptions);
+  }
+
+  async exportNotes() {
+    let repeats: {
+      [name: string]: number;
+    } = {};
+    const notes = this.$store.state.notes;
+    const serialized = Object.keys(notes)
+      .map(k => ({
+        name: notes[k].name,
+        text: JSON.stringify(notes[k])
+      }))
+      .map((data, idx, files) => {
+        if (!repeats[data.name]) repeats[data.name] = 0;
+        return {
+          name:
+            files.filter(f => f.name === data.name).length === 1
+              ? data.name
+              : `${data.name}${
+                  repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ""
+                }`,
+          text: data.text
+        };
+      })
+      .map(({ name, text }) => ({
+        name: `${name}.onote`,
+        text
+      }));
+    await _.zipFilesAndDownload("OpenNote Export.zip", serialized);
+  }
+
+  download(id: string) {
+    const note = this.$store.state.notes[id];
+    _.saveFile(JSON.stringify(note), `${note.name}.onote`, "application/json");
+  }
+
+  showSettings() {
+    this.$root.$emit("modal-show", {
+      header: "Settings",
+      body: Settings
+    } as ModalOptions);
+  }
+
+
+  async importNote() {
+    try {
+      const files = await _.getFilesAsString({
+        parseData: true,
+        accept: ".onote",
+        multiple: true
+      });
+      files.forEach(file => this.$store.dispatch("newNote", JSON.parse(file)));
+    } catch (e) {
+      if (e instanceof _.DisplayableError) {
+        const {
+          options: { message, title }
+        } = e;
+        await this.$root.$emit("modal-show", {
+          header: title,
+          body: message,
+          footer: DecisionButtons,
+          footerOptions: {
+            hasCancel: false,
+            confirm: () => this.$root.$emit("modal-close"),
+            confirmText: "OK",
+            confirmStyle: "primary"
+          }
+        } as ModalOptions);
+      }
+    }
   }
 }
 </script>
@@ -299,6 +422,7 @@ body {
 
       & > .modal-body {
         max-height: 300px;
+        padding: 10px 40px;
       }
 
       & > .modal-header {

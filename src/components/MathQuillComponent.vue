@@ -192,13 +192,14 @@ export default class MathQuillComponent extends Vue {
   created() {
     Object.keys(this.savedData).forEach(key => {
       if (key === "latex") return;
+      if (key === "__uuid__") return;
       Vue.set(this, key, (this.savedData as any)[key]);
     });
   }
 
   mounted() {
     this.$refs.mathField.$on("get:components", (resolve: (c: any[]) => any) =>
-      this.mathFields().then(resolve)
+      resolve(this.mathFields())
     );
 
     this.$refs.mathField.$on("upOutOf", () => this.$emit("upOutOf"));
@@ -288,6 +289,8 @@ export default class MathQuillComponent extends Vue {
 
     this.$on("moved", () => this.$refs.mathField.updateFields());
     this.$on("reflow", () => this.reflow());
+
+    this.$on("setr:latex", (latex: string | null) => this.$refs.mathField.$emit("setr:latex", latex));
 
     this.$refs.graph.$on(
       "fail-state-change",
@@ -460,15 +463,21 @@ export default class MathQuillComponent extends Vue {
   /**
    * Gets all Vue components of this tool from the Editor layer
    */
-  components(): Promise<MathQuillComponent[]> {
-    return new Promise(resolve => this.$emit("get:components", resolve));
+  components(): MathQuillComponent[] {
+    return this.$parent ? this.$parent.$children.filter(c => c instanceof MathQuillComponent).sort((a, b) => {
+      if (a === b) return 0;
+      if (a.$el.compareDocumentPosition(b.$el) & 2) {
+        return 1;
+      }
+      return -1;
+    }) as MathQuillComponent[] : [];
   }
 
   /**
    * Gets all MathField children of components()
    */
-  mathFields(): Promise<MathField[]> {
-    return this.components().then(c => c.map(c => c.$refs.mathField));
+  mathFields(): MathField[] {
+    return this.components().map(c => c.$refs.mathField);
   }
 }
 </script>

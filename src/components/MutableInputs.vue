@@ -53,7 +53,6 @@ export default class MutableInputs extends Vue {
       fields.forEach(field => {
         Vue.set(this.controller, field.id, field.value ? field.value() : this.data[field.id]);
         this.$watch(`controller.${field.id}`, (newVal, oldValue) => {
-          console.log({ newVal, oldValue });
           if (newVal === oldValue) return;
           if (field.update) field.update(newVal);
           this.changes[field.id] = newVal;

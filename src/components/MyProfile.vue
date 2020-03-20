@@ -52,7 +52,7 @@ export default class MyProfile extends Vue {
   }
 
   get sdk() {
-    return this.$store.state.dory.sdk;
+    return this.$store.getters.authSDK;
   }
 
   get avatar() {

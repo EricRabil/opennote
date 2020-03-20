@@ -3,7 +3,7 @@
     <div class="editor-meta-view" v-if="note">
       <span class="controls-left">
         <span v-if="showBurger" class="editor-burger" @click="$emit('burgerClick')">&#9776;</span>
-        <span class="labels-control labels-control-btn" @click="exporter(noteID)">
+        <span class="labels-control labels-control-btn" @click="$root.$emit('downloadNote', noteID)">
           <span class="label-text">Export</span>
           <UploadSVG class="alt-icon icon-invert" />
         </span>
@@ -24,80 +24,21 @@
         </span>
       </span>
     </div>
-    <div class="editor-ribbon-container" v-if="showRibbon">
-      <div class="editor-ribbon">
-        <template v-for="(value, key) in topLevelToolboxData">
-          <span
-            :class="{'ribbon-item': true, active: key === active}"
-            :data-tooltip="showLabels ? '' : value.title"
-            @mouseenter="mouseenter"
-            @mouseleave="mouseleave"
-            @click="switchTool(key)"
-            :key="key"
-          >
-            <span class="ribbon-text" v-if="showLabels">{{value.title}}</span>
-            <span class="ribbon-icon" v-html="value.icon"></span>
-          </span>
-          <span
-            :class="['tools-drawer-slider', openDrawers.includes(key) ? '' : 'drawer-closed']"
-            :key="`${key}-drawer`"
-            v-if="key in toolDrawers"
-          >
-            <span
-              class="drawer-toggle"
-              :data-tooltip="`${openDrawers.includes(key) ? 'Close' : 'Open'} ${value.title} Drawer`"
-              @mouseenter="mouseenter"
-              @mouseleave="mouseleave"
-              @click="toggleDrawer(key)"
-            ></span>
-            <span
-              :class="{'ribbon-item': true, active: sliderItemKey === active}"
-              :data-tooltip="showLabels ? '' : toolboxData[sliderItemKey].title"
-              @mouseenter="mouseenter"
-              @mouseleave="mouseleave"
-              @click="switchTool(sliderItemKey)"
-              v-for="sliderItemKey of toolDrawers[key]"
-              :key="sliderItemKey"
-            >
-              <span class="ribbon-text" v-if="showLabels">{{toolboxData[sliderItemKey].title}}</span>
-              <span class="ribbon-icon" v-html="toolboxData[sliderItemKey].icon"></span>
-            </span>
-          </span>
-        </template>
-      </div>
-    </div>
-    <div class="editor-container" ref="mountPoint"></div>
+    <tool-ribbon v-if="showRibbon" :showLabels="showLabels" :tools="toolboxData" :drawers="toolDrawers" :activeTool="currentTool" @switchTool="switchTool($event)"></tool-ribbon>
+    <EditorJSHost ref="editor" @ready="ready = true" @selectTool="currentTool = $event"></EditorJSHost>
   </div>
 </template>
 
 <script lang="ts">
 import EditorJS, { OutputData } from "@editorjs/editorjs";
 import { Component, Vue, Prop } from "vue-property-decorator";
-import { toolForVueComponent } from "@/tools/MQVueTool";
-import MathQuillComponent from '@/components/MathQuillComponent.vue';
 import UploadSVG from "@/assets/upload.svg?inline";
 import TrashSVG from "@/assets/trash.svg?inline";
 import ToolSVG from "@/assets/tool.svg?inline";
+import ToolRibbon from "@/components/ToolRibbon.vue";
 
-import patchEditorJS from "../editorjs-patches";
 import _ from '../util';
-import CalculatorTool from './CalculatorTool.vue';
-
-const Checklist = require("@editorjs/checklist");
-const Code = require("@editorjs/code");
-const Delimiter = require("@editorjs/delimiter");
-const Embed = require("@editorjs/embed");
-const Header = require("@editorjs/header");
-const InlineCode = require("@editorjs/inline-code");
-const List = require("@editorjs/list");
-const Marker = require("@editorjs/marker");
-const Paragraph = require("@editorjs/paragraph");
-const Quote = require("@editorjs/quote");
-const Raw = require("@editorjs/raw");
-const SimpleImage = require("@editorjs/simple-image");
-const Table = require("@editorjs/table");
-const Warning = require("@editorjs/warning");
-const Link = require("@editorjs/link");
+import EditorJSHost from './EditorJSHost.vue';
 
 /**
  * Wrapper around Codex, manages all communication with it.
@@ -106,18 +47,13 @@ const Link = require("@editorjs/link");
   components: {
     UploadSVG,
     TrashSVG,
-    ToolSVG
+    ToolSVG,
+    ToolRibbon,
+    EditorJSHost
   }
 })
 export default class Editor extends Vue {
-  editor: EditorJS;
-  active: string = "";
-  lastIndex: number = 0;
-  interval: any;
-  unloadListener: Function;
-  hasChanges: boolean = false;
-
-  name: string | null = null;
+  currentTool: string = "";
 
   overrides: {
     showRibbon: boolean | null;
@@ -125,6 +61,10 @@ export default class Editor extends Vue {
   } = {
     showRibbon: null,
     showLabels: null
+  }
+
+  $refs: {
+    editor: EditorJSHost;
   }
 
   ready: boolean = false;
@@ -149,26 +89,9 @@ export default class Editor extends Vue {
   @Prop({ default: false })
   showBurger: boolean;
 
-  @Prop()
-  exporter: (id: string) => any;
-
-  @Prop()
-  deleter: (id: string) => any;
-
-  @Prop({ default: false })
-  canDelete: boolean;
-
   toolDrawers: {[key: string]: string[]} = {
     paragraph: ['list', 'header', 'delimiter', 'quote']
   };
-
-  openDrawers: string[] = [];
-
-  $refs: {
-    mountPoint: HTMLDivElement;
-  };
-
-  touchMoving: boolean = false;
 
   created() {
       // if theres no note, create it before render
@@ -178,104 +101,6 @@ export default class Editor extends Vue {
     ) {
       this.$store.dispatch('newNote');
     }
-
-    window.addEventListener('beforeunload', this.unloadListener = () => this.save());
-  }
-
-  toggleDrawer(drawer: string) {
-    if (this.openDrawers.includes(drawer)) return this.openDrawers.splice(this.openDrawers.indexOf(drawer));
-    this.openDrawers.push(drawer);
-  }
-
-  mounted() {
-      // when the noteID in store changes, save & reload the editor
-    this.$watch("noteID", async (newID: string, oldID) => {
-      if (!this.editor) return;
-
-      this.save(oldID);
-
-      this.editor.clear();
-
-      if (!this.cachedData) return;
-
-      const note = this.note;
-
-      this.hasChanges = false;
-      await this.renderData(this.cachedData);
-    });
-
-    this.$store.subscribe(async mutation => {
-      switch (mutation.type) {
-        case 'updateNote':
-        case 'setNote':
-          this.name = this.note.name;
-          break;
-        case 'editorShouldReRender':
-          await this.renderData(mutation.payload, true);
-      }
-    });
-
-    this.name = this.note.name;
-
-    this.$el.addEventListener('touchmove', () => this.touchMoving = true);
-    this.$el.addEventListener('touchend', () => this.touchMoving = false);
-
-    // autosaver (if changes only)
-    this.interval = setInterval(() => {
-      if (!this.editor) return;
-      if (!this.hasChanges) return;
-      this.save();
-      this.hasChanges = false;
-    }, 250);
-
-    this.createEditor();
-  }
-
-  destroyed() {
-    clearInterval(this.interval);
-    window.removeEventListener('beforeunload', this.unloadListener as any);
-  }
-
-  mouseenter(ev: MouseEvent) {
-    if (!(ev.target as HTMLElement).getAttribute('data-tooltip')) return;
-    this.$parent.$emit('ct-mouseenter', ev);
-  }
-
-  mouseleave(ev: MouseEvent) {
-    if (!(ev.target as HTMLElement).getAttribute('data-tooltip')) return;
-    this.$parent.$emit('ct-mouseleave', ev);
-  }
-
-  async renderData(data: OutputData, preserveCaret: boolean = false) {
-    data = data || this.cachedData;
-    let caretPosition: any = null;
-    if (preserveCaret) {
-      caretPosition = _.Dom.getCaretPosition(this.$el as HTMLElement);
-      console.log('preserving caret position at ', { caretPosition });
-    }
-
-    if (!data || !data.blocks) return;
-    await this.editor.render(data || this.cachedData);
-
-    if (preserveCaret) {
-      this.$nextTick(() => _.Dom.setCurrentCursorPosition(caretPosition!, this.$el as HTMLElement));
-    }
-
-    const quill = (this
-      .editor as any).core.moduleInstances.BlockManager.blocks.find(
-      (block: any) => block.name === "math"
-    );
-    if (quill) {
-      await quill.tool.send('updateFields');
-    }
-  }
-
-  get quills() {
-    return (this.editor as any).core.moduleInstances.BlockManager.blocks.filter((block: {name: string}) => block.name === 'math');
-  }
-
-  get notInMainToolbox() {
-    return Object.values(this.toolDrawers).reduce((a,c) => a.concat(c), []);
   }
 
   get backend(): string | null {
@@ -293,6 +118,10 @@ export default class Editor extends Vue {
     return this.$store.state.notes[this.noteID] || {};
   }
 
+  get name() {
+    return this.note.name;
+  }
+
   /**
    * Returns the currently selected note ID
    */
@@ -301,157 +130,14 @@ export default class Editor extends Vue {
   }
 
   /**
-   * Updates stored active note ID
+   * Updates stored currentTool note ID
    */
   set noteID(newVal: string) {
     this.$store.commit("setNote", newVal);
   }
 
-  /**
-   * Saves Codex data to store
-   */
-  async save(id: string = this.noteID) {
-    if (!this.$store.state.notes[id]) return;
-    if (!this.hasChanges) return;
-
-    const data = await this.editor.save();
-
-    this.$store.commit("updateNote", {
-      data,
-      id
-    });
-
-    if (this.sdk) {
-      await this.sdk.editNote(id, { data });
-    }
-  }
-
   get sdk() {
-    return this.$store.state.dory.sdk;
-  }
-
-  /**
-   * Called when Codex is ready
-   */
-  async editorLoaded() {
-    await this.renderData(this.cachedData);
-
-    (this.editor as any).core.moduleInstances.Events.on('keydown', (ev: KeyboardEvent) => {
-        this.hasChanges = true;
-    });
-
-    // reveal tooltip lib
-    Vue.set(this.$root.$children[0], 'tooltip', this.getModule('API').methods.tooltip);
-
-    // only show ribbon by default if we are on big screen
-    await this.save();
-
-    const redactor = (this.editor as any).core.moduleInstances.UI.nodes.redactor;
-
-    var observer = new MutationObserver((mutation) => {
-      console.debug('reflowing mathquills');
-      this.quills.forEach((q: any) => q.tool.send('reflow'));
-    });
-
-    observer.observe(redactor, {
-      attributes: true, 
-      attributeFilter: ['class'],
-      childList: false, 
-      characterData: false
-    });
-
-    this.$emit("ready");
-
-    this.ready = true;
-  }
-
-  /**
-   * Creates and mounts a Codex editor, destroying the old one if it exists
-   */
-  createEditor(data?: any) {
-    if (this.editor) {
-      this.editor.destroy();
-    }
-
-    this.editor = new EditorJS({
-      holder: this.$refs.mountPoint,
-      tools: this.addConditionalTools({
-        math: toolForVueComponent(MathQuillComponent, {
-            title: 'Math',
-            icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                <path d="M 4 2 C 2.895 2 2 2.895 2 4 L 2 9 C 2 10.105 2.895 11 4 11 L 9 11 C 10.105 11 11 10.105 11 9 L 11 4 C 11 2.895 10.105 2 9 2 L 4 2 z M 15 2 C 13.895 2 13 2.895 13 4 L 13 9 C 13 10.105 13.895 11 15 11 L 20 11 C 21.105 11 22 10.105 22 9 L 22 4 C 22 2.895 21.105 2 20 2 L 15 2 z M 6 4 L 7 4 L 7 6 L 9 6 L 9 7 L 7 7 L 7 9 L 6 9 L 6 7 L 4 7 L 4 6 L 6 6 L 6 4 z M 15 6 L 20 6 L 20 7 L 15 7 L 15 6 z M 4 13 C 2.895 13 2 13.895 2 15 L 2 20 C 2 21.105 2.895 22 4 22 L 9 22 C 10.105 22 11 21.105 11 20 L 11 15 C 11 13.895 10.105 13 9 13 L 4 13 z M 15 13 C 13.895 13 13 13.895 13 15 L 13 20 C 13 21.105 13.895 22 15 22 L 20 22 C 21.105 22 22 21.105 22 20 L 22 15 C 22 13.895 21.105 13 20 13 L 15 13 z M 4.71875 15.03125 L 6.5 16.78125 L 8.28125 15.03125 L 8.96875 15.71875 L 7.21875 17.5 L 8.96875 19.28125 L 8.28125 19.96875 L 6.5 18.21875 L 4.71875 19.96875 L 4.03125 19.28125 L 5.78125 17.5 L 4.03125 15.71875 L 4.71875 15.03125 z M 15 16 L 20 16 L 20 17 L 15 17 L 15 16 z M 15 18 L 20 18 L 20 19 L 15 19 L 15 18 z"/>
-            </svg>`
-        }, {
-          tags: ['MQ-PASTE-DATA']
-        }),
-        calculator: toolForVueComponent(CalculatorTool, {
-          title: 'Calculator',
-          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path
-              d="M2 0v24h20v-24h-20zm5 22h-3v-3h3v3zm0-4h-3v-3h3v3zm0-4h-3v-3h3v3zm4 8h-3v-3h3v3zm0-4h-3v-3h3v3zm0-4h-3v-3h3v3zm4 8h-3v-3h3v3zm0-4h-3v-3h3v3zm0-4h-3v-3h3v3zm5 8h-3v-7h3v7zm0-8h-3v-3h3v3zm0-6h-16v-6h16v6zm-1-1h-14v-4h14v4z" />
-            </svg>`
-        }),
-        checklist: Checklist,
-        code: Code,
-        // raw: Raw,
-        delimiter: Delimiter,
-        embed: Embed,
-        inlineCode: InlineCode,
-        list: {
-          class: List,
-          inlineToolbar: List
-        },
-        marker: {
-          class: Marker,
-          shortcut: 'CMD+SHIFT+U',
-        },
-        header: {
-          class: Header,
-          inlineToolbar: true
-        },
-        paragraph: {
-          class: Paragraph,
-          inlineToolbar: true
-        },
-        quote: {
-          class: Quote,
-          inlineToolbar: true
-        },
-        image: SimpleImage,
-        table: Table,
-        warning: Warning
-      }),
-      data,
-      logLevel: "VERBOSE" as any,
-      ['blockElements' as any]: ['mq-paste-data'],
-      ['specialElements' as any]: ['mq-paste-data'],
-      ['patch' as any]: patchEditorJS
-    });
-
-    (this.editor as any).VueEditor = this;
-
-    this.editor.isReady.then(() => this.editorLoaded());
-
-    (this.editor as any).blockIndexDidChange = (index: number) => {
-      if (index > -1) this.lastIndex = index;
-      const block = (this.editor as any).core.moduleInstances.BlockManager
-        .blocks[index];
-      if (!block) return;
-      this.active = block.name;
-    };
-  }
-
-  addConditionalTools<T>(tools: T): T {
-    if (this.backend) {
-      // add link tool
-      (tools as any).link = {
-        class: Link,
-        config: {
-          endpoint: `${this.backend}/api/v1/tools/link/metadata`
-        }
-      }
-    }
-    return tools;
+    return this.$store.getters.authSDK;
   }
 
   /**
@@ -459,21 +145,7 @@ export default class Editor extends Vue {
    * @note uses private APIs
    */
   switchTool(key: string) {
-    const BlockManager = this.getModule("BlockManager");
-    const Caret = this.getModule("Caret");
-    const Toolbox = this.getModule("Toolbar");
-    const block = BlockManager.composeBlock(key, {});
-    BlockManager._blocks.insert(this.lastIndex, block, true);
-    Caret.setToBlock(block);
-    Toolbox.close();
-  }
-
-  /**
-   * Returns a private API module
-   * @note uses private APIs
-   */
-  getModule(module: string) {
-    return (this.editor as any).core.moduleInstances[module];
+    this.$refs.editor.$emit('shouldSwitchTool', key);
   }
 
   /**
@@ -481,22 +153,8 @@ export default class Editor extends Vue {
    * @note uses private APIs
    */
   get toolboxData() {
-    try {
-      const tools = (this.editor as any).core.moduleInstances.Tools.toolsClasses;
-      return Object.keys(tools)
-        .map(k => ({ key: k, toolbox: tools[k].toolbox }))
-        .filter(k => !!k.toolbox)
-        .reduce((acc, { key, toolbox }) => {
-          acc[key] = toolbox;
-          return acc;
-        }, {} as any);
-    } catch (e) {
-      return {};
-    }
-  }
-
-  get topLevelToolboxData() {
-    return _.filterObject(this.toolboxData, key => !this.notInMainToolbox.includes(key));
+    this.ready;
+    return this.$refs.editor ? this.$refs.editor.toolboxData : {};
   }
 }
 </script>
@@ -504,7 +162,9 @@ export default class Editor extends Vue {
 <style lang="scss">
 .editor-meta-view {
   @extend %borderBottom;
-  position: sticky;
+  @extend %bg;
+  position: relative;
+  z-index: 50;
   display: flex;
   flex-flow: row;
   min-height: 44px;
@@ -560,168 +220,6 @@ export default class Editor extends Vue {
   }
 }
 
-.tool-suggestion-container {
-  @extend %textAlt1;
-  display: flex;
-  flex-flow: row;
-  margin: 0 2.5px;
-  line-height: 1em;
-  z-index: 1000;
-
-  & > .tool-suggestion {
-    margin: 0 2.5px;
-    transition: color 0.0625s linear;
-
-    &.active,
-    &:hover {
-      @extend %textAlt2;
-      cursor: pointer;
-    }
-  }
-}
-
-.ce-inline-toolbar {
-  @extend %bg0;
-  @extend %border;
-  & svg {
-    @extend %fill;
-  }
-
-  & .ce-conversion-toolbar {
-    @extend %bg0;
-    @extend %border;
-
-    & .ce-conversion-tool {
-      &:hover {
-        @extend %bgAlt2;
-      }
-    }
-  }
-
-  & .ce-inline-toolbar__dropdown,
-  & .ce-inline-tool {
-    &:hover {
-      @extend %bgAlt2;
-    }
-  }
-}
-
-.ce-header {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.ce-paragraph {
-  box-sizing: border-box;
-  line-height: 1.4em !important;
-  padding: 0.8em 0;
-}
-
-.editor-container {
-  @extend %border1;
-  @include scrollbar();
-  border-top: 0;
-  border-bottom: 0;
-  width: 100%;
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 10px 0;
-  overflow-y: scroll;
-  z-index: 100;
-
-  .ce-block--selected .ce-block__content {
-    @extend %bg3;
-  }
-
-  &:only-child {
-    height: 100%;
-  }
-
-  &:nth-child(2) {
-    height: calc(100% - 45px);
-  }
-
-  &:nth-child(3) {
-    height: calc(100% - 90px);
-  }
-
-  @media print {
-    &,
-    .codex-editor,
-    .codex-editor__redactor {
-      border: none !important;
-      height: unset;
-      overflow-y: visible;
-      width: 100vw !important;
-    }
-  }
-
-  .codex-editor--narrow .ce-toolbar__plus {
-    left: 0px;
-  }
-
-  z-index: 0;
-
-  .codex-editor {
-    z-index: -5;
-    height: 100%;
-
-    @media only screen and (max-width: 975px) {
-      .ce-block {
-        margin-right: 0;
-        padding-right: 0;
-      }
-
-      .ce-toolbox {
-        left: 34px;
-        right: 40px;
-        background: none;
-        overflow-x: scroll;
-      }
-
-      .ce-toolbar__plus {
-        left: 0px;
-      }
-
-      .ce-block__content {
-        max-width: calc(100% - 90px);
-        margin: 0;
-        padding-left: 34px;
-      }
-    }
-
-    .codex-editor__redactor,
-    .codex-editor__loader {
-      min-height: 100%;
-    }
-  }
-}
-
-.nav-collapse {
-  @media only screen and (max-width: 975px) {
-    .ce-toolbar__content {
-      margin: 0;
-    }
-
-    .codex-editor--narrow .ce-toolbar__actions {
-      right: 10px;
-    }
-
-    //   .editor-container .codex-editor .codex-editor__redactor {
-    //     .ce-block.ce-block--focused {
-    //       margin: 0;
-    //       padding: 0;
-    //     }
-    //   }
-  }
-}
-
-@media print {
-  .ce-toolbar {
-    display: none !important;
-  }
-}
-
 .editor-view {
   @extend %bgAlt;
   @extend %text;
@@ -732,136 +230,5 @@ export default class Editor extends Vue {
   z-index: 500;
 
   padding-right: env(safe-area-inset-right);
-
-  .cdx-marker {
-    @include schemeResponsive("background", "highlight-color");
-    @extend %text;
-  }
-}
-
-.editor-ribbon-container {
-  @extend %bg;
-  @extend %text;
-  @extend %fill;
-
-  @include schemeResponsive("box-shadow", "shadow-bottom");
-
-  @media print {
-    display: none !important;
-  }
-
-  z-index: 50;
-
-  user-select: none;
-
-  .editor-ribbon {
-    display: flex;
-    flex-flow: row;
-    flex-wrap: wrap;
-
-    @media only screen and (max-width: 975px) {
-      overflow-x: scroll;
-      overflow-y: hidden;
-      flex-wrap: nowrap;
-    }
-
-    & > .tools-drawer-slider {
-      display: contents;
-
-      & .drawer-toggle {
-        @extend %fill;
-        @extend %text;
-        display: flex;
-        align-items: center;
-        padding: 0 5px;
-
-        &::after {
-          font-size: 20px;
-        }
-      }
-
-      &.drawer-closed .drawer-toggle::after {
-        content: "\00bb";
-      }
-
-      &:not(.drawer-closed) .drawer-toggle::after {
-        content: "\00ab";
-      }
-
-      &.drawer-closed .ribbon-item {
-        display: none;
-      }
-    }
-
-    & span.ribbon-item,
-    & span.drawer-toggle {
-      &:hover {
-        @extend %bg0;
-        cursor: pointer;
-      }
-
-      &:active {
-        @extend %bg2;
-      }
-
-      &.active {
-        @extend %bg1;
-      }
-    }
-
-    & span.ribbon-item {
-      display: flex;
-      flex-flow: row-reverse;
-      padding: 10px 15px;
-      height: 22px;
-      align-items: center;
-
-      & > span.ribbon-text {
-        height: min-content;
-        margin-left: 5px;
-      }
-
-      & > span.ribbon-icon {
-        line-height: 0;
-      }
-    }
-  }
-}
-
-.link-tool__input {
-  @extend %bg0;
-  @extend %border1;
-  padding-left: 12px;
-}
-
-.link-tool__input-holder {
-  .link-tool__progress {
-    @extend %bg2;
-  }
-}
-
-.link-tool__input-holder--error {
-  .link-tool__input {
-    @include bgSchemeResponsive("redBad1");
-    @include borderSchemeResponsive("redAlt");
-    @include textSchemeResponsive("redAlt2");
-    background-image: none;
-  }
-}
-
-.link-tool__content {
-  @extend %bgAlt7;
-  @extend %border1;
-  // @extend %text;
-  .link-tool__title {
-    @extend %text;
-  }
-
-  .link-tool__description {
-    @extend %text;
-  }
-
-  .link-tool__anchor {
-  }
 }
 </style>

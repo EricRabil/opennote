@@ -21,8 +21,11 @@ import _ from './util';
 import { ONoteSDK } from './api.sdk';
 import { Store } from 'vuex';
 import { ONoteSocket } from './socket';
+import Tooltip from "@/components/Tooltip.vue";
 
 Vue.use(require('vue-resize-observer'));
+
+Vue.component('tooltip', Tooltip);
 
 Vue.config.productionTip = false;
 
