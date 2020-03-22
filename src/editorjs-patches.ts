@@ -206,7 +206,7 @@ function loadClipboardPatches(editor: EditorJS) {
  * Patches bugs in tools to make them work properly/in an expected behavior
  */
 function loadToolPatches(editor: EditorJS) {
-    const { UI } = (editor as any).core.moduleInstances;
+    const { UI, Tools } = (editor as any).core.moduleInstances;
     const { Editor } = UI;
     // properly gets out of list because the plugin is fucking stupid
     hook(List.prototype, 'getOutofList', old => function (event: KeyboardEvent) {
@@ -375,6 +375,8 @@ function loadToolPatches(editor: EditorJS) {
 
         this.redrawSuggestions();
     });
+
+    hook(Tools.toolsClasses.paragraph.prototype, 'validate', () => () => true);
 
     Code.prototype.ignoreBackspace = Raw.prototype.ignoreBackspace = function (e: KeyboardEvent) {
         const empty = this.block.holder.querySelector('textarea').value.length === 0
