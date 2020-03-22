@@ -59,6 +59,7 @@ import DecisionButtons from "@/components/DecisionButtons.vue";
 import _ from './util';
 import Settings from './components/Settings.vue';
 import ShareNote from './components/ShareNote.vue';
+import { ONoteSDK, NoteModel } from './api.sdk';
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -117,7 +118,7 @@ export default class App extends Vue {
     this.$root.$on('downloadNote', (id: string) => this.download(id));
     this.$root.$on('shareNote', (id: string) => this.triggerShareNoteFlow(id));
     this.$root.$on('showSettings', () => this.showSettings());
-    this.$root.$on('newNote', () => this.$store.dispatch('newNote'));
+    this.$root.$on('newNote', () => this.newNote());
 
     document.addEventListener("click", this.onclick);
 
@@ -164,6 +165,14 @@ export default class App extends Vue {
         });
       }
     });
+  }
+
+  async newNote() {
+    this.$store.dispatch('newNote');
+  }
+
+  get authSDK(): ONoteSDK {
+    return this.$store.getters.authSDK;
   }
 
   isNode(obj: any) {
@@ -216,11 +225,11 @@ export default class App extends Vue {
     });
   }
 
-  triggerDeleteNoteFlow(id: string, jumpTo: string = this.$store.getters.nextNote) {
+  triggerDeleteNoteFlow(id: string, jumpTo: NoteModel = this.$store.getters.nextNote) {
     if (!this.$store.getters.shouldDelete) return;
     const completion = () => {
-      this.$store.commit("delNote", id);
-      this.$store.commit("setNote", jumpTo);
+      this.$store.dispatch("delNote", id);
+      this.$store.dispatch("selectNote", jumpTo && jumpTo.id);
     };
     
     if (!this.$store.state.notes[id].data || this.$store.state.notes[id].data.blocks.length === 0) {

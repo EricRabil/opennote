@@ -12,6 +12,7 @@ import CalculatorTool from "./CalculatorTool.vue";
 import patchEditorJS from "../editorjs-patches";
 import _ from "../util";
 import { ONoteSocket } from '../socket';
+import CodeMirrorTool from './CodeMirrorTool.vue';
 
 const Checklist = require("@editorjs/checklist");
 const Code = require("@editorjs/code");
@@ -30,7 +31,7 @@ const Warning = require("@editorjs/warning");
 const Link = require("@editorjs/link");
 
 export interface CRUDPacket {
-  action: "create" | "replace" | "update" | "delete";
+  action: "create" | "replace" | "update" | "delete" | "swap";
   data: {
     uuid: string;
     data: any;
@@ -58,6 +59,8 @@ export default class EditorJSHost extends Vue {
       this.editor.clear();
 
       if (!this.cachedData) return;
+
+      this.editorCanSendCRUDEvents = false;
 
       await this.renderData(this.cachedData);
     });
@@ -93,6 +96,8 @@ export default class EditorJSHost extends Vue {
     this.getModule("Toolbox").insertNewBlock(toolClass, tool);
   }
 
+  editorCanSendCRUDEvents = false;
+
   async renderData(data: OutputData) {
     data = data || this.cachedData;
 
@@ -101,6 +106,8 @@ export default class EditorJSHost extends Vue {
     if (!data || !data.blocks) return;
 
     await this.editor.render(data);
+
+    this.editorCanSendCRUDEvents = true;
   }
 
   async editorDidLoad() {
@@ -118,7 +125,8 @@ export default class EditorJSHost extends Vue {
   handleCRUD(packet: CRUDPacket) {
     if (!this.socket) return;
     if (!this.canCollaborate) return;
-    console.log(packet);
+    if (!this.editorCanSendCRUDEvents) return;
+    console.log({state: "send", packet});
     this.socket.send({
       action: "/note/crud",
       data: {
@@ -130,10 +138,13 @@ export default class EditorJSHost extends Vue {
 
   receiveCRUD({action, data: { uuid, data }}: CRUDPacket) {
     const BlockManager = this.getModule("BlockManager");
-    const basisIndex = BlockManager.getBlockByUUID(uuid);
-    console.log({ action, data: { uuid, data }, basisIndex });
+    let basisIndex = BlockManager.getBlockByUUID(uuid);
+    console.log({state: "receive", packet: { action, data: { uuid, data }, basisIndex }});
     switch (action) {
       case "create":
+        if (uuid === null) {
+          basisIndex = BlockManager.blocks.length;
+        }
         BlockManager.insert(data['name'], data['data'], data['settings'], basisIndex, false, true);
         break;
       case "replace":
@@ -143,8 +154,12 @@ export default class EditorJSHost extends Vue {
       case "update":
         switch (data['toolName']) {
           case "math":
-            const tool: InstanceType<ReturnType<typeof toolForVueComponent>> = BlockManager.getBlockByIndex(basisIndex).tool;
+            var tool: InstanceType<ReturnType<typeof toolForVueComponent>> = BlockManager.getBlockByIndex(basisIndex).tool;
             tool.send("setr:latex", data['data']['data']['latex']);
+            return;
+          case "codeMirror":
+            var tool: InstanceType<ReturnType<typeof toolForVueComponent>> = BlockManager.getBlockByIndex(basisIndex).tool;
+            tool.send("setr:code", data['data']['data']['code']);
             return;
         }
         var newBlock = BlockManager.composeBlock(data['toolName'], data['data']['data'], data['settings'], data['settings']['__uuid__']);
@@ -152,6 +167,9 @@ export default class EditorJSHost extends Vue {
         break;
       case "delete":
         BlockManager.removeBlock(basisIndex, true);
+        break;
+      case "swap":
+        this.editor.blocks.swap(BlockManager.getBlockByUUID(data.fromUUID), BlockManager.getBlockByUUID(data.toUUID), true);
         break;
     }
   }
@@ -179,8 +197,15 @@ export default class EditorJSHost extends Vue {
       onRemove: (uuid) => {
         this.handleCRUD({action: "delete", data: { uuid, data: null }});
       },
-      shouldSwallowUpdate: (uuid: string) => {
-        return !this.getModule("BlockManager").getBlockByUUID(uuid);
+      onSwap: (fromUUID, toUUID) => {
+        this.handleCRUD({action: "swap", data: { uuid: null as any , data: { fromUUID, toUUID } }});
+      },
+      shouldSwallowUpdate: async (uuid: string) => {
+        const BlockManager = this.getModule("BlockManager");
+        const block = BlockManager.getBlockByUUID(uuid);
+        if (!block) return true;
+        if (!block.tool || !block.tool.send) return false;
+        return await block.tool.send("get:streamed");
       },
       tools: this.addConditionalTools({
         math: toolForVueComponent(
@@ -204,6 +229,10 @@ export default class EditorJSHost extends Vue {
         }),
         checklist: Checklist,
         code: Code,
+        codeMirror: toolForVueComponent(CodeMirrorTool, {
+          title: "CodeMirror",
+          icon: Code.toolbox.icon
+        }),
         // raw: Raw,
         delimiter: Delimiter,
         embed: Embed,

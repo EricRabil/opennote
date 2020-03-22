@@ -57,6 +57,10 @@ export class ONoteSDK {
     return axios.post(`${this.baseURL}/api/v1/notes/new`, { data, name }).then(res => res.data);
   }
 
+  async deleteNote(id: string): Promise<void> {
+    return axios.delete(`${this.baseURL}/api/v1/notes/${id}`);
+  }
+
   async editNote(id: string, edits: Partial<NoteModel>): Promise<NoteModel> {
     return axios.patch(`${this.baseURL}/api/v1/notes/${id}`, edits).then(res => res.data);
   }

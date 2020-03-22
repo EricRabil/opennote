@@ -113,7 +113,7 @@ export default class NoteList extends Vue {
   selectNote(id: string) {
     console.log(id);
     if (this.currentNote === id) return;
-    this.$store.commit("setNote", id);
+    this.$store.dispatch("selectNote", id);
     if (
       document.activeElement &&
       document.activeElement.getAttribute("data-id") === id

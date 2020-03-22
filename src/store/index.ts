@@ -3,7 +3,7 @@ import Vuex from 'vuex'
 import VuexPersistence from 'vuex-persist';
 import { OutputData } from '@editorjs/editorjs';
 import _ from '@/util';
-import { ONoteSDK, UserModel } from '@/api.sdk';
+import { ONoteSDK, UserModel, NoteModel } from '@/api.sdk';
 import { ONoteSocket } from '@/socket';
 
 export type LocalStore = typeof Store;
@@ -26,6 +26,7 @@ export interface Note {
   name: string;
   data: OutputData;
   created: number;
+  shortCode?: string;
 }
 
 const query = _.clearQueryString();
@@ -101,9 +102,9 @@ export const Store = new Vuex.Store({
     /**
      * Updates a note, or inserts it if it was not present already
      */
-    updateNote(state, { data, id, name }) {
+    updateNote(state, { id, name, shortCode }) {
       const note = (state.notes[id] || (state.notes[id] = {} as any));
-      Vue.set(note, 'data', data || note.data);
+      Vue.set(note, 'shortCode', shortCode || note.shortCode);
       Vue.set(note, 'name', name || note.name || NEW_NOTE_NAME);
     },
     setPreference(state, { name, value }) {
@@ -129,17 +130,46 @@ export const Store = new Vuex.Store({
     setNotes(state, notes) {
       Vue.set(state, 'notes', notes);
     },
+    insertNote(state, note: NoteModel) {
+      Vue.set(state.notes, note.id, note);
+    },
     crud() {
       
     }
   },
   actions: {
-    newNote(state, { data, name, created } = {}) {
-      let id = _.uuidv4();
-      while (state.state.notes[id]) id = _.uuidv4();
-      state.commit('newNote', { id, data, name, created });
+    async newNote(state, { data, name, created } = {}) {
+      var id;
+      if (state.getters.authSDK) {
+        const sdk: ONoteSDK = state.getters.authSDK;
+        const note = await sdk.createNote({}, state.state.preferences.defaultNoteName);
+        id = note.id;
+        state.commit('insertNote', note);
+      } else {
+        id = _.uuidv4();
+        while (state.state.notes[id]) id = _.uuidv4();
+        state.commit('newNote', { id, data, name, created });
+      }
+
       state.commit('setNote', id);
       return id;
+    },
+    async delNote(state, id: string) {
+      if (state.getters.authSDK) {
+        const sdk: ONoteSDK = state.getters.authSDK;
+        await sdk.deleteNote(id);
+      }
+      state.commit('delNote', id);
+    },
+    async selectNote(state, id: string) {
+      if (state.getters.sdk) {
+        const sdk: ONoteSDK = state.getters.sdk;
+        const note = await sdk.getNote(id);
+        if (!note) return;
+        state.commit('insertNote', note);
+      }
+
+      state.commit('setNote', id);
     },
     async refreshUserModel(state) {
       const { sdk } = state.state.dory;

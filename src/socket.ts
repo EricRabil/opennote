@@ -1,4 +1,5 @@
 import Store from './store';
+import { ONoteSDK } from './api.sdk';
 
 interface Payload {
   action: string;
@@ -6,6 +7,8 @@ interface Payload {
   nonce?: string;
   method?: string;
 }
+
+const babyComeBackInterval = 1000;
 
 export class ONoteSocket {
   private _socket: WebSocket | null;
@@ -49,9 +52,9 @@ export class ONoteSocket {
     this._socket = null;
   }
 
-  refresh() {
+  async refresh(withSocket?: WebSocket) {
     if (!this.url || !this.token) return;
-    this._socket = new WebSocket(this.url!);
+    this._socket = withSocket || new WebSocket(this.url!);
     this._socket.addEventListener('message', (message: any) => {
       try {
         message = JSON.parse(message.data);
@@ -66,6 +69,33 @@ export class ONoteSocket {
 
       this.receive(message);
     });
+    this._socket.addEventListener('open', () => {
+      const deferred = this.deferred;
+      this.deferred = [];
+      deferred.forEach(deferred => this.sendRaw(deferred));
+    })
+    this._socket.addEventListener('close', () => this.runReconnectLoop());
+  }
+
+  runReconnectLoop() {
+    this._socket = null;
+    var socket;
+    const run = async () => {
+      if (this._socket) return;
+      console.log('running reconnect loop');
+      
+      try {
+        const sdk: ONoteSDK = Store.getters.sdk;
+        console.log('fetching new token');
+        const newToken = await sdk.refreshToken(this._token!);
+        if (!newToken) throw newToken;
+        console.log('got new token', { newToken });
+        Store.commit('setToken', newToken);
+      } finally {
+        setTimeout(run, babyComeBackInterval);
+      }
+    }
+    run();
   }
 
   send(payload: Payload): Promise<any> {
@@ -88,7 +118,10 @@ export class ONoteSocket {
     return this._socket ? this._socket.readyState === this._socket.CLOSED : true;
   }
 
+  deferred: string[] = [];
+
   sendRaw(payload: any) {
+    if (!this._socket || this._socket.readyState !== this._socket.OPEN) return this.deferred.push(payload);
     this._socket!.send(payload);
   }
 
@@ -121,12 +154,24 @@ export class ONoteSocket {
         // note subscribers did update
         console.log('Socket got subscriber update event', payload);
         break;
+      case "/update/note":
+        // note metadata did change
+        Store.commit('updateNote', payload.data);
+        break;
       case "/note/crud":
         // note did update with crud
         if (Store.state.preferences.enableCollaborationMode && this.crudAccepter) {
           this.crudAccepter(payload.data!.note, payload.data!.packet);
         }
         break;
+      case "/note/create":
+        // note was created, insert to store
+        Store.commit('insertNote', payload.data);
+        break;
+      case "/note/delete":
+        Store.commit('delNote', payload.data);
+        if (Store.state.currentNote !== payload.data) break;
+        Store.commit('setNote', Store.getters.nextNote.id);
       case "/update/user":
         var { data } = payload;
         if (!data) return;

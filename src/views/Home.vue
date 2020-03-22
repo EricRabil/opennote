@@ -64,7 +64,7 @@ export default class Home extends Vue {
       if (note) {
         const { id, data, name, created } = note;
         this.$store.commit("newNote", { id, data, name, created });
-        this.$store.commit("setNote", id);
+        this.$store.dispatch("selectNote", id);
         this.$router.push("/");
       }
     }

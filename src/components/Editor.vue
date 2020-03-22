@@ -133,7 +133,7 @@ export default class Editor extends Vue {
    * Updates stored currentTool note ID
    */
   set noteID(newVal: string) {
-    this.$store.commit("setNote", newVal);
+    this.$store.dispatch("selectNote", newVal);
   }
 
   get sdk() {
