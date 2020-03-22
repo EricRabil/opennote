@@ -53,7 +53,8 @@ function refreshSocket(socket: ONoteSocket) {
   socket.token = null;
   if (!store.state.preferences.backend) return;
   const url = store.state.preferences.backend.split('://')[1];
-  socket.url = `ws://${url}`;
+  const secure = location.protocol.endsWith('s:') ? 's' : '';
+  socket.url = `ws${secure}://${url}`;
   socket.token = store.state.token;
 }
 
