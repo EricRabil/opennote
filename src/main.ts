@@ -1,31 +1,35 @@
 import "reset-css";
+import "npm-font-open-sans/open-sans.css";
 import "mathquill/build/mathquill.css";
 import "@fortawesome/fontawesome-free/js/all.js";
 import "@fortawesome/fontawesome-free/css/all.css";
 import "./polyfills";
 import "d3/d3.js";
-import Vue from 'vue';
+import Vue from "vue";
 
-const jQuery = require('jquery');
+const jQuery = require("jquery");
 const $ = jQuery;
 (window as any).$ = $;
 
-const worker = require('./algebra.worker.ts');
+const worker = require("./algebra.worker.ts");
 (window as any).AlgebraWorker = new worker();
 
-import App from './App.vue'
-import './registerServiceWorker'
-import router from './router'
-import store, { LocalState, LocalStore } from './store'
-import _ from './util';
-import { ONoteSDK } from './api.sdk';
-import { Store } from 'vuex';
-import { ONoteSocket } from './socket';
-import Tooltip from "@/components/Tooltip.vue";
+import App from "./App.vue"
+import "./registerServiceWorker"
+import router from "./router"
+import store, { LocalState, LocalStore } from "./store"
+import _ from "./util";
+import { ONoteSDK } from "./api.sdk";
+import { Store } from "vuex";
+import { ONoteSocket } from "./socket";
+import Tooltip from "@/components/layout/Tooltip.vue";
+import { installUIKit } from "./uikit/entry";
 
-Vue.use(require('vue-resize-observer'));
+Vue.use(require("vue-resize-observer"));
 
-Vue.component('tooltip', Tooltip);
+Vue.component("tooltip", Tooltip);
+
+installUIKit(Vue);
 
 Vue.config.productionTip = false;
 
@@ -34,10 +38,10 @@ window.MathQuill = MathQuill.getInterface(1);
 window.addEventListener(
   "touchmove",
   function(event) {
-      if (typeof (event as any).scale !== "number") return;
-      if ((event as any).scale !== 1) {
-          event.preventDefault();
-      }
+    if (typeof (event as any).scale !== "number") return;
+    if ((event as any).scale !== 1) {
+      event.preventDefault();
+    }
   },
   { passive: false }
 );
@@ -52,8 +56,8 @@ function refreshSocket(socket: ONoteSocket) {
   socket.url = null;
   socket.token = null;
   if (!store.state.preferences.backend) return;
-  const url = store.state.preferences.backend.split('://')[1];
-  const secure = location.protocol.endsWith('s:') ? 's' : '';
+  const url = store.state.preferences.backend.split("://")[1];
+  const secure = location.protocol.endsWith("s:") ? "s" : "";
   socket.url = `ws${secure}://${url}/socket`;
   socket.token = store.state.token;
 }
@@ -67,7 +71,7 @@ store.watch((state, getters) => getters.user, async (user, oldUser) => {
   }
   if (user && oldUser && (user.id === oldUser.id)) return;
   if (!store.state.token) {
-    store.commit('setToken', await store.state.dory.sdk.createToken());
+    store.commit("setToken", await store.state.dory.sdk.createToken());
     return;
   }
 });
@@ -101,8 +105,8 @@ store.subscribe(async (mutation, state) => {
   const { sdk } = state.dory;
   if (!sdk) return;
   switch (mutation.type) {
-    case "setPreference":
-      await sdk.updatePreferences(state.preferences);
+  case "setPreference":
+    await sdk.updatePreferences(state.preferences);
   }
 });
 
@@ -113,4 +117,4 @@ new Vue({
   router,
   store,
   render: h => h(App)
-}).$mount('#app')
+}).$mount("#app")

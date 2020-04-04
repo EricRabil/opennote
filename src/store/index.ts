@@ -1,13 +1,13 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
-import VuexPersistence from 'vuex-persist';
-import { OutputData } from '@editorjs/editorjs';
-import _ from '@/util';
-import { ONoteSDK, UserModel, NoteModel } from '@/api.sdk';
-import { ONoteSocket } from '@/socket';
+import Vue from "vue"
+import Vuex from "vuex"
+import VuexPersistence from "vuex-persist";
+import { OutputData } from "@editorjs/editorjs";
+import _ from "@/util";
+import { ONoteSDK, UserModel, NoteModel } from "@/api.sdk";
+import { ONoteSocket } from "@/socket";
 
 export type LocalStore = typeof Store;
-export type LocalState = LocalStore['state'];
+export type LocalState = LocalStore["state"];
 
 const vuexLocal: any = new VuexPersistence<LocalState>({
   storage: window.localStorage,
@@ -20,7 +20,7 @@ const vuexLocal: any = new VuexPersistence<LocalState>({
 
 Vue.use(Vuex)
 
-const NEW_NOTE_NAME = 'Untitled Note';
+const NEW_NOTE_NAME = "Untitled Note";
 
 export interface Note {
   name: string;
@@ -42,9 +42,9 @@ export const Store = new Vuex.Store({
       showToolbox: true,
       hideEditorByDefaultOnMobile: true,
       sawFirstRun: false,
-      preferredColorScheme: null as null | 'light' | 'dark',
+      preferredColorScheme: null as null | "light" | "dark",
       defaultNoteName: NEW_NOTE_NAME,
-      defaultTrigState: 'rad' as _.MathKit.TrigState,
+      defaultTrigState: "rad" as _.MathKit.TrigState,
       backend: null as null | string,
       enableCollaborationMode: false
     },
@@ -82,7 +82,7 @@ export const Store = new Vuex.Store({
       const clashingNotes: RegExpMatchArray[] = Object.values(state.notes as {[key: string]: Note}).map(note => note.name.match(merged)).filter(n => !!n) as RegExpMatchArray[];
 
       if (clashingNotes.length > 0) {
-        const [ previousMax ] = clashingNotes.map(([,idx]) => parseInt(idx || '0')).sort((a,b) => b - a);
+        const [ previousMax ] = clashingNotes.map(([,idx]) => parseInt(idx || "0")).sort((a,b) => b - a);
         const nextNumber = previousMax + 1;
 
         name = `${name} (${nextNumber})`;
@@ -102,16 +102,17 @@ export const Store = new Vuex.Store({
     /**
      * Updates a note, or inserts it if it was not present already
      */
-    updateNote(state, { id, name, shortCode }) {
+    updateNote(state, { id, name, shortCode, data }) {
       const note = (state.notes[id] || (state.notes[id] = {} as any));
-      Vue.set(note, 'shortCode', shortCode || note.shortCode);
-      Vue.set(note, 'name', name || note.name || NEW_NOTE_NAME);
+      Vue.set(note, "shortCode", shortCode || note.shortCode);
+      Vue.set(note, "name", name || note.name || NEW_NOTE_NAME);
+      Vue.set(note, "data", data || note.data || {});
     },
     setPreference(state, { name, value }) {
       (state.preferences as any)[name] = value;
     },
     overwritePreferences(state, preferences) {
-      Vue.set(state, 'preferences', preferences);
+      Vue.set(state, "preferences", preferences);
     },
     resetSDK(state) {
       if (!state.preferences.backend) return;
@@ -122,13 +123,13 @@ export const Store = new Vuex.Store({
       state.dory.userModel = user;
     },
     setLoginMethods(state, methods: string[]) {
-      Vue.set(state.dory, 'loginMethods', methods);
+      Vue.set(state.dory, "loginMethods", methods);
     },
     setToken(state, token: string) {
-      Vue.set(state, 'token', token);
+      Vue.set(state, "token", token);
     },
     setNotes(state, notes) {
-      Vue.set(state, 'notes', notes);
+      Vue.set(state, "notes", notes);
     },
     insertNote(state, note: NoteModel) {
       Vue.set(state.notes, note.id, note);
@@ -144,14 +145,14 @@ export const Store = new Vuex.Store({
         const sdk: ONoteSDK = state.getters.authSDK;
         const note = await sdk.createNote({}, state.state.preferences.defaultNoteName);
         id = note.id;
-        state.commit('insertNote', note);
+        state.commit("insertNote", note);
       } else {
         id = _.uuidv4();
         while (state.state.notes[id]) id = _.uuidv4();
-        state.commit('newNote', { id, data, name, created });
+        state.commit("newNote", { id, data, name, created });
       }
 
-      state.commit('setNote', id);
+      state.commit("setNote", id);
       return id;
     },
     async delNote(state, id: string) {
@@ -159,17 +160,36 @@ export const Store = new Vuex.Store({
         const sdk: ONoteSDK = state.getters.authSDK;
         await sdk.deleteNote(id);
       }
-      state.commit('delNote', id);
+      state.commit("delNote", id);
     },
     async selectNote(state, id: string) {
       if (state.getters.sdk) {
         const sdk: ONoteSDK = state.getters.sdk;
         const note = await sdk.getNote(id);
         if (!note) return;
-        state.commit('insertNote', note);
+        state.commit("insertNote", note);
       }
 
-      state.commit('setNote', id);
+      state.commit("setNote", id);
+    },
+    async updateNote(state, { id, name, shortCode, data }) {
+      const note = state.state.notes[id];
+      if (note && note.data && note.data.blocks) {
+        if (!name && !shortCode && data) {
+          if (JSON.stringify(note.data.blocks) === JSON.stringify(data.blocks)) return;
+        }
+      }
+
+      state.commit("updateNote", {
+        data,
+        id,
+        name,
+        shortCode
+      });
+  
+      if (state.getters.sdk) {
+        await state.getters.sdk.editNote(id, { data, name, shortCode });
+      }
     },
     async refreshUserModel(state) {
       const { sdk } = state.state.dory;
@@ -181,13 +201,13 @@ export const Store = new Vuex.Store({
       const { sdk } = state.state.dory;
       if (!sdk) return;
       const methods = await sdk.fetchAcceptableLoginMethods();
-      Store.commit('setLoginMethods', methods);
+      Store.commit("setLoginMethods", methods);
     },
     async refreshNotesFromServer(state) {
       const { sdk } = state.state.dory;
       if (!sdk) return;
       const notes = await sdk.cloudNotes();
-      Store.commit('setNotes', notes.reduce((acc, note) => ({...acc, [note.id]: {
+      Store.commit("setNotes", notes.reduce((acc, note) => ({...acc, [note.id]: {
         name: note.name,
         data: note.data,
         created: note.created
@@ -197,7 +217,7 @@ export const Store = new Vuex.Store({
       const { sdk } = state.state.dory;
       if (!sdk) return;
       if (state.state.token) {
-        Store.commit('setToken', await sdk.refreshToken(state.state.token));
+        Store.commit("setToken", await sdk.refreshToken(state.state.token));
       }
       await state.dispatch("refreshUserModel");
       await state.dispatch("refreshLoginMethods");
@@ -257,6 +277,7 @@ export const Store = new Vuex.Store({
       return !!state.dory.userModel;
     },
     authSDK: (state, getters) => {
+      getters
       return getters.isAuthenticated && state.dory.sdk;
     },
     sdk: state => state.dory.sdk,
@@ -269,19 +290,19 @@ export const Store = new Vuex.Store({
 });
 
 function initializeSDK() {
-  Store.commit('resetSDK');
+  Store.commit("resetSDK");
 }
 
 Store.subscribe((mutation, state) => {
   switch (mutation.type) {
-    case 'setPreference':
-      switch (mutation.payload.name) {
-        case 'backend':
-          initializeSDK();
-      }
-      break;
-    default:
-      break;
+  case "setPreference":
+    switch (mutation.payload.name) {
+    case "backend":
+      initializeSDK();
+    }
+    break;
+  default:
+    break;
   }
 });
 

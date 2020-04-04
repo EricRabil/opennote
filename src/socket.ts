@@ -1,5 +1,5 @@
-import Store from './store';
-import { ONoteSDK } from './api.sdk';
+import Store from "./store";
+import { ONoteSDK } from "./api.sdk";
 
 interface Payload {
   action: string;
@@ -55,11 +55,11 @@ export class ONoteSocket {
   async refresh(withSocket?: WebSocket) {
     if (!this.url || !this.token) return;
     this._socket = withSocket || new WebSocket(this.url!);
-    this._socket.addEventListener('message', (message: any) => {
+    this._socket.addEventListener("message", (message: any) => {
       try {
         message = JSON.parse(message.data);
       } catch (e) {
-        console.warn('Malformed payload from server', message.data);
+        console.warn("Malformed payload from server", message.data);
         return;
       }
 
@@ -69,12 +69,12 @@ export class ONoteSocket {
 
       this.receive(message);
     });
-    this._socket.addEventListener('open', () => {
+    this._socket.addEventListener("open", () => {
       const deferred = this.deferred;
       this.deferred = [];
       deferred.forEach(deferred => this.sendRaw(deferred));
     })
-    this._socket.addEventListener('close', () => this.runReconnectLoop());
+    this._socket.addEventListener("close", () => this.runReconnectLoop());
   }
 
   runReconnectLoop() {
@@ -82,15 +82,15 @@ export class ONoteSocket {
     var socket;
     const run = async () => {
       if (this._socket) return;
-      console.log('running reconnect loop');
+      console.log("running reconnect loop");
       
       try {
         const sdk: ONoteSDK = Store.getters.sdk;
-        console.log('fetching new token');
+        console.log("fetching new token");
         const newToken = await sdk.refreshToken(this._token!);
         if (!newToken) throw newToken;
-        console.log('got new token', { newToken });
-        Store.commit('setToken', newToken);
+        console.log("got new token", { newToken });
+        Store.commit("setToken", newToken);
       } finally {
         setTimeout(run, babyComeBackInterval);
       }
@@ -131,66 +131,60 @@ export class ONoteSocket {
 
   receive(payload: Payload) {
     switch (payload.action) {
-      case "init":
+    case "init":
+      this.send({
+        action: "init",
+        data: {
+          token: this._token
+        }
+      });
+      break;
+    case "ready":
+      console.log("Socket got ready event", payload);
+      if (Store.state.currentNote) {
         this.send({
-          action: "init",
+          action: "subscribe",
           data: {
-            token: this._token
+            note: Store.state.currentNote
           }
-        });
+        })
+      }
+      break;
+    case "/update/note/subscribers":
+      // note subscribers did update
+      console.log("Socket got subscriber update event", payload);
+      break;
+    case "/update/note":
+      // note metadata did change
+      Store.commit("updateNote", payload.data);
+      break;
+    case "/note/crud":
+      // note did update with crud
+      if (Store.state.preferences.enableCollaborationMode && this.crudAccepter) {
+        this.crudAccepter(payload.data!.note, payload.data!.packet);
+      }
+      break;
+    case "/note/create":
+      // note was created, insert to store
+      Store.commit("insertNote", payload.data);
+      break;
+    case "/note/delete":
+      Store.commit("delNote", payload.data);
+      if (Store.state.currentNote !== payload.data) break;
+      Store.commit("setNote", Store.getters.nextNote.id);
+    case "/update/user":
+      if (!payload.data) return;
+      if (payload.data.preferences) Store.commit("overwritePreferences", payload.data.preferences);
+      break;
+    case "response":
+      if (!payload.nonce) return;
+      const resolve = this.resolutionMap[payload.nonce];
+      if (!resolve) {
+        // resolve must be present to process a response.
         break;
-      case "ready":
-        console.log('Socket got ready event', payload);
-        if (Store.state.currentNote) {
-          this.send({
-            action: "subscribe",
-            data: {
-              note: Store.state.currentNote
-            }
-          })
-        }
-        break;
-      case "/update/note/subscribers":
-        // note subscribers did update
-        console.log('Socket got subscriber update event', payload);
-        break;
-      case "/update/note":
-        // note metadata did change
-        Store.commit('updateNote', payload.data);
-        break;
-      case "/note/crud":
-        // note did update with crud
-        if (Store.state.preferences.enableCollaborationMode && this.crudAccepter) {
-          this.crudAccepter(payload.data!.note, payload.data!.packet);
-        }
-        break;
-      case "/note/create":
-        // note was created, insert to store
-        Store.commit('insertNote', payload.data);
-        break;
-      case "/note/delete":
-        Store.commit('delNote', payload.data);
-        if (Store.state.currentNote !== payload.data) break;
-        Store.commit('setNote', Store.getters.nextNote.id);
-      case "/update/user":
-        var { data } = payload;
-        if (!data) return;
-        if (data.preferences) Store.commit('overwritePreferences', data.preferences);
-        break;
-      case "response":
-        // nonce resolved
-        var { nonce, data } = payload;
-        if (!nonce) {
-          // nonce must be present to process a response.
-          break;
-        }
-        const resolve = this.resolutionMap[nonce];
-        if (!resolve) {
-          // resolve must be present to process a response.
-          break;
-        }
-        resolve(data);
-        break;
+      }
+      resolve(payload.data);
+      break;
     }
   }
 }

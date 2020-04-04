@@ -1,0 +1,149 @@
+$light: (
+  text: black,
+  bg: white,
+  gray-1: rgb(142, 142, 147),
+  gray-2: rgb(174, 174, 178),
+  gray-3: rgb(199, 199, 204),
+  gray-4: rgb(209, 209, 214),
+  gray-5: rgb(229, 229, 234),
+  gray-6: rgb(242, 242, 247),
+  blue: rgb(0, 122, 255),
+  green: rgb(52, 199, 89),
+  indigo: rgb(88, 86, 214),
+  orange: rgb(255, 149, 0),
+  pink: rgb(255, 45, 85),
+  purple: rgb(175, 82, 222),
+  red: rgb(255, 59, 48),
+  teal: rgb(90, 200, 250),
+  yellow: rgb(255, 204, 0),
+);
+
+$dark: (
+  text: white,
+  bg: black,
+  gray-1: rgb(142, 142, 147),
+  gray-2: rgb(99, 99, 102),
+  gray-3: rgb(72, 72, 74),
+  gray-4: rgb(58, 58, 60),
+  gray-5: rgb(44, 44, 46),
+  gray-6: rgb(28, 28, 30),
+  blue: rgb(10, 132, 255),
+  green: rgb(48, 209, 88),
+  indigo: rgb(94, 92, 230),
+  orange: rgb(255, 159, 10),
+  pink: rgb(255, 55, 95),
+  purple: rgb(191, 90, 242),
+  red: rgb(255, 69, 58),
+  teal: rgb(100, 210, 255),
+  yellow: rgb(255, 214, 10),
+);
+
+// $modifiers: (
+//   light: (
+//     l5: lightened-palette($light, 5%),
+//     l10: lightened-palette($light, 10%),
+//     d5: darkened-palette($light, 5%),
+//     d10: darkened-palette($light, 10%)
+//   ),
+//   dark: (
+//     l5: lightened-palette($dark, 5%),
+//     l10: lightened-palette($dark, 10%),
+//     d5: darkened-palette($dark, 5%),
+//     d10: darkened-palette($dark, 10%)
+//   )
+// );
+
+$modifiers: (
+  light: (),
+  dark: ()
+);
+
+$shades: "2.5", "5", "10", "15", "20", "25";
+@each $shade in $shades {
+  $percent: to-number($shade) * 1%;
+  $modifiers: (
+    light: map-merge(map-get($modifiers, "light"), (
+      l#{$shade}: lightened-palette($light, $percent),
+      d#{$shade}: darkened-palette($light, $percent)
+    )),
+    dark: map-merge(map-get($modifiers, "dark"), (
+      l#{$shade}: lightened-palette($dark, $percent),
+      d#{$shade}: darkened-palette($dark, $percent)
+    )),
+  )
+}
+
+@mixin process-template-value($prop, $value, $template) {
+  @if str-length($template) > 0 {
+    $value: str-replace($template, '%v', $value);
+  }
+
+  #{$prop}: #{$value};
+}
+
+/// sets the text color based on the given color, usually a background color
+@mixin setTextColor($color) {
+  $lightness: lightness($color);
+  @if $lightness < 60 {
+    color: white;
+  } @else {
+    color: black;
+  }
+}
+
+@mixin testProperty($prop, $value) {
+  @if $prop == "background-color" {
+    @include setTextColor($value);
+  }
+}
+
+@mixin responsiveProperty($prop, $key, $template: '', $modifier: '', $dynamicText: 0) {
+  $lightMap: $light;
+  $darkMap: $dark;
+
+  @if str-length($modifier) > 0 {
+    $lightMap: map-get(map-get($modifiers, "light"), $modifier);
+    $darkMap: map-get(map-get($modifiers, "dark"), $modifier);
+  }
+
+  $lightColor: map-get($lightMap, $key);
+  $darkColor: map-get($darkMap, $key);
+
+  @include process-template-value($prop, $lightColor, $template);
+  @if $dynamicText == 1 {
+    @include testProperty($prop, $lightColor);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    @include process-template-value($prop, $darkColor, $template);
+    @if $dynamicText == 1 {
+      @include testProperty($prop, $lightColor);
+    }
+  }
+
+  @media print {
+    @include process-template-value($prop, $lightColor, $template);
+    @if $dynamicText == 1 {
+      @include testProperty($prop, $lightColor);
+    }
+  }
+
+  @media (prefers-color-scheme: light) {
+    @include process-template-value($prop, $lightColor, $template);
+    @if $dynamicText == 1 {
+      @include testProperty($prop, $lightColor);
+    }
+  }
+}
+
+@mixin everyColor($prop, $default: '', $style-prefix: '', $template: '', $modifier: '', $dynamicText: 0) {
+  @if map-has-key($light, $default) {
+    @include responsiveProperty($prop, $default, $template, $modifier, $dynamicText);
+  }
+
+  @each $name, $color in $light {
+    &.#{$style-prefix}#{$name} {
+      @include responsiveProperty($prop, $name, $template, $modifier, $dynamicText);
+    }
+  }
+}

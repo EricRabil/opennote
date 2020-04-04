@@ -1,0 +1,71 @@
+$FontPathOpenSans: "@/uikit/fonts";
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 300;
+  font-style: normal;
+  src: url('#{$FontPathOpenSans}/OpenSans-Light.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 300;
+  font-style: italic;
+  src: url('#{$FontPathOpenSans}/OpenSans-LightItalic.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: normal;
+  font-style: normal;
+  src: url('#{$FontPathOpenSans}/OpenSans-Regular.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: normal;
+  font-style: italic;
+  src: url('#{$FontPathOpenSans}/OpenSans-Italic.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 600;
+  font-style: normal;
+  src: url('#{$FontPathOpenSans}/OpenSans-Semibold.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 600;
+  font-style: italic;
+  src: url('#{$FontPathOpenSans}/OpenSans-SemiboldItalic.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: bold;
+  font-style: normal;
+  src: url('#{$FontPathOpenSans}/OpenSans-Bold.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: bold;
+  font-style: italic;
+  src: url('#{$FontPathOpenSans}/OpenSans-BoldItalic.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 800;
+  font-style: normal;
+  src: url('#{$FontPathOpenSans}/OpenSans-ExtraBold.ttf');
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  font-weight: 800;
+  font-style: italic;
+  src: url('#{$FontPathOpenSans}/OpenSans-ExtraBoldItalic.ttf');
+}

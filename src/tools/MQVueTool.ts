@@ -1,5 +1,5 @@
-import { BlockTool, BlockToolConstructable, PasteConfig, PasteEvent, SanitizerConfig } from '@editorjs/editorjs';
-import { VueConstructor } from 'vue/types/umd';
+import { BlockTool, BlockToolConstructable, PasteConfig, PasteEvent, SanitizerConfig } from "@editorjs/editorjs";
+import { VueConstructor } from "vue/types/umd";
 
 type FirstArgument<T> = T extends new (arg1: infer U, ...args: any[]) => any ? U : any;
 
@@ -38,10 +38,10 @@ type FirstArgument<T> = T extends new (arg1: infer U, ...args: any[]) => any ? U
  *  - rendered = called when EditorJS has rendered the component
  *  - [any] = The tool wrapper has a function called send(message: string, ...data: any[], resolve) which passes its arguments to the component in an $emit event. Please call resolve once handling is complete.
  */
-export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToolConstructable['toolbox'], pasteConfig: PasteConfig = {}) {
-    return class VueTool implements BlockTool {
-        constructor(private config: FirstArgument<BlockToolConstructable>) {
-        }
+export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToolConstructable["toolbox"], pasteConfig: PasteConfig = {}) {
+  return class VueTool implements BlockTool {
+    constructor(private config: FirstArgument<BlockToolConstructable>) {
+    }
     
         static toolbox = toolbox;
         static pasteConfig = pasteConfig;
@@ -59,11 +59,11 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         renderSettings: () => HTMLElement;
     
         get keyOverrides() {
-            return ['up', 'down', 'left', 'right']
+          return ["up", "down", "left", "right"]
         }
     
         get customEnter() {
-            return true;
+          return true;
         }
     
         // internal API >:)
@@ -71,130 +71,130 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
         block: any;
     
         save(block: HTMLElement): object {
-            return {};
+          return {};
         }
 
         willSelect() {
-            if (!this.component) return;
-            this.component.$emit('willSelect');
+          if (!this.component) return;
+          this.component.$emit("willSelect");
         }
 
         willUnselect() {
-            if (!this.component) return;
-            this.component.$emit('willUnselect');
+          if (!this.component) return;
+          this.component.$emit("willUnselect");
         }
     
         render(): HTMLElement {
-            this.component = new Component({
-                parent: this.Editor.editor.VueEditor,
-                propsData: {
-                    savedData: (this.config as any).data || {},
-                    api: this.config.api,
-                    internal: this.Editor
-                }
-            });
+          this.component = new Component({
+            parent: this.Editor.editor.VueEditor,
+            propsData: {
+              savedData: (this.config as any).data || {},
+              api: this.config.api,
+              internal: this.Editor
+            }
+          });
             
-            this.component.$mount();
+          this.component.$mount();
     
-            this.component.$on('insert', () => {
-                this.Editor.moduleInstances.Caret.setToBlock(this.Editor.moduleInstances.BlockManager.insert());
-                this.showToolbar();
-                this.Editor.moduleInstances.Toolbar.plusButton.show();
-            });
+          this.component.$on("insert", () => {
+            this.Editor.moduleInstances.Caret.setToBlock(this.Editor.moduleInstances.BlockManager.insert());
+            this.showToolbar();
+            this.Editor.moduleInstances.Toolbar.plusButton.show();
+          });
 
-            this.component.$on('destroy', () => {
-                this.Editor.moduleInstances.BlockManager.removeBlock(this.blockIndex);
-            });
+          this.component.$on("destroy", () => {
+            this.Editor.moduleInstances.BlockManager.removeBlock(this.blockIndex);
+          });
     
-            this.component.$on('showToolbar', () => {
-                this.showToolbar();
-            });
+          this.component.$on("showToolbar", () => {
+            this.showToolbar();
+          });
 
-            this.component.$on('enableToolbarAPI', () => this.enableToolbarAPI = true);
+          this.component.$on("enableToolbarAPI", () => this.enableToolbarAPI = true);
     
-            this.component.$on('hidePlusButton', () => {
-                this.Editor.moduleInstances.Toolbar.plusButton.hide();
+          this.component.$on("hidePlusButton", () => {
+            this.Editor.moduleInstances.Toolbar.plusButton.hide();
+          });
+    
+          this.component.$on("showPlusButton", () => {
+            this.Editor.moduleInstances.Toolbar.plusButton.show();
+          });
+    
+          this.component.$on("navigateNext", () => {
+            if (this.settingsOpened) return;
+            let { nextContentfulBlock } = this.Editor.moduleInstances.BlockManager;
+            if (!nextContentfulBlock) {
+              nextContentfulBlock = this.Editor.moduleInstances.BlockManager.insert();
+            }
+            this.Editor.moduleInstances.Caret.setToBlock(nextContentfulBlock, this.Editor.moduleInstances.Caret.positions.START);
+          });
+    
+          this.component.$on("navigatePrevious", () => {
+            if (this.settingsOpened) return;
+            const { previousContentfulBlock } = this.Editor.moduleInstances.BlockManager;
+            if (!previousContentfulBlock) return;
+            this.Editor.moduleInstances.Caret.setToBlock(previousContentfulBlock, this.Editor.moduleInstances.Caret.positions.END);
+          });
+    
+          this.component.$on("get:components", (cb: (components: Vue[]) => any) => {
+            cb(this.Editor.moduleInstances.BlockManager.blocks.filter((block: any) => block.name === this.block.name).map((block: any) => block.tool.component));
+          });
+    
+          this.component.$on("downOutOf", () => {
+            if (this.settingsOpened) return;
+            if (this.blockIndex === this.Editor.moduleInstances.BlockManager.blocks.length - 1) return;
+            this.Editor.moduleInstances.Caret.navigateNext(true);
+            const { currentBlock, currentBlockIndex, blocks } = this.Editor.moduleInstances.BlockManager;
+            if (currentBlockIndex !== blocks.length - 1) return;
+            if (!currentBlock.isEmpty) return;
+            this.Editor.moduleInstances.Events.once("caretChanged", () => {
+              this.Editor.moduleInstances.Toolbar.plusButton.show();
             });
+          });
     
-            this.component.$on('showPlusButton', () => {
-                this.Editor.moduleInstances.Toolbar.plusButton.show();
-            });
+          this.component.$on("upOutOf", () => {
+            if (this.settingsOpened) return;
+            if (this.blockIndex === 0) return;
+            this.Editor.moduleInstances.Caret.navigatePrevious(true);
+          });
     
-            this.component.$on('navigateNext', () => {
-                if (this.settingsOpened) return;
-                let { nextContentfulBlock } = this.Editor.moduleInstances.BlockManager;
-                if (!nextContentfulBlock) {
-                    nextContentfulBlock = this.Editor.moduleInstances.BlockManager.insert();
-                }
-                this.Editor.moduleInstances.Caret.setToBlock(nextContentfulBlock, this.Editor.moduleInstances.Caret.positions.START);
-            });
-    
-            this.component.$on('navigatePrevious', () => {
-                if (this.settingsOpened) return;
-                const { previousContentfulBlock } = this.Editor.moduleInstances.BlockManager;
-                if (!previousContentfulBlock) return;
-                this.Editor.moduleInstances.Caret.setToBlock(previousContentfulBlock, this.Editor.moduleInstances.Caret.positions.END);
-            });
-    
-            this.component.$on('get:components', (cb: (components: Vue[]) => any) => {
-                cb(this.Editor.moduleInstances.BlockManager.blocks.filter((block: any) => block.name === this.block.name).map((block: any) => block.tool.component));
-            });
-    
-            this.component.$on('downOutOf', () => {
-                if (this.settingsOpened) return;
-                if (this.blockIndex === this.Editor.moduleInstances.BlockManager.blocks.length - 1) return;
-                this.Editor.moduleInstances.Caret.navigateNext(true);
-                const { currentBlock, currentBlockIndex, blocks } = this.Editor.moduleInstances.BlockManager;
-                if (currentBlockIndex !== blocks.length - 1) return;
-                if (!currentBlock.isEmpty) return;
-                this.Editor.moduleInstances.Events.once('caretChanged', () => {
-                    this.Editor.moduleInstances.Toolbar.plusButton.show();
-                });
-            });
-    
-            this.component.$on('upOutOf', () => {
-                if (this.settingsOpened) return;
-                if (this.blockIndex === 0) return;
-                this.Editor.moduleInstances.Caret.navigatePrevious(true);
-            });
-    
-            this.component.$on('setIgnoreBackspace', (ignoreBackspace: () => boolean) => this.ignoreBackspace = ignoreBackspace);
-            this.component.$on('setIsEmpty', (isEmpty: () => boolean) => this.isEmpty = isEmpty);
-            this.component.$on('setIsAtStart', (isAtStart: () => boolean) => this.isAtStart = isAtStart);
-            this.component.$on('setIsAtEnd', (isAtEnd: () => boolean) => this.isAtEnd = isAtEnd);
-            this.component.$on('setSave', (save: (block: HTMLElement) => any) => this.save = save);
-            this.component.$on('setSanitizer', (sanitize: SanitizerConfig) => this.sanitize = sanitize);
-            this.component.$on('setRenderSettings', (render: () => HTMLElement) => this.renderSettings = render);
+          this.component.$on("setIgnoreBackspace", (ignoreBackspace: () => boolean) => this.ignoreBackspace = ignoreBackspace);
+          this.component.$on("setIsEmpty", (isEmpty: () => boolean) => this.isEmpty = isEmpty);
+          this.component.$on("setIsAtStart", (isAtStart: () => boolean) => this.isAtStart = isAtStart);
+          this.component.$on("setIsAtEnd", (isAtEnd: () => boolean) => this.isAtEnd = isAtEnd);
+          this.component.$on("setSave", (save: (block: HTMLElement) => any) => this.save = save);
+          this.component.$on("setSanitizer", (sanitize: SanitizerConfig) => this.sanitize = sanitize);
+          this.component.$on("setRenderSettings", (render: () => HTMLElement) => this.renderSettings = render);
 
-            // run this at the end
-            this.component.$emit('preload');
+          // run this at the end
+          this.component.$emit("preload");
 
-            this.component.$once('ready', () => {
-                if (this.pendingPasteEvent) {
-                    this.component.$emit('parsePaste', this.pendingPasteEvent);
-                    this.pendingPasteEvent = null;
-                }
-            })
+          this.component.$once("ready", () => {
+            if (this.pendingPasteEvent) {
+              this.component.$emit("parsePaste", this.pendingPasteEvent);
+              this.pendingPasteEvent = null;
+            }
+          })
     
-            return this.root = document.createElement('div');
+          return this.root = document.createElement("div");
         }
     
         moved() {
-            this.component.$emit('moved');
+          this.component.$emit("moved");
         }
     
         removed() {
-            this.component.$destroy();
+          this.component.$destroy();
         }
     
         rendered() {
-            this.root.replaceWith(this.component.$el);
-            this.component.$emit('rendered', this.root);
+          this.root.replaceWith(this.component.$el);
+          this.component.$emit("rendered", this.root);
         }
 
         onPaste(e: PasteEvent) {
-            if (!this.component) return this.pendingPasteEvent = e;
-            this.component.$emit('parsePaste', e);
+          if (!this.component) return this.pendingPasteEvent = e;
+          this.component.$emit("parsePaste", e);
         }
     
         /**
@@ -202,27 +202,27 @@ export function toolForVueComponent(Component: VueConstructor, toolbox: BlockToo
          * @deprecated
          */
         showToolbar() {
-            if (!this.enableToolbarAPI) return;
-            this.Editor.moduleInstances.Toolbar.open();
-            this.Editor.moduleInstances.BlockManager.highlightCurrentNode();
+          if (!this.enableToolbarAPI) return;
+          this.Editor.moduleInstances.Toolbar.open();
+          this.Editor.moduleInstances.BlockManager.highlightCurrentNode();
         }
     
         send(message: string, ...data: any[]) {
-            return new Promise((resolve, reject) => {
-                this.component.$emit(message, ...data, resolve);
-            });
+          return new Promise((resolve, reject) => {
+            this.component.$emit(message, ...data, resolve);
+          });
         }
     
         /**
          * Uses internal API to get index of this tool block
          */
         get blockIndex() {
-            return this.Editor.moduleInstances.BlockManager.blocks.indexOf(this.block);
+          return this.Editor.moduleInstances.BlockManager.blocks.indexOf(this.block);
         }
 
 
         get settingsOpened(): boolean {
-            return this.Editor.moduleInstances.BlockSettings.opened;
+          return this.Editor.moduleInstances.BlockSettings.opened;
         }
-    }
+  }
 }

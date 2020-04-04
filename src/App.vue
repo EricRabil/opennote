@@ -1,51 +1,15 @@
 <template>
   <div id="app">
     <router-view v-if="!firstRun" />
-    <transition name="fade">
-      <div class="modal-root"
-          v-if="modalOptions !== null"
-          ref="modalRoot">
-          <div :class="['modal', ...(modalOptions.customClasses || [])]" ref="modal">
-            <!-- Close Button -->
-            <div class="modal-close" v-if="modalOptions.closable !== false" @click="closeModal">&times;</div>
 
-            <!-- Header -->
-            <element-host
-              v-if="isNode(modalOptions.header)"
-              :element="modalOptions.header"
-              ></element-host>
-            <div class="modal-header" v-else>
-              <h1
-                v-if="modalOptions.header && typeof modalOptions.header === 'string'"
-              >{{modalOptions.header}}</h1>
-              <component
-                v-else-if="modalOptions.header && typeof modalOptions.header === 'function'"
-                v-bind="modalOptions.headerOptions"
-                :is="modalOptions.header"
-              ></component>
-            </div>
-
-            <!-- Body -->
-            <div class="modal-body" v-if="typeof modalOptions.body === 'string'" style="padding: 20px 40px 10px">
-              {{modalOptions.body}}
-            </div>
-            <component class="modal-body" v-else :is="modalOptions.body" v-bind="modalOptions.bodyOptions" @close="closeModal"></component>
-
-            <!-- Footer -->
-            <div
-              class="modal-footer"
-              v-if="typeof modalOptions.footer === 'string'"
-            >{{modalOptions.footer}}</div>
-            <component
-              class="modal-footer"
-              v-else-if="modalOptions.footer && typeof modalOptions.footer === 'function'"
-              v-bind="modalOptions.footerOptions"
-              :is="modalOptions.footer"
-            ></component>
-          </div>
-      </div>
-    </transition>
     <div class="build-number" v-if="buildNumber">#{{buildNumber}}</div>
+    <context-menu-controller ref="ctxController"></context-menu-controller>
+    <modal-controller ref="modalController"></modal-controller>
+    <onboarding-modal v-if="modals.onboarding" @close="modals.onboarding = false"></onboarding-modal>
+    <settings-modal v-if="modals.settings" v-bind="modalOptions.settings" @close="modals.settings = false"></settings-modal>
+    <confirmation-modal v-if="flash" :cancellable="false" :color="flash.color" :confirmation="flash.acknowledge || 'Ok'" :header="flash.title" @close="flash = null">
+      {{flash.message}}
+    </confirmation-modal>
   </div>
 </template>
 
@@ -53,13 +17,18 @@
 import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
 import { VueConstructor } from "vue";
-import ElementHost from "@/components/ElementHost.vue";
-import Onboarding from './components/Onboarding.vue';
-import DecisionButtons from "@/components/DecisionButtons.vue";
-import _ from './util';
-import Settings from './components/Settings.vue';
-import ShareNote from './components/ShareNote.vue';
-import { ONoteSDK, NoteModel } from './api.sdk';
+import DecisionButtons from "@/components/layout/DecisionButtons.vue";
+import _ from "@/util";
+import ShareNote from "@/components/modals/ShareNoteModal.vue";
+import { ONoteSDK, NoteModel } from "@/api.sdk";
+import { Action } from "@/uikit/layout/Actions.vue";
+import ContextMenuController from "@/uikit/controllers/ContextMenuController.vue";
+import Modal from "@/uikit/layout/Modal.vue";
+import ConfirmDeleteModal from "@/components/modals/ConfirmDeleteModal.vue";
+import OnboardingModal from "@/components/modals/OnboardingModal.vue";
+import ModalController from "@/uikit/controllers/ModalController.vue";
+import SettingsModal from "@/components/modals/SettingsModal.vue";
+import { UIColor } from "./uikit/entry";
 
 export interface ModalOptions {
   header?: string | VueConstructor | HTMLElement;
@@ -78,17 +47,34 @@ function mergeObject(thisArg: any, prop: string, obj: any) {
 
 @Component({
   components: {
-    ElementHost
+    OnboardingModal,
+    SettingsModal
   }
 })
 export default class App extends Vue {
   tooltip: Tooltip = null as any;
-  modalOptions: ModalOptions | null = null;
-  onclick = (e: MouseEvent) => this.clickListener(e);
+
+  modals = {
+    onboarding: false,
+    settings: false
+  };
+
+  modalOptions = {
+    settings: {
+      jumpTo: null as null | string
+    }
+  };
+
+  flash: {
+    title: string;
+    message: string;
+    acknowledge?: string;
+    color: UIColor;
+  } | null = null;
 
   $refs: {
-    modal: HTMLDivElement;
-    modalRoot: HTMLDivElement;
+    ctxController: ContextMenuController;
+    modalController: ModalController;
   };
 
   get firstRun() {
@@ -96,165 +82,70 @@ export default class App extends Vue {
   }
 
   get buildNumber() {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       return process.env.VUE_APP_BUILD_NUMBER || null;
     }
     return null;
   }
 
   async mounted() {
-    this.$on("modal-show", (options: ModalOptions) => this.showModal(options));
-    this.$on("modal-close", () => this.closeModal());
-    this.$on("modal-patch", (options: Partial<ModalOptions>) => mergeObject(this, 'modalOptions', options));
+    this.$root.$on("exportNotes", () => this.exportNotes());
+    this.$root.$on("importNote", () => this.importNote());
+    this.$root.$on("downloadNote", (id: string) => this.download(id));
+    this.$root.$on("shareNote", (id: string) => this.triggerShareNoteFlow(id));
+    this.$root.$on("newNote", () => this.newNote());
+    this.$root.$on("click", e => this.$refs.ctxController.clickListener(e));
 
-    this.$root.$on("modal-show", (options: ModalOptions) =>
-      this.$emit("modal-show", options)
-    );
-    this.$root.$on("modal-close", () => this.$emit("modal-close"));
-    this.$root.$on("modal-patch", (options: Partial<ModalOptions>) => this.$emit("modal-patch", options));
-    this.$root.$on('delNote', (id: string) => this.triggerDeleteNoteFlow(id));
-    this.$root.$on('exportNotes', () => this.exportNotes());
-    this.$root.$on('importNote', () => this.importNote());
-    this.$root.$on('downloadNote', (id: string) => this.download(id));
-    this.$root.$on('shareNote', (id: string) => this.triggerShareNoteFlow(id));
-    this.$root.$on('showSettings', () => this.showSettings());
-    this.$root.$on('newNote', () => this.newNote());
-
-    document.addEventListener("click", this.onclick);
-
-    this.$store.watch((state, getters) => getters.preferredColorScheme, (newValue: string, oldValue) => {
-      _.ensureDefaults();
-      switch (newValue) {
-        case 'light':
-        case 'dark':
+    this.$store.watch(
+      (state, getters) => getters.preferredColorScheme,
+      (newValue: string, oldValue) => {
+        _.ensureDefaults();
+        switch (newValue) {
+        case "light":
+        case "dark":
           _.setPreferredColorScheme(newValue);
           break;
         default:
           _.resetPreferredColorScheme();
+        }
+      },
+      {
+        immediate: true
+      }
+    );
+
+    this.$watch("modals.settings", showSettings => {
+      if (!showSettings) {
+        this.modalOptions.settings.jumpTo = null;
       }
     });
 
-    _.setPreferredColorScheme(this.$store.state.preferences.preferredColorScheme);
+    this.modals.onboarding = this.firstRun;
 
-    if (!this.$store.state.preferences.sawFirstRun) {
-      this.$root.$emit('modal-show', {
-        header: 'Hello',
-        body: Onboarding,
-        footer: DecisionButtons,
-        footerOptions: {
-          confirmText: "Launch OpenNote",
-          confirmStyle: "primary",
-          confirm: () => {
-            this.$store.commit('setPreference', { name: 'sawFirstRun', value: true });
-            this.$root.$emit('modal-close');
-          },
-          hasCancel: false
-        },
-        closable: false
-      } as ModalOptions);
-    }
-
-    this.$store.dispatch("hydrate").then(() => this.$nextTick()).then(() => {
-      if (this.$store.state.dory.flashLoggedIn) {
-        this.$root.$emit('modal-show', {
-          header: 'Settings',
-          body: Settings,
-          bodyOptions: {
-            jumpTo: "account"
-          }
-        });
-      }
-    });
+    this.$store
+      .dispatch("hydrate")
+      .then(() => this.$nextTick())
+      .then(() => {
+        if (this.$store.state.dory.flashLoggedIn) {
+          this.modals.settings = true;
+          this.modalOptions.settings.jumpTo = "account";
+        }
+      });
   }
 
   async newNote() {
-    this.$store.dispatch('newNote');
+    this.$store.dispatch("newNote");
   }
 
   get authSDK(): ONoteSDK {
     return this.$store.getters.authSDK;
   }
 
-  isNode(obj: any) {
-    return obj && obj.nodeType === Node.ELEMENT_NODE;
-  }
-
-  destroyed() {
-    document.removeEventListener("click", this.onclick);
-  }
-
-  modalReady(): boolean {
-    if (!this.$refs.modalRoot) return false;
-    return !this.$refs.modalRoot.classList.contains('fade-enter-active');
-  }
-
-  clickListener(e: MouseEvent) {
-    const inside =
-      this.$refs.modal &&
-      (this.$refs.modal === e.target ||
-        this.$refs.modal.contains(e.target as Node));
-    if (inside || !this.modalReady()) return;
-    this.closeModal();
-  }
-
-  showModal(options: ModalOptions) {
-    console.debug("showing modal with options", {
-      options
-    });
-    this.modalOptions = options;
-  }
-
-  closeModal() {
-    if (!this.modalOptions) return;
-    console.debug("closing modal with options", {
-      options: this.modalOptions
-    });
-    this.modalOptions = null;
-  }
-
   /**
    * Trigger share note modal, allow option to overwrite shortcode, generate link
    */
   triggerShareNoteFlow(id: string) {
-    this.$root.$emit("modal-show", {
-      header: "Share Note",
-      body: ShareNote,
-      bodyOptions: {
-        id
-      }
-    });
-  }
-
-  triggerDeleteNoteFlow(id: string, jumpTo: NoteModel = this.$store.getters.nextNote) {
-    if (!this.$store.getters.shouldDelete) return;
-    const completion = () => {
-      this.$store.dispatch("delNote", id);
-      this.$store.dispatch("selectNote", jumpTo && jumpTo.id);
-    };
-    
-    if (!this.$store.state.notes[id].data || this.$store.state.notes[id].data.blocks.length === 0) {
-      completion();
-      return;
-    }
-
-    this.$root.$emit("modal-show", {
-      header: "Delete Note?",
-      body:
-        "Deleting a note is permanent, it cannot be restored unless you have a backup.",
-      footer: DecisionButtons,
-      footerOptions: {
-        cancel: () => {
-          this.$root.$emit("modal-close");
-        },
-        confirm: () => {
-          completion();
-          this.$root.$emit("modal-close");
-        },
-        confirmText: "Delete Note",
-        cancelText: "Keep Note",
-        confirmStyle: "danger"
-      }
-    } as ModalOptions);
+    // this.$modal.show(ShareNote, { id });
   }
 
   async exportNotes() {
@@ -274,8 +165,8 @@ export default class App extends Vue {
             files.filter(f => f.name === data.name).length === 1
               ? data.name
               : `${data.name}${
-                  repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ""
-                }`,
+                repeats[data.name]++ > 0 ? ` (${repeats[data.name] - 1})` : ""
+              }`,
           text: data.text
         };
       })
@@ -291,14 +182,6 @@ export default class App extends Vue {
     _.saveFile(JSON.stringify(note), `${note.name}.onote`, "application/json");
   }
 
-  showSettings() {
-    this.$root.$emit("modal-show", {
-      header: "Settings",
-      body: Settings
-    } as ModalOptions);
-  }
-
-
   async importNote() {
     try {
       const files = await _.getFilesAsString({
@@ -309,20 +192,11 @@ export default class App extends Vue {
       files.forEach(file => this.$store.dispatch("newNote", JSON.parse(file)));
     } catch (e) {
       if (e instanceof _.DisplayableError) {
-        const {
-          options: { message, title }
-        } = e;
-        await this.$root.$emit("modal-show", {
-          header: title,
-          body: message,
-          footer: DecisionButtons,
-          footerOptions: {
-            hasCancel: false,
-            confirm: () => this.$root.$emit("modal-close"),
-            confirmText: "OK",
-            confirmStyle: "primary"
-          }
-        } as ModalOptions);
+        this.flash = {
+          message: e.options.message,
+          title: e.options.title || "Uh oh!",
+          color: "red"
+        };
       }
     }
   }
@@ -336,7 +210,10 @@ body {
   font-family: "Open Sans", sans-serif;
 }
 
-html, body, #app, .home {
+html,
+body,
+#app,
+.home {
   overflow: hidden;
   width: 100vw;
   max-height: 100vh;
@@ -358,7 +235,8 @@ body {
   display: none;
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   @keyframes modal-entry {
     from {
       transform: translateY(-200px);
@@ -379,112 +257,10 @@ body {
     animation-direction: reverse;
   }
 
-  transition: opacity .25s;
+  transition: opacity 0.25s;
 }
 .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
   opacity: 0;
-}
-
-.modal-root {
-  @extend %bgAlt1;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100%;
-  z-index: 0;
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  transform: translateY(-100vh);
-  z-index: 100000;
-  transform: translateY(0);
-
-  @supports (backdrop-filter: blur(10px)) {
-    backdrop-filter: blur(10px);
-    background: none;
-  }
-
-  @media only screen and (max-width: 650px) {
-    display: block;
-  }
-
-  & > .modal {
-    @extend %bgAlt1;
-    @extend %text;
-    @include schemeResponsive("box-shadow", "shadow-regular");
-    border-radius: 5px;
-    overflow: hidden;
-    position: absolute;
-    max-width: 500px;
-
-    @mixin modalFullscreen {
-      max-width: 100%;
-      width: 100%;
-      height: 100%;
-      border-radius: 0;
-      display: flex;
-      flex-flow: column;
-      justify-content: center;
-
-      & > .modal-body {
-        max-height: 300px;
-        padding: 10px 40px;
-      }
-
-      & > .modal-header {
-        background: none !important;
-        padding: 10px 40px !important;
-      }
-    }
-
-    &.modal-fullscreen {
-      @include modalFullscreen();
-    }
-
-    @media only screen and (max-width: 650px), only screen and (max-height: 500px) {
-      @include modalFullscreen();
-    }
-
-    & > .modal-header {
-      @extend %bgAlt2;
-      display: flex;
-      padding: 20px 40px;
-      line-height: 1;
-
-      & > .modal-close {
-        line-height: 0;
-      }
-
-      & h1 {
-        font-size: 20px;
-        font-weight: 300;
-        margin: 0;
-      }
-
-      &:empty {
-        display: none;
-      }
-    }
-
-    // & > .modal-body {
-    //   padding: 10px 40px;
-    // }
-
-    & > .modal-footer {
-      margin: 10px 0;
-      padding: 10px 60px;
-    }
-
-    & > .modal-close {
-      position: absolute;
-      right: 15px;
-      top: 10px;
-      cursor: pointer;
-    }
-  }
 }
 
 .ce-block {

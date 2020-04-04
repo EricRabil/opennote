@@ -1,5 +1,5 @@
 import axiosLib from "axios";
-import { LocalState } from './store';
+import { LocalState } from "./store";
 
 const axios = axiosLib.create({
   withCredentials: true
@@ -27,7 +27,7 @@ export interface NoteModel {
   created: number;
 }
 
-export type PreferenceModel = LocalState['preferences'];
+export type PreferenceModel = LocalState["preferences"];
 
 export class ONoteSDK {
   constructor(public readonly baseURL: string) {}
@@ -82,7 +82,7 @@ export class ONoteSDK {
     formData.append("image", avatar!);
     return axios.patch(`${this.baseURL}/api/v1/user/me/avatar`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        "Content-Type": "multipart/form-data"
       }
     });
   }

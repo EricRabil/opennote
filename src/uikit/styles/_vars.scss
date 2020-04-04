@@ -1,0 +1,14 @@
+$border-radius: 5px;
+$ctx-border-radius: 2.5px;
+$section-height: 50px;
+$drawer-section-padding: 5px;
+$transition-length: 0.0625s;
+
+@mixin border() {
+  border-radius: $border-radius;
+  overflow: hidden;
+}
+
+@mixin transition($prop) {
+  transition: #{$prop} $transition-length linear;
+}

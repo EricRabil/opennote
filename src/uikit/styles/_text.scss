@@ -1,0 +1,37 @@
+.text {
+  @include everyColor("color", "text", "text");
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 5px 0;
+}
+
+h1 {
+  @extend .text;
+  font-size: 22px;
+}
+
+h2 {
+  @extend .text;
+  font-size: 20px;
+}
+
+h3 {
+  @extend .text;
+  font-size: 18px;
+}
+
+h4 {
+  @extend .text;
+  font-size: 16px;
+}
+
+h5 {
+  @extend .text;
+  font-size: 14px;
+}
+
+h6 {
+  @extend .text;
+  font-size: 12px;
+}
