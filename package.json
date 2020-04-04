@@ -71,7 +71,6 @@
     "vue-class-component": "^7.0.2",
     "vue-codemirror": "^4.0.6",
     "vue-context": "^5.0.0",
-    "vue-drawer-layout": "file:../vue-drawer-layout",
     "vue-property-decorator": "^8.3.0",
     "vue-resize-observer": "^1.0.26",
     "vue-router": "^3.1.3",
