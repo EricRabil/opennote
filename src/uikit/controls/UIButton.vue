@@ -23,7 +23,6 @@ export default class UIButton extends Vue {
 <style lang="scss">
 .button {
   $baseColor: "gray-5";
-  @include everyColor("background-color", $baseColor, "button-", "", "", 1);
   @include transition("background-color");
   @include border();
   display: flex;
@@ -32,12 +31,17 @@ export default class UIButton extends Vue {
   align-items: center;
   justify-content: center;
 
-  &:hover {
-    @include everyColor("background-color", $baseColor, "button-", "", "d2.5");
-  }
+  &:not(.no-color) {
+    @include everyColor("background-color", $baseColor, "button-", "", "", 1);
 
-  &:active {
-    @include everyColor("background-color", $baseColor, "button-", "", "d5");
+
+    &:hover {
+      @include everyColor("background-color", $baseColor, "button-", "", "d2.5");
+    }
+
+    &:active, &.active {
+      @include everyColor("background-color", $baseColor, "button-", "", "d5");
+    }
   }
 }
 

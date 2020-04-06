@@ -16,6 +16,8 @@ import DrawerSectionItem from "@/uikit/layout/DrawerSectionItem.vue";
 import SidePiece from "@/uikit/layout/SidePiece.vue";
 import ContextMenu from "@/uikit/layout/ContextMenu.vue";
 import ConfirmationModal from "@/uikit/modals/ConfirmationModal.vue";
+import Icon from "@/uikit/layout/Icon.vue";
+import { PerfectScrollbar } from "vue2-perfect-scrollbar";
 const VTooltip = require("v-tooltip");
 
 export function installUIKit(vue: VueConstructor) {
@@ -45,7 +47,7 @@ export function installUIKit(vue: VueConstructor) {
   vue.component("ui-button-tray", UIButtonTray);
   vue.component("actions", Actions);
   vue.component("modal-controller", ModalController);
-  vue.component("scrollable", Scrollable);
+  vue.component("scrollable", PerfectScrollbar as any);
   vue.component("modal", Modal);
   vue.component("drawer", Drawer);
   vue.component("drawer-sticky", DrawerStickySection);
@@ -55,6 +57,7 @@ export function installUIKit(vue: VueConstructor) {
   vue.component("side-piece", SidePiece);
   vue.component("context-menu", ContextMenu);
   vue.component("confirmation-modal", ConfirmationModal);
+  vue.component("icon", Icon);
   vue.use(VTooltip);
 }
 

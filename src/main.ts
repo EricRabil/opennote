@@ -1,4 +1,6 @@
 import "reset-css";
+import "mathquill/build/mathquill.js";
+import "@/mathquill-patches";
 import "npm-font-open-sans/open-sans.css";
 import "mathquill/build/mathquill.css";
 import "@fortawesome/fontawesome-free/js/all.js";

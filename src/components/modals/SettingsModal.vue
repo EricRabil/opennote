@@ -141,6 +141,14 @@ export default class Settings extends Vue {
             type: "checkbox",
             update: value => this.$store.commit("setPreference", { name: "enableCollaborationMode", value }),
             value: () => this.$store.state.preferences.enableCollaborationMode
+          },
+          {
+            id: "newEditor",
+            name: "Use New Editor",
+            description: "We've been working on something spoopy :P",
+            type: "checkbox",
+            update: value => this.$store.commit("setPreference", { name: "useNewEditor", value }),
+            value: () => this.$store.state.preferences.useNewEditor
           }
         ]
       },

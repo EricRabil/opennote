@@ -1,4 +1,5 @@
 const fs = require("fs")
+const path  = require("path");
 const packageJson = fs.readFileSync("./package.json")
 const version = JSON.parse(packageJson).version || 0
 process.env.VUE_APP_VERSION = version;
@@ -17,7 +18,7 @@ module.exports = {
     }
   },
   devServer: {
-    host: "fatty.net",
+    // host: "fatty.net",
     disableHostCheck: true
   },
   // publicPath: '/opennote/',
@@ -35,6 +36,23 @@ module.exports = {
       .test(/\.worker\.ts$/)
       .use("worker-loader")
       .loader("worker-loader")
+      .end();
+
+    config.module
+      .rule('svg')
+      .exclude.add(path.resolve(__dirname, "src", "assets", "icons"))
+      .end();
+
+    config.module
+      .rule("svg-icon")
+      .test(/\.svg$/)
+      .include.add(path.resolve(__dirname, "src", "assets", "icons"))
+      .end()
+      .use("svg-sprite-loader")
+      .loader("svg-sprite-loader")
+      .options({
+        symbolId: 'icon-[name]'
+      })
       .end();
   },
   configureWebpack: {

@@ -1,3 +1,8 @@
+declare module "y-webrtc/dist/y-webrtc.cjs" {
+  import * as YRTC from "y-webrtc";
+  export = YRTC;
+}
+
 declare module '*.vue' {
   import Vue from 'vue'
   export default Vue

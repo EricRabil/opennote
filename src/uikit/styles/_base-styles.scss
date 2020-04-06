@@ -1,3 +1,40 @@
 %ctx-item-background {
   @include responsiveProperty("background-color", "gray-6");
 }
+
+@mixin dyn-border($position: "", $color: "gray-5", $thickness: 1px) {
+  @if str-length($position) > 0 {
+    $position: "-#{$position}";
+  }
+  @include responsiveProperty("border#{$position}", $color, "#{$thickness} solid %v");
+}
+
+%border-top {
+  @include dyn-border("top");
+}
+
+%border-right {
+  @include dyn-border("right");
+}
+
+%border-left {
+  @include dyn-border("left");
+}
+
+%border-bottom {
+  @include dyn-border("bottom");
+}
+
+%border {
+  @include responsiveProperty("border", "gray-5", "1px solid %v");
+}
+
+@mixin border-custom($color, $sides: ("top", "left", "bottom", "right")) {
+  @if type-of($sides) == string {
+    $sides: ($sides);
+  }
+
+  @each $side in $sides {
+    @include dyn-border($side, $color);
+  }
+}

@@ -14,6 +14,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "sourceMap": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "types": [
       "webpack-env",
@@ -39,6 +40,9 @@
     "src/**/*.vue",
     "tests/**/*.ts",
     "tests/**/*.tsx"
+  ],
+  "files": [
+    "./src/types/tiptap.d.ts"
   ],
   "exclude": [
     "node_modules",

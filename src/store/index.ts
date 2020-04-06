@@ -23,13 +23,16 @@ Vue.use(Vuex)
 const NEW_NOTE_NAME = "Untitled Note";
 
 export interface Note {
+  id: string;
   name: string;
-  data: OutputData;
+  data: Object;
   created: number;
+  updated: number;
   shortCode?: string;
 }
 
 const query = _.clearQueryString();
+const IS_SECURE = location.href.split("://")[0].endsWith("s");
 
 export const Store = new Vuex.Store({
   state: {
@@ -46,7 +49,8 @@ export const Store = new Vuex.Store({
       defaultNoteName: NEW_NOTE_NAME,
       defaultTrigState: "rad" as _.MathKit.TrigState,
       backend: null as null | string,
-      enableCollaborationMode: false
+      enableCollaborationMode: false,
+      useNewEditor: false
     },
     token: null as string | null,
     /**
@@ -90,6 +94,7 @@ export const Store = new Vuex.Store({
 
       // state.notes[id] = ;
       Vue.set(state.notes, id, {
+        id,
         data,
         name,
         created: created || Date.now()
@@ -173,13 +178,6 @@ export const Store = new Vuex.Store({
       state.commit("setNote", id);
     },
     async updateNote(state, { id, name, shortCode, data }) {
-      const note = state.state.notes[id];
-      if (note && note.data && note.data.blocks) {
-        if (!name && !shortCode && data) {
-          if (JSON.stringify(note.data.blocks) === JSON.stringify(data.blocks)) return;
-        }
-      }
-
       state.commit("updateNote", {
         data,
         id,
@@ -254,8 +252,8 @@ export const Store = new Vuex.Store({
       }));
   
       return flatNotes.sort((a, b) => {
-        const aTime = (a.data && a.data.time) || a.created;
-        const bTime = (b.data && b.data.time) || b.created;
+        const aTime = a.updated || a.created;
+        const bTime = b.updated || b.created;
         return bTime - aTime;
       });
     },
@@ -282,7 +280,8 @@ export const Store = new Vuex.Store({
     },
     sdk: state => state.dory.sdk,
     socket: state => state.dory.socket,
-    permitCollaboration: state => !!state.preferences.enableCollaborationMode
+    permitCollaboration: state => !!state.preferences.enableCollaborationMode,
+    rtcEndpoint: state => state.preferences.backend && `ws${IS_SECURE ? "s" : ""}://${location.host}`
   },
   modules: {
   },

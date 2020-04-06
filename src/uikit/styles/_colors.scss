@@ -58,7 +58,7 @@ $modifiers: (
   dark: ()
 );
 
-$shades: "2.5", "5", "10", "15", "20", "25";
+$shades: "2.5", "5", "7.5", "10", "15", "20", "25";
 @each $shade in $shades {
   $percent: to-number($shade) * 1%;
   $modifiers: (

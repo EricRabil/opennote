@@ -8,20 +8,28 @@
         @toggleCollapse="navCollapse = (typeof $event === 'boolean') ? $event: !navCollapse"
       ></note-list>
     </side-piece>
-    <editor
+    <beta-editor
       :show-burger="navCollapse"
       class="content"
       ref="editor"
       :scroll-lock="sidePieceIsDragging"
       @burgerClick="navCollapse = !navCollapse"
-    ></editor>
+      ></beta-editor>
+    <!-- <editor
+      v-else
+      :show-burger="navCollapse"
+      class="content"
+      ref="editor"
+      :scroll-lock="sidePieceIsDragging"
+      @burgerClick="navCollapse = !navCollapse"
+    ></editor> -->
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { Tooltip } from "@editorjs/editorjs/types/api";
-import Editor from "@/components/editor/Editor.vue";
+import BetaEditor from "@/components/new-editor/Editor.vue";
 import { Note } from "@/store";
 import NoteList from "@/components/navigator/NoteList.vue";
 import _ from "@/util";
@@ -33,7 +41,7 @@ import { isTouchDevice } from "@/uikit/layout/Actions.vue";
  */
 @Component({
   components: {
-    Editor,
+    BetaEditor,
     NoteList
   }
 })
@@ -46,7 +54,6 @@ export default class Home extends Vue {
 
   $refs: {
     noteList: NoteList;
-    editor: Editor;
     sidePiece: SidePiece;
   };
 
@@ -71,7 +78,7 @@ export default class Home extends Vue {
   sortListAscending: boolean = false;
 
   async mounted() {
-    this.$refs.sidePiece.bindRecognizer(this.$refs.editor.$el);
+    // this.$refs.sidePiece.bindRecognizer(this.$refs.editor.$el);
 
     if (this.$route.params.id && this.sdk) {
       // import a note!
@@ -93,6 +100,10 @@ export default class Home extends Vue {
 
   get version() {
     return process.env.VUE_APP_VERSION;
+  }
+
+  get shouldUseBetaEditor() {
+    return this.$store.state.preferences.useNewEditor;
   }
 
   /**

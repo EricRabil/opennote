@@ -1,0 +1,117 @@
+/** Margin for all but first elm **/
+& > * {
+  &:not(:first-child) {
+    margin-top: 1rem;
+  }
+}
+
+/** Bold **/
+strong {
+  font-weight: bold;
+}
+
+/** Italic **/
+em {
+  font-style: italic;
+}
+
+/** Strikethrough **/
+s {
+  text-decoration: line-through;
+}
+
+/** Underline **/
+u {
+  text-decoration: underline;
+}
+
+%code-base {
+  @include responsiveProperty("background-color", "gray-5");
+  padding: 0 2.5px;
+  border-radius: 2.5px;
+  font-family: monospace;
+}
+
+/** Inline Code **/
+code {
+  @extend %code-base;
+}
+
+/** Code Block **/
+pre {
+  @extend %code-base;
+  padding: 10px;
+  & > code {
+  }
+}
+
+ul, ol {
+  margin-left: 20px;
+}
+
+ul {
+  list-style-type: circle;
+}
+
+/*
+ * decimal upper-roman upper-alpha 
+ */
+
+%ol-base {
+  & {
+    list-style-type: decimal;
+    ol {
+      list-style-type: upper-roman;
+      ol {
+        list-style-type: upper-alpha;
+      }
+    }
+  }
+}
+
+ol {
+  @extend %ol-base;
+}
+
+$header-base: 48px;
+$offset: 6px;
+
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0;
+}
+
+h1 {
+  font-size: $header-base;
+}
+
+h2 {
+  font-size: #{$header-base - ($offset * 1)};
+}
+
+h3 {
+  font-size: #{$header-base - ($offset * 2)};
+}
+
+h4 {
+  font-size: #{$header-base - ($offset * 3)};
+}
+
+h5 {
+  font-size: #{$header-base - ($offset * 4)};
+}
+
+h6 {
+  font-size: #{$header-base - ($offset * 5)};
+}
+
+.cursor-root {
+  display: inline-block;
+  position: absolute;
+
+  background-color: orange;
+  background-color: attr(cursor-color);
+
+  width: 1.5px;
+
+  --name: attr(cursor-name);
+}
