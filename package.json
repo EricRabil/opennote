@@ -54,7 +54,7 @@
     "jquery": "^3.4.1",
     "jszip": "^3.2.2",
     "latex-utensils": "^1.2.3",
-    "mathjs": "^6.6.0",
+    "mathjs": "^7.5.1",
     "mathjs-simple-integral": "^0.1.1",
     "mathquill": "github:EricRabil/mathquill",
     "moment": "^2.24.0",
